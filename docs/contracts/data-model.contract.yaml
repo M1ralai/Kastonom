@@ -5,8 +5,9 @@ entities:
     purpose: "Represents an isolated customer or demo workspace."
     fields:
       id:
-        type: string
+        type: string := uuid
         required: true
+        unique: true
       name:
         type: string
         required: true
@@ -39,7 +40,7 @@ entities:
       name:
         type: string
         required: true
-      category:
+      description:
         type: string
         required: true
       description:
@@ -48,21 +49,11 @@ entities:
       price:
         type: number
         required: false
-      currency:
-        type: string
-        required: false
-      stock_quantity:
-        type: integer
-        required: false
-      is_new:
-        type: boolean
-        required: true
       image_url:
         type: string
         required: false
     relationships:
       - "Product belongs to Tenant."
-      - "Product has many ProductMetrics."
       - "Product may have many Campaigns."
     constraints:
       - "Product facts must come from source data or be marked unknown."
@@ -71,42 +62,6 @@ entities:
       - fields: [tenant_id, id]
         unique: true
       - fields: [tenant_id, category]
-        unique: false
-
-  - name: ProductMetric
-    purpose: "Sales, stock, and trend signals used for scoring."
-    fields:
-      id:
-        type: string
-        required: true
-      tenant_id:
-        type: string
-        required: true
-      product_id:
-        type: string
-        required: true
-      sales_velocity:
-        type: number
-        required: false
-      stock_movement:
-        type: number
-        required: false
-      trend_signal:
-        type: number
-        required: false
-      return_rate:
-        type: number
-        required: false
-      captured_at:
-        type: datetime
-        required: true
-    relationships:
-      - "ProductMetric belongs to Product."
-    constraints:
-      - "Numeric metrics must be bounded by implementation contract."
-      - "Missing metrics must remain null or unknown."
-    indexes:
-      - fields: [tenant_id, product_id, captured_at]
         unique: false
 
   - name: AudienceSegment
@@ -127,10 +82,6 @@ entities:
       primary_motivation:
         type: string
         required: false
-      source:
-        type: enum
-        values: [erp, commerce, analytics, mock, unknown]
-        required: true
     relationships:
       - "AudienceSegment belongs to Tenant."
       - "Campaign may reference AudienceSegment."
