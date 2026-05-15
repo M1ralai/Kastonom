@@ -1,0 +1,83 @@
+task:
+  name: "BE-011 Demo Fallback Endpoint and Replay Payload"
+  goal: "Implement GET /demo/fallback with deterministic products, campaign, creative brief, video job, and fallback reason."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/demo/**"
+    - "backend/src/http/routes/demo*"
+    - "backend/fixtures/**"
+    - "backend/src/repositories/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-010"
+  scope:
+    include:
+      - "Create demo fallback service."
+      - "Load deterministic fallback products, sample campaign, sample creative brief, sample prompt payload if stored, and sample video job."
+      - "Return fallback_reason=demo_fallback."
+      - "Validate required fallback fixtures and preview asset reference."
+      - "Add tests for complete fallback response and missing fixture failure."
+    exclude:
+      - "Frontend fallback rendering."
+      - "Live provider calls."
+      - "New AI-generated demo assets unless separately requested."
+
+requirements:
+  - id: "REQ-BE011-001"
+    description: "GET /demo/fallback must return deterministic fallback data for hackathon demo mode."
+    source_contract: "docs/contracts/api.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE011-002"
+    description: "Fallback data must be clearly marked as demo/mock data."
+    source_contract: "docs/architecture.md"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE011-001"
+    description: "GET /demo/fallback returns products, sample_campaign, sample_creative_brief, sample_video_job, and fallback_reason."
+    verification: "automated"
+  - id: "AC-BE011-002"
+    description: "Fallback response is deterministic across test runs."
+    verification: "automated"
+  - id: "AC-BE011-003"
+    description: "Missing fallback fixture returns DEMO_FALLBACK_UNAVAILABLE."
+    verification: "automated"
+  - id: "AC-BE011-004"
+    description: "Mock/live labeling is present in fallback job output."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Return DEMO_FALLBACK_UNAVAILABLE if required fixture is missing."
+  missing_config: "Fail clearly if mock preview URL or asset policy is required but absent."
+  external_dependency_failure: "Do not call external systems for demo fallback."
+  partial_completion: "Report which fallback artifacts are present and which are pending."
+
+test_commands:
+  - command: "TBD backend test command for demo fallback"
+    expected_result: "Demo fallback tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/demo/**"
+    - "backend/src/http/routes/demo*"
+    - "backend/fixtures/**"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Frontend can recover a full deterministic demo flow."
+  machine_readable_artifacts:
+    - "GET /demo/fallback JSON response."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Mention whether fallback preview is a local asset path or URL."
+

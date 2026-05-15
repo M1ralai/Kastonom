@@ -60,6 +60,16 @@ The backend is the orchestration API for Kastonom. It connects frontend requests
 - Validates structured output.
 - Rejects unsafe or invalid AI output.
 
+## Implementation Planning Docs
+
+Detailed backend planning artifacts live in:
+
+- `docs/backend/backend-system-plan.md`
+- `docs/backend/backend-subtask-plan.md`
+- `docs/backend/tasks/*.contract.yaml`
+
+Future backend implementation tasks should start from those files, then verify behavior against this layer contract and the API/data/AI contracts.
+
 ## API Responsibilities
 
 The backend must implement or later route:
@@ -104,4 +114,3 @@ Supported provider adapter names:
 - Video jobs can be created and polled.
 - Provider failures are normalized and visible.
 - Tenant-scoped data is never returned across tenants.
-

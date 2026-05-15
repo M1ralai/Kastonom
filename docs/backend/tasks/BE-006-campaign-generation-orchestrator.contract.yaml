@@ -1,0 +1,84 @@
+task:
+  name: "BE-006 Campaign Generation Orchestrator"
+  goal: "Implement POST /campaigns/generate as the backend orchestration workflow."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/campaigns/**"
+    - "backend/src/http/routes/campaigns*"
+    - "backend/src/products/**"
+    - "backend/src/repositories/**"
+    - "backend/src/domain/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-005"
+  scope:
+    include:
+      - "Validate product_id, provider, platform, duration_seconds, and language."
+      - "Load selected product and metrics by tenant."
+      - "Create campaign record with deterministic status transitions."
+      - "Call placeholder interfaces for MCP, prompt compiler, and provider orchestrator."
+      - "Return campaign_id, creative_brief, prompt_payload, video_job, and fallback_reason."
+      - "Add tests for invalid product id, product not found, and happy path with mocked dependencies."
+    exclude:
+      - "Full MCP implementation."
+      - "Full prompt compiler implementation."
+      - "Live provider adapter implementation."
+
+requirements:
+  - id: "REQ-BE006-001"
+    description: "POST /campaigns/generate must generate product intelligence, creative brief, prompt payload, and video job."
+    source_contract: "docs/contracts/api.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE006-002"
+    description: "Backend must coordinate product selection, intelligence output, creative brief, and prompt payload."
+    source_contract: "docs/layers/backend.contract.md"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE006-001"
+    description: "Campaign generation creates a campaign record scoped to tenant."
+    verification: "automated"
+  - id: "AC-BE006-002"
+    description: "Invalid product id returns INVALID_PRODUCT_ID or PRODUCT_NOT_FOUND."
+    verification: "automated"
+  - id: "AC-BE006-003"
+    description: "Successful response follows API contract and returns 202."
+    verification: "automated"
+  - id: "AC-BE006-004"
+    description: "Campaign service does not call provider adapters directly except through provider orchestrator boundary."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Return INVALID_REQUEST or INVALID_PRODUCT_ID without creating provider jobs."
+  missing_config: "Delegate provider config failure to provider orchestrator and fail closed when needed."
+  external_dependency_failure: "Store campaign failure or return normalized error according to implemented boundary."
+  partial_completion: "Report which downstream services are still placeholders."
+
+test_commands:
+  - command: "TBD backend test command for campaign orchestrator"
+    expected_result: "Campaign orchestrator tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/campaigns/**"
+    - "backend/src/http/routes/campaigns*"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Frontend can request campaign generation through backend."
+  machine_readable_artifacts:
+    - "POST /campaigns/generate JSON response."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "State which collaborators are mocked or fully implemented."
+

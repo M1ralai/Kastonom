@@ -1,0 +1,76 @@
+task:
+  name: "BE-000 Backend Contract Cleanup"
+  goal: "Resolve backend-blocking documentation contract gaps before implementation."
+  layer: "docs"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "docs/contracts/data-model.contract.yaml"
+    - "docs/contracts/api.contract.yaml"
+    - "docs/layers/backend.contract.md"
+    - "docs/backend/**"
+  forbidden_files:
+    - "backend/**"
+    - "frontend/**"
+  dependencies: []
+  scope:
+    include:
+      - "Remove or resolve duplicate Product.description definitions."
+      - "Add or reference a concrete ProductMetric entity."
+      - "Add missing Product.category field if API and indexes require it."
+      - "Clarify metric fields required for sales velocity, stock movement, trend potential, and audience fit."
+      - "Clarify prompt payload persistence expectations if backend stores prompt artifacts."
+    exclude:
+      - "Runtime implementation."
+      - "Provider integration code."
+      - "Frontend changes."
+
+requirements:
+  - id: "REQ-BE000-001"
+    description: "Data model contract must be internally consistent for backend implementation."
+    source_contract: "docs/contracts/data-model.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE000-002"
+    description: "Contract changes must preserve no-fabrication and tenant-scope rules."
+    source_contract: "docs/contracts/ai-behavior.contract.yaml"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE000-001"
+    description: "The data model contract defines every entity referenced by relationships."
+    verification: "review"
+  - id: "AC-BE000-002"
+    description: "The Product entity has no duplicate conflicting fields."
+    verification: "review"
+  - id: "AC-BE000-003"
+    description: "Backend task contracts do not require fields absent from the data model contract."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Document the unresolved contract gap and block backend implementation tasks that depend on it."
+  missing_config: "Not applicable for documentation cleanup."
+  external_dependency_failure: "Not applicable."
+  partial_completion: "List unresolved contract gaps, assumptions, and next safe step."
+
+test_commands:
+  - command: "ruby -e 'require \"yaml\"; YAML.load_file(\"docs/contracts/data-model.contract.yaml\"); YAML.load_file(\"docs/contracts/api.contract.yaml\")'"
+    expected_result: "Contracts parse as YAML."
+
+expected_output:
+  changed_files:
+    - "docs/contracts/data-model.contract.yaml"
+    - "docs/contracts/api.contract.yaml"
+  user_visible_behavior:
+    - "Future backend agents have unambiguous model contracts."
+  machine_readable_artifacts:
+    - "Updated YAML contracts."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Keep final report concise and include exact YAML validation command."
+

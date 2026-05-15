@@ -1,0 +1,86 @@
+task:
+  name: "BE-001 Backend Runtime Skeleton"
+  goal: "Create the backend runtime scaffold, app factory, health route, and test harness."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/**"
+    - "package.json"
+    - "pnpm-lock.yaml"
+    - "package-lock.json"
+    - "yarn.lock"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+    - "docs/contracts/**"
+  dependencies:
+    - "BE-000"
+  scope:
+    include:
+      - "Create backend project directory and package configuration."
+      - "Create app construction entry that can be imported by tests."
+      - "Create server entry that starts the HTTP backend."
+      - "Implement GET /health with safe static mode response if config is not ready yet."
+      - "Add a minimal automated test for /health."
+      - "Document run and test commands."
+    exclude:
+      - "Product API implementation."
+      - "Campaign generation."
+      - "Provider calls."
+      - "Frontend integration."
+
+requirements:
+  - id: "REQ-BE001-001"
+    description: "Backend must expose stable APIs to the frontend."
+    source_contract: "docs/layers/backend.contract.md"
+    priority: "must"
+  - id: "REQ-BE001-002"
+    description: "GET /health must follow the API contract."
+    source_contract: "docs/contracts/api.contract.yaml"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE001-001"
+    description: "Backend install command succeeds with the selected package manager."
+    verification: "automated"
+  - id: "AC-BE001-002"
+    description: "Backend test command succeeds."
+    verification: "automated"
+  - id: "AC-BE001-003"
+    description: "GET /health returns status, mode, and version without secrets."
+    verification: "automated"
+  - id: "AC-BE001-004"
+    description: "App can be imported by tests without binding a network port."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Use the documented backend plan and state the selected runtime assumption."
+  missing_config: "Health route may return mock or degraded mode, but must not expose config internals."
+  external_dependency_failure: "Do not add unnecessary dependencies to work around transient install failures."
+  partial_completion: "Report scaffold pieces created and blocked commands."
+
+test_commands:
+  - command: "TBD by selected backend package manager"
+    expected_result: "Install succeeds."
+  - command: "TBD backend test command"
+    expected_result: "Health route test passes."
+
+expected_output:
+  changed_files:
+    - "backend/**"
+  user_visible_behavior:
+    - "A local backend process can start and answer GET /health."
+  machine_readable_artifacts:
+    - "Backend package scripts."
+    - "Health route test."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Include exact local URL if the server is started."
+
