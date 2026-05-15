@@ -1,0 +1,54 @@
+product:
+  id: "TBD"
+  name: "TBD"
+  category: "TBD"
+  is_new: false
+  price: null
+  currency: null
+  stock_quantity: null
+  source: "mock | erp | commerce | unknown"
+
+audience:
+  age_range: "unknown"
+  primary_segment: "TBD"
+  buying_motivation: "TBD"
+  source: "mock | erp | commerce | analytics | unknown"
+
+insight:
+  hype_score: null
+  trend_potential_score: null
+  sales_velocity: null
+  stock_movement: null
+  new_product_boost: null
+  audience_fit: null
+  reason: "TBD"
+  confidence: "low | medium | high"
+
+campaign:
+  goal: "TBD"
+  platform: "tiktok | reels | youtube_shorts"
+  duration: 15
+  creative_angle: "TBD"
+  tone: "TBD"
+  visual_style: "TBD"
+
+message:
+  hook: "TBD"
+  main_claim: "TBD"
+  call_to_action: "TBD"
+
+constraints:
+  forbidden_claims:
+    - "Do not claim discounts unless discount data is provided."
+    - "Do not claim guaranteed results."
+    - "Do not claim unavailable product features."
+  required_words: []
+  language: "Turkish"
+  negative_instructions:
+    - "Do not invent product claims."
+    - "Do not show unavailable features."
+    - "Do not imply fake scarcity."
+
+fallback_notes:
+  - "TBD: add missing data notes here."
+

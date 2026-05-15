@@ -1,0 +1,107 @@
+version: "0.1.0"
+
+model_purpose:
+  name: "Kastonom MCP / AI commerce intelligence"
+  summary: "Convert commerce data into deterministic product recommendation, audience summary, creative brief, and prompt-compiler input."
+  non_purpose: "The AI is not a legal reviewer, media buyer, or source of invented product facts."
+
+inputs:
+  required:
+    - product
+    - available_metrics
+    - tenant_context
+  optional:
+    - audience_segments
+    - campaign_preferences
+    - trend_signals
+    - brand_constraints
+  missing_input_policy: "Represent missing data as unknown and include fallback_notes."
+
+outputs:
+  format: json
+  json_output_required: true
+  schema_name: CreativeIntelligenceOutput
+  required_fields:
+    - product_id
+    - recommendation
+    - scores
+    - audience_summary
+    - creative_brief
+    - fallback_notes
+  fields:
+    product_id: string
+    recommendation:
+      type: object
+      required_fields: [selected, reason]
+    scores:
+      type: object
+      required_fields:
+        - hype_score
+        - trend_potential_score
+        - sales_velocity
+        - stock_movement
+        - new_product_boost
+        - audience_fit
+    audience_summary:
+      type: object
+      required_fields: [primary_segment, age_range, buying_motivation, source]
+    creative_brief:
+      type: object
+      contract: "docs/prompts/creative-brief.template.yaml"
+    fallback_notes:
+      type: array
+      item_type: string
+
+forbidden_outputs:
+  - "Invented product claims."
+  - "Invented prices."
+  - "Invented discounts."
+  - "Invented stock levels."
+  - "Invented guarantees."
+  - "Invented shipping promises."
+  - "Invented customer demographics."
+  - "Sensitive demographic inference without explicit source data."
+  - "Medical, legal, financial, or safety claims not present in product data."
+  - "Provider API calls or provider credentials."
+
+deterministic_rules:
+  - "For identical inputs, return identical scores and structured outputs."
+  - "Use bounded numeric scores from 0 to 100 unless a later contract changes the range."
+  - "Use explicit tie-breakers for product recommendation."
+  - "Prefer rule-based scoring before LLM-generated narrative."
+  - "Do not use randomness unless a task contract explicitly allows it."
+  - "Return stable JSON field names."
+  - "Keep temperature low or equivalent deterministic settings for LLM calls."
+
+fallback_behavior:
+  missing_product_data: "Return unknown fields and fallback_notes; do not generate unsupported claims."
+  missing_metrics: "Set affected scores to null or documented default and include fallback_notes."
+  invalid_json: "Reject output and request one repair attempt if implementation supports it; otherwise fail closed."
+  unsafe_claim_detected: "Remove claim, add it to forbidden_claims, and include fallback_notes."
+  model_unavailable: "Return deterministic mock intelligence only if demo fallback mode is enabled."
+
+safety_rules:
+  - "Never expose secrets or provider credentials."
+  - "Never claim live provider output when using mock output."
+  - "Never produce ad copy for unavailable product features."
+  - "Never override tenant boundaries."
+  - "Never hide uncertainty from the frontend or demo operator."
+  - "Use clear fallback reasons for missing or low-confidence data."
+
+evaluation_criteria:
+  - id: EVAL-001
+    name: "JSON validity"
+    pass_condition: "Output parses as JSON and contains all required fields."
+  - id: EVAL-002
+    name: "No fabrication"
+    pass_condition: "Every factual product claim is traceable to input data or marked unknown."
+  - id: EVAL-003
+    name: "Deterministic scoring"
+    pass_condition: "Same input produces same scoring output."
+  - id: EVAL-004
+    name: "Creative usefulness"
+    pass_condition: "Brief contains a clear angle, hook, CTA, tone, and visual style."
+  - id: EVAL-005
+    name: "Fallback transparency"
+    pass_condition: "Missing data and provider fallback are visible in fallback_notes."
+

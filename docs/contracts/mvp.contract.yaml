@@ -1,0 +1,181 @@
+project:
+  name: Kastonom
+  type: hackathon_mvp
+  summary: "No-prompt AI advertising engine for ecommerce SMEs."
+  primary_goal: "Demo an end-to-end path from commerce data to AI ad video preview."
+  default_language: Turkish
+  default_ad_format: vertical_video
+
+architecture_layers:
+  frontend:
+    purpose: "User-facing creative console."
+    boundary: "Presentation only; no direct prompt generation or provider calls."
+  backend:
+    purpose: "Orchestration API for products, campaigns, video jobs, providers, and fallback behavior."
+    boundary: "Must enforce tenant scope and fail closed on missing live-provider configuration."
+  mcp_ai:
+    purpose: "Commerce intelligence, product scoring, audience summary, creative brief generation."
+    boundary: "Must not invent missing facts or product claims."
+
+scope:
+  include:
+    - product_list
+    - mock_erp_product_data
+    - product_scoring
+    - audience_summary
+    - creative_brief_generation
+    - prompt_compiler
+    - video_job_creation
+    - mock_video_provider_fallback
+    - frontend_demo_flow
+  exclude:
+    - production_erp_integration
+    - production_auth_billing
+    - automated_media_buying
+    - real_time_trend_scraping
+    - provider_specific_advanced_render_controls
+    - campaign_performance_optimization
+    - mobile_app
+
+features:
+  - id: F001
+    name: product_list
+    layer: frontend_backend
+    description: "Show mock ERP/product data in the creative console."
+    acceptance_criteria:
+      - "Frontend can render a list of products from backend or fallback data."
+      - "Each product includes id, name, category, price or unknown, stock or unknown, and status flags."
+    failure_behavior:
+      - "If product data cannot load, show demo fallback products when fallback mode is enabled."
+      - "If fallback mode is disabled, return a clear error and do not invent products."
+  - id: F002
+    name: product_scoring
+    layer: mcp_ai
+    description: "Calculate hype score and trend potential from available product metrics."
+    acceptance_criteria:
+      - "Scores are numeric, bounded, and reproducible for the same input."
+      - "Score explanations cite input fields used."
+    failure_behavior:
+      - "Missing metrics produce unknown fields and fallback reasons."
+  - id: F003
+    name: audience_summary
+    layer: mcp_ai
+    description: "Summarize likely audience from available commerce data."
+    acceptance_criteria:
+      - "Audience summary only uses provided segment data."
+      - "Missing demographics are marked unknown."
+    failure_behavior:
+      - "Do not infer sensitive or unsupported demographics."
+  - id: F004
+    name: creative_brief_generation
+    layer: mcp_ai
+    description: "Generate a structured creative brief from product, audience, and scoring inputs."
+    acceptance_criteria:
+      - "Brief follows docs/prompts/creative-brief.template.yaml."
+      - "Brief includes forbidden claims and fallback notes."
+    failure_behavior:
+      - "Invalid or incomplete inputs return fallback notes rather than fabricated content."
+  - id: F005
+    name: prompt_compiler
+    layer: backend_mcp_ai
+    description: "Convert the structured creative brief into provider-specific prompt payloads."
+    acceptance_criteria:
+      - "Compiler output follows provider adapter contract."
+      - "Compiler preserves forbidden claims and negative instructions."
+    failure_behavior:
+      - "Unsupported provider falls back to MockPromptAdapter only when fallback mode is enabled."
+  - id: F006
+    name: video_job_creation
+    layer: backend
+    description: "Create, track, and return video generation jobs."
+    acceptance_criteria:
+      - "Job has id, status, provider, campaign id, timestamps, and result or error."
+      - "Frontend can poll job status by id."
+    failure_behavior:
+      - "Failed provider calls store normalized error state."
+  - id: F007
+    name: mock_video_provider_fallback
+    layer: backend
+    description: "Provide a deterministic fallback video result for demos."
+    acceptance_criteria:
+      - "Demo can complete without external provider credentials."
+      - "Mock result is clearly marked as mock."
+    failure_behavior:
+      - "If fallback asset is missing, return explicit fallback failure."
+  - id: F008
+    name: frontend_demo_flow
+    layer: frontend
+    description: "Show dashboard, product insight, creative brief, job status, and ad preview."
+    acceptance_criteria:
+      - "A judge can follow the end-to-end flow in under 3 minutes."
+      - "All states have loading, success, and failure presentations."
+    failure_behavior:
+      - "Show actionable error copy and fallback state when enabled."
+
+acceptance_tests:
+  - id: AT001
+    name: demo_flow_mock_mode
+    command: "TBD"
+    expected: "User can complete product-to-ad-preview flow using only mock data and mock provider."
+  - id: AT002
+    name: no_prompt_generation_in_frontend
+    command: "TBD"
+    expected: "Frontend source contains no provider prompt generation logic."
+  - id: AT003
+    name: fail_closed_missing_provider_config
+    command: "TBD"
+    expected: "Live provider mode returns clear configuration error when credentials are missing."
+  - id: AT004
+    name: ai_no_fabrication
+    command: "TBD"
+    expected: "Missing product facts are returned as unknown or fallback_notes, not invented claims."
+
+non_goals:
+  - "Production-grade ERP integration."
+  - "Automated ad spend or media buying."
+  - "Complex multi-tenant billing."
+  - "Perfect provider prompt optimization."
+  - "Replacing human legal or brand review."
+
+risks:
+  - id: R001
+    risk: "Live video provider API may be unavailable during demo."
+    mitigation: "Mock provider fallback must be complete."
+  - id: R002
+    risk: "AI may hallucinate product claims."
+    mitigation: "Strict AI behavior contract and forbidden output validation."
+  - id: R003
+    risk: "MVP scope may expand beyond hackathon time."
+    mitigation: "Follow task queue and defer non-goals."
+  - id: R004
+    risk: "Insufficient product data may weaken scoring."
+    mitigation: "Use transparent fallback reasons and demo fixtures."
+
+demo_path:
+  entry_screen: Dashboard
+  steps:
+    - "Open dashboard with mock ERP/product data."
+    - "Select recommended product."
+    - "Review hype score, trend potential, and audience summary."
+    - "Generate creative brief."
+    - "Compile provider prompt through backend."
+    - "Create video job with mock or live provider."
+    - "Poll job status."
+    - "Display final ad preview."
+  expected_duration_minutes: 3
+
+fallback_behavior:
+  default_mode: mock_provider
+  allowed_when:
+    - "Provider API key is missing."
+    - "Provider API request fails."
+    - "Network is unavailable."
+    - "Hackathon demo requires deterministic output."
+  required_output:
+    - "Clear mock/fallback label."
+    - "Fallback reason."
+    - "Preview result or explicit missing asset error."
+  prohibited:
+    - "Silently pretending a mock result came from a live provider."
+    - "Inventing unavailable provider status."
+

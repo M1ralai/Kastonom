@@ -1,0 +1,167 @@
+version: "0.1.0"
+
+auth_requirements:
+  mode: "TBD"
+  tenant_required: true
+  frontend_auth: "TBD"
+  local_demo_auth: "May use a fixed demo tenant only when clearly marked as demo mode."
+  secrets_policy: "API keys must come from environment variables and must never be sent to the frontend."
+
+endpoints:
+  - method: GET
+    path: /health
+    purpose: "Return service health and mode."
+    request:
+      headers: {}
+      query: {}
+      body: null
+    response:
+      success:
+        status: 200
+        body:
+          status: "ok"
+          mode: "mock | live | degraded"
+          version: "string"
+      error:
+        status: 500
+        body:
+          error: "HEALTH_CHECK_FAILED"
+          message: "string"
+    error_codes:
+      - HEALTH_CHECK_FAILED
+    failure_behavior: "Return degraded status if optional provider checks fail; fail only for core service failure."
+
+  - method: GET
+    path: /products
+    purpose: "Return tenant-scoped products with available metrics for the creative console."
+    request:
+      headers:
+        x-tenant-id: "required string unless demo mode supplies default"
+      query:
+        limit: "optional integer"
+        cursor: "optional string"
+      body: null
+    response:
+      success:
+        status: 200
+        body:
+          products: "Product[]"
+          source: "mock | live"
+          fallback_reason: "string | null"
+      error:
+        status: "400 | 401 | 403 | 500"
+        body:
+          error: "string"
+          message: "string"
+    error_codes:
+      - INVALID_TENANT
+      - UNAUTHORIZED
+      - PRODUCT_SOURCE_UNAVAILABLE
+    failure_behavior: "Return mock products only when fallback mode is enabled; otherwise fail closed."
+
+  - method: POST
+    path: /campaigns/generate
+    purpose: "Generate product intelligence, creative brief, prompt payload, and video job."
+    request:
+      headers:
+        x-tenant-id: "required string unless demo mode supplies default"
+      body:
+        product_id: "required string"
+        provider: "optional enum: pollo | kling | runway | mock"
+        platform: "optional enum: tiktok | reels | youtube_shorts"
+        duration_seconds: "optional integer"
+        language: "optional string"
+    response:
+      success:
+        status: 202
+        body:
+          campaign_id: "string"
+          creative_brief: "CreativeBrief"
+          prompt_payload: "object"
+          video_job: "VideoJob"
+          fallback_reason: "string | null"
+      error:
+        status: "400 | 401 | 403 | 404 | 422 | 500"
+        body:
+          error: "string"
+          message: "string"
+          fallback_available: "boolean"
+    error_codes:
+      - INVALID_PRODUCT_ID
+      - PRODUCT_NOT_FOUND
+      - AI_OUTPUT_INVALID
+      - PROVIDER_CONFIG_MISSING
+      - PROVIDER_UNAVAILABLE
+    failure_behavior: "Do not create a live provider job when config is missing; use mock provider only when explicitly allowed."
+
+  - method: GET
+    path: /video-jobs/{id}
+    purpose: "Return current video generation job status."
+    request:
+      headers:
+        x-tenant-id: "required string unless demo mode supplies default"
+      path_params:
+        id: "required string"
+      query: {}
+      body: null
+    response:
+      success:
+        status: 200
+        body:
+          id: "string"
+          status: "queued | processing | completed | failed"
+          provider: "pollo | kling | runway | mock"
+          preview_url: "string | null"
+          error: "object | null"
+          is_mock: "boolean"
+      error:
+        status: "401 | 403 | 404 | 500"
+        body:
+          error: "string"
+          message: "string"
+    error_codes:
+      - VIDEO_JOB_NOT_FOUND
+      - UNAUTHORIZED
+      - INVALID_TENANT
+    failure_behavior: "Never reveal jobs outside tenant scope."
+
+  - method: GET
+    path: /demo/fallback
+    purpose: "Return deterministic fallback data for hackathon demo mode."
+    request:
+      headers: {}
+      query: {}
+      body: null
+    response:
+      success:
+        status: 200
+        body:
+          products: "Product[]"
+          sample_campaign: "Campaign"
+          sample_creative_brief: "CreativeBrief"
+          sample_video_job: "VideoJob"
+          fallback_reason: "demo_fallback"
+      error:
+        status: 500
+        body:
+          error: "DEMO_FALLBACK_UNAVAILABLE"
+          message: "string"
+    error_codes:
+      - DEMO_FALLBACK_UNAVAILABLE
+    failure_behavior: "Return explicit failure if demo fixture or preview asset is missing."
+
+error_codes:
+  common:
+    - INVALID_REQUEST
+    - UNAUTHORIZED
+    - INVALID_TENANT
+    - NOT_FOUND
+    - CONFIGURATION_MISSING
+    - INTERNAL_ERROR
+
+failure_behavior:
+  missing_configuration: "Fail closed with CONFIGURATION_MISSING unless documented demo fallback applies."
+  validation_failure: "Return 400 or 422 with field-level message when possible."
+  provider_failure: "Store normalized provider error and return failed or fallback job state."
+  ai_failure: "Reject invalid AI output and return fallback reason."
+

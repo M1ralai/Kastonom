@@ -1,0 +1,337 @@
+version: "0.1.0"
+
+entities:
+  - name: Tenant
+    purpose: "Represents an isolated customer or demo workspace."
+    fields:
+      id:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      mode:
+        type: enum
+        values: [demo, live]
+        required: true
+      created_at:
+        type: datetime
+        required: true
+    relationships:
+      - "Tenant has many Products."
+      - "Tenant has many Campaigns."
+    constraints:
+      - "id must be unique."
+      - "mode must be demo or live."
+    indexes:
+      - fields: [id]
+        unique: true
+
+  - name: Product
+    purpose: "Commerce product available for campaign generation."
+    fields:
+      id:
+        type: string
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      category:
+        type: string
+        required: true
+      description:
+        type: string
+        required: false
+      price:
+        type: number
+        required: false
+      currency:
+        type: string
+        required: false
+      stock_quantity:
+        type: integer
+        required: false
+      is_new:
+        type: boolean
+        required: true
+      image_url:
+        type: string
+        required: false
+    relationships:
+      - "Product belongs to Tenant."
+      - "Product has many ProductMetrics."
+      - "Product may have many Campaigns."
+    constraints:
+      - "Product facts must come from source data or be marked unknown."
+      - "Product id must be unique within tenant."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, category]
+        unique: false
+
+  - name: ProductMetric
+    purpose: "Sales, stock, and trend signals used for scoring."
+    fields:
+      id:
+        type: string
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      product_id:
+        type: string
+        required: true
+      sales_velocity:
+        type: number
+        required: false
+      stock_movement:
+        type: number
+        required: false
+      trend_signal:
+        type: number
+        required: false
+      return_rate:
+        type: number
+        required: false
+      captured_at:
+        type: datetime
+        required: true
+    relationships:
+      - "ProductMetric belongs to Product."
+    constraints:
+      - "Numeric metrics must be bounded by implementation contract."
+      - "Missing metrics must remain null or unknown."
+    indexes:
+      - fields: [tenant_id, product_id, captured_at]
+        unique: false
+
+  - name: AudienceSegment
+    purpose: "Known or inferred-from-data customer segment used for creative targeting."
+    fields:
+      id:
+        type: string
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      age_range:
+        type: string
+        required: false
+      primary_motivation:
+        type: string
+        required: false
+      source:
+        type: enum
+        values: [erp, commerce, analytics, mock, unknown]
+        required: true
+    relationships:
+      - "AudienceSegment belongs to Tenant."
+      - "Campaign may reference AudienceSegment."
+    constraints:
+      - "Do not infer sensitive demographics without explicit source data."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+
+  - name: Campaign
+    purpose: "Generated advertising campaign request."
+    fields:
+      id:
+        type: string
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      product_id:
+        type: string
+        required: true
+      status:
+        type: enum
+        values: [draft, generating, ready, failed]
+        required: true
+      platform:
+        type: enum
+        values: [tiktok, reels, youtube_shorts, unknown]
+        required: true
+      language:
+        type: string
+        required: true
+      created_at:
+        type: datetime
+        required: true
+    relationships:
+      - "Campaign belongs to Tenant."
+      - "Campaign belongs to Product."
+      - "Campaign has one CreativeBrief."
+      - "Campaign may have one or more VideoJobs."
+    constraints:
+      - "Campaign must not cross tenant boundaries."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, product_id]
+        unique: false
+
+  - name: CreativeBrief
+    purpose: "Structured creative decision output used by prompt compiler."
+    fields:
+      id:
+        type: string
+        required: true
+      campaign_id:
+        type: string
+        required: true
+      product_id:
+        type: string
+        required: true
+      hype_score:
+        type: number
+        required: false
+      trend_potential_score:
+        type: number
+        required: false
+      creative_angle:
+        type: string
+        required: true
+      tone:
+        type: string
+        required: true
+      visual_style:
+        type: string
+        required: true
+      main_claim:
+        type: string
+        required: false
+      call_to_action:
+        type: string
+        required: true
+      forbidden_claims:
+        type: array
+        item_type: string
+        required: true
+      fallback_notes:
+        type: array
+        item_type: string
+        required: true
+    relationships:
+      - "CreativeBrief belongs to Campaign."
+      - "CreativeBrief is input to prompt compiler."
+    constraints:
+      - "Must follow docs/prompts/creative-brief.template.yaml."
+      - "Must not contain unsupported product claims."
+    indexes:
+      - fields: [campaign_id]
+        unique: true
+
+  - name: VideoJob
+    purpose: "Tracks provider video generation lifecycle."
+    fields:
+      id:
+        type: string
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      campaign_id:
+        type: string
+        required: true
+      provider:
+        type: enum
+        values: [pollo, kling, runway, mock]
+        required: true
+      status:
+        type: enum
+        values: [queued, processing, completed, failed]
+        required: true
+      provider_job_id:
+        type: string
+        required: false
+      preview_url:
+        type: string
+        required: false
+      is_mock:
+        type: boolean
+        required: true
+      created_at:
+        type: datetime
+        required: true
+      updated_at:
+        type: datetime
+        required: true
+    relationships:
+      - "VideoJob belongs to Campaign."
+      - "VideoJob has one ProviderResult."
+    constraints:
+      - "Provider job ids must not be exposed across tenants."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [campaign_id]
+        unique: false
+
+  - name: ProviderResult
+    purpose: "Normalized live or mock provider response."
+    fields:
+      id:
+        type: string
+        required: true
+      video_job_id:
+        type: string
+        required: true
+      provider:
+        type: enum
+        values: [pollo, kling, runway, mock]
+        required: true
+      raw_status:
+        type: string
+        required: false
+      normalized_status:
+        type: enum
+        values: [queued, processing, completed, failed]
+        required: true
+      result_url:
+        type: string
+        required: false
+      error_code:
+        type: string
+        required: false
+      error_message:
+        type: string
+        required: false
+      received_at:
+        type: datetime
+        required: true
+    relationships:
+      - "ProviderResult belongs to VideoJob."
+    constraints:
+      - "Raw provider response must not include secrets."
+      - "Mock results must be marked by VideoJob.is_mock."
+    indexes:
+      - fields: [video_job_id]
+        unique: true
+
+relationships:
+  - "Tenant -> Product -> ProductMetric"
+  - "Tenant -> Campaign -> CreativeBrief"
+  - "Campaign -> VideoJob -> ProviderResult"
+
+constraints:
+  - "All tenant-scoped entities require tenant_id unless explicitly global."
+  - "No model may store provider secrets."
+  - "Unknown data must be represented explicitly rather than fabricated."
+
+indexes:
+  - entity: Product
+    fields: [tenant_id, id]
+  - entity: Campaign
+    fields: [tenant_id, id]
+  - entity: VideoJob
+    fields: [tenant_id, id]
+

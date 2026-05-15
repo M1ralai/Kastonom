@@ -1,0 +1,56 @@
+task:
+  name: "TBD"
+  goal: "TBD"
+  layer: "frontend | backend | mcp_ai | prompt_compiler | docs | cross_layer"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "TBD"
+  forbidden_files:
+    - "TBD"
+  dependencies:
+    - "TBD"
+  scope:
+    include:
+      - "TBD"
+    exclude:
+      - "TBD"
+
+requirements:
+  - id: REQ-001
+    description: "TBD"
+    source_contract: "TBD"
+    priority: must
+
+acceptance_criteria:
+  - id: AC-001
+    description: "TBD"
+    verification: "manual | automated | review"
+
+failure_behavior:
+  missing_input: "Fail with explicit error and do not invent data."
+  missing_config: "Fail closed unless the task explicitly allows mock fallback."
+  external_dependency_failure: "Use documented fallback only when allowed."
+  partial_completion: "Report completed work, blocked work, assumptions, and next safe step."
+
+test_commands:
+  - command: "TBD"
+    expected_result: "TBD"
+
+expected_output:
+  changed_files:
+    - "TBD"
+  user_visible_behavior:
+    - "TBD"
+  machine_readable_artifacts:
+    - "TBD"
+
+reporting_format:
+  required_sections:
+    - changed_files
+    - tests_run
+    - assumptions
+    - risks
+    - next_safe_step
+  notes: "Keep final reports concise and include exact test commands."
+
