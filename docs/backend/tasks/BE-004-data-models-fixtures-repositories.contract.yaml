@@ -1,0 +1,85 @@
+task:
+  name: "BE-004 Data Models, Fixtures, and Repository Boundary"
+  goal: "Create backend models, deterministic demo fixtures, and tenant-scoped in-memory repositories."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/domain/**"
+    - "backend/src/repositories/**"
+    - "backend/src/demo/**"
+    - "backend/fixtures/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-000"
+    - "BE-003"
+  scope:
+    include:
+      - "Define backend types for Tenant, Product, ProductMetric, AudienceSegment, Campaign, CreativeBrief, PromptPayload, VideoJob, and ProviderResult."
+      - "Create demo fixtures for tenant, products, metrics, audience segments, creative brief, and provider result."
+      - "Create in-memory repositories with tenant-scoped methods."
+      - "Inject clock and id generation for deterministic tests."
+      - "Add fixture validation tests."
+    exclude:
+      - "Database migrations."
+      - "Live ERP integration."
+      - "Provider network calls."
+
+requirements:
+  - id: "REQ-BE004-001"
+    description: "Persistence approach must support products, metrics, campaigns, briefs, video jobs, and provider results."
+    source_contract: "docs/architecture.md"
+    priority: "must"
+  - id: "REQ-BE004-002"
+    description: "All tenant-scoped entities require tenant_id unless explicitly global."
+    source_contract: "docs/contracts/data-model.contract.yaml"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE004-001"
+    description: "Demo fixtures load deterministically and are clearly marked as mock data."
+    verification: "automated"
+  - id: "AC-BE004-002"
+    description: "Repository lookup by id also requires tenant_id for tenant-scoped entities."
+    verification: "review"
+  - id: "AC-BE004-003"
+    description: "Cross-tenant repository tests prove data isolation."
+    verification: "automated"
+  - id: "AC-BE004-004"
+    description: "Missing facts are represented as null, unknown, not_available, or fallback notes."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Mark missing optional facts explicitly and include fallback notes where relevant."
+  missing_config: "Use demo fixtures only when mock mode or fallback mode allows it."
+  external_dependency_failure: "Do not introduce external data source calls in this task."
+  partial_completion: "Report implemented entities and missing fixture coverage."
+
+test_commands:
+  - command: "TBD backend test command for repositories and fixtures"
+    expected_result: "Repository and fixture tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/domain/**"
+    - "backend/src/repositories/**"
+    - "backend/fixtures/**"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Backend has deterministic product and campaign data foundations."
+  machine_readable_artifacts:
+    - "JSON fixtures."
+    - "Typed model definitions or runtime schemas."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "List any fixture fields intentionally marked unknown."
+

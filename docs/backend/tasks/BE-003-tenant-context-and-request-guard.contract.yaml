@@ -1,0 +1,81 @@
+task:
+  name: "BE-003 Tenant Context and Request Guard"
+  goal: "Resolve tenant context for API requests and enforce tenant scope before data access."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/http/middleware/**"
+    - "backend/src/http/errors/**"
+    - "backend/src/domain/**"
+    - "backend/src/config/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-002"
+  scope:
+    include:
+      - "Create request context type with request_id, tenant_id, mode, and fallback flags."
+      - "Read x-tenant-id for tenant-scoped endpoints."
+      - "Use configured demo tenant only when demo/mock mode allows it."
+      - "Reject missing or invalid tenant outside demo mode."
+      - "Add tests for missing tenant, demo tenant fallback, and invalid tenant."
+    exclude:
+      - "Production authentication provider."
+      - "Billing or user management."
+      - "Frontend auth UI."
+
+requirements:
+  - id: "REQ-BE003-001"
+    description: "Tenant IDs are required for tenant-scoped data."
+    source_contract: "docs/contracts/api.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE003-002"
+    description: "Backend must not bypass tenant checks."
+    source_contract: "docs/layers/backend.contract.md"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE003-001"
+    description: "Tenant-scoped routes cannot access repositories without a tenant id."
+    verification: "review"
+  - id: "AC-BE003-002"
+    description: "Demo mode can resolve the configured demo tenant."
+    verification: "automated"
+  - id: "AC-BE003-003"
+    description: "Missing tenant outside demo mode returns a stable tenant/auth error."
+    verification: "automated"
+  - id: "AC-BE003-004"
+    description: "Request id is available for error mapping and logs."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Fail with INVALID_TENANT or UNAUTHORIZED and do not load data."
+  missing_config: "Fail closed if demo tenant id is required but missing."
+  external_dependency_failure: "Not applicable."
+  partial_completion: "Report which routes are guarded and which remain unguarded."
+
+test_commands:
+  - command: "TBD backend test command for tenant context"
+    expected_result: "Tenant context tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/http/middleware/**"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Tenant-scoped API calls require valid tenant context."
+  machine_readable_artifacts:
+    - "Request context type or equivalent."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Call out any temporary demo auth assumptions."
+

@@ -1,0 +1,83 @@
+task:
+  name: "BE-009 Provider Adapter Boundary and Mock Provider"
+  goal: "Implement provider adapter interface, provider selection, config checks, and deterministic mock provider."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/providers/**"
+    - "backend/src/config/**"
+    - "backend/src/video-jobs/**"
+    - "backend/src/repositories/**"
+    - "backend/fixtures/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-008"
+  scope:
+    include:
+      - "Create provider adapter interface."
+      - "Implement provider orchestrator that selects mock, pollo, kling, or runway."
+      - "Implement MockProviderAdapter with deterministic result and mock label."
+      - "Create live provider adapter skeletons that fail closed when config is missing."
+      - "Normalize provider errors."
+      - "Add tests for mock success, missing live config, unsupported provider, and fallback enabled behavior."
+    exclude:
+      - "Real live provider network submissions unless a later task explicitly allows them."
+      - "Provider webhooks."
+      - "Advanced provider render controls."
+
+requirements:
+  - id: "REQ-BE009-001"
+    description: "Backend must call external AI video providers only through provider adapters."
+    source_contract: "docs/layers/backend.contract.md"
+    priority: "must"
+  - id: "REQ-BE009-002"
+    description: "Mock video provider fallback must allow demo without external credentials."
+    source_contract: "docs/contracts/mvp.contract.yaml"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE009-001"
+    description: "Mock provider returns deterministic normalized provider result with is_mock=true."
+    verification: "automated"
+  - id: "AC-BE009-002"
+    description: "Live provider selected without credentials returns PROVIDER_CONFIG_MISSING."
+    verification: "automated"
+  - id: "AC-BE009-003"
+    description: "Fallback from live provider to mock happens only when fallback is enabled and is labeled."
+    verification: "automated"
+  - id: "AC-BE009-004"
+    description: "Provider-specific fields do not leak into frontend response except under allowed metadata."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Return INVALID_REQUEST for missing prompt payload or provider value."
+  missing_config: "Fail closed with PROVIDER_CONFIG_MISSING unless fallback policy allows mock."
+  external_dependency_failure: "Store normalized provider error or fallback to mock only when allowed."
+  partial_completion: "Report which provider adapters are skeletons and which are functional."
+
+test_commands:
+  - command: "TBD backend test command for provider adapters"
+    expected_result: "Provider adapter tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/providers/**"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Backend can create deterministic mock video provider results."
+  machine_readable_artifacts:
+    - "ProviderResult schema or validator."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Explicitly state that live provider calls were not made unless allowed by task."
+

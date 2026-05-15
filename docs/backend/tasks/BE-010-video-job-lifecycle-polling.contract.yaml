@@ -1,0 +1,83 @@
+task:
+  name: "BE-010 Video Job Lifecycle and Polling"
+  goal: "Implement video job persistence, status transitions, provider result storage, and GET /video-jobs/{id}."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/video-jobs/**"
+    - "backend/src/http/routes/video-jobs*"
+    - "backend/src/providers/**"
+    - "backend/src/repositories/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-009"
+  scope:
+    include:
+      - "Create video job service."
+      - "Persist VideoJob and ProviderResult records by tenant."
+      - "Implement allowed status transitions: queued, processing, completed, failed."
+      - "Implement GET /video-jobs/{id}."
+      - "Return preview_url, provider, status, error, and is_mock."
+      - "Add tests for successful polling, not found, cross-tenant access, and failed job response."
+    exclude:
+      - "Provider webhooks."
+      - "Long-running background workers."
+      - "Frontend polling implementation."
+
+requirements:
+  - id: "REQ-BE010-001"
+    description: "Video job must have id, status, provider, campaign id, timestamps, and result or error."
+    source_contract: "docs/contracts/mvp.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE010-002"
+    description: "Frontend can poll job status by id."
+    source_contract: "docs/contracts/api.contract.yaml"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE010-001"
+    description: "GET /video-jobs/{id} returns job state for the owning tenant."
+    verification: "automated"
+  - id: "AC-BE010-002"
+    description: "Cross-tenant job lookup does not reveal the job."
+    verification: "automated"
+  - id: "AC-BE010-003"
+    description: "Failed provider result is normalized into the video job error object."
+    verification: "automated"
+  - id: "AC-BE010-004"
+    description: "Mock completed job includes is_mock=true and preview_url when available."
+    verification: "automated"
+
+failure_behavior:
+  missing_input: "Return VIDEO_JOB_NOT_FOUND for unknown id without leaking tenant data."
+  missing_config: "Not applicable unless job status depends on provider config."
+  external_dependency_failure: "Use stored normalized provider result rather than live polling when provider is unavailable."
+  partial_completion: "Report implemented transitions and pending worker/webhook behavior."
+
+test_commands:
+  - command: "TBD backend test command for video jobs"
+    expected_result: "Video job tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/video-jobs/**"
+    - "backend/src/http/routes/video-jobs*"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Frontend can poll video job status."
+  machine_readable_artifacts:
+    - "GET /video-jobs/{id} JSON response."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "State whether mock jobs complete immediately or progress across polls."
+
