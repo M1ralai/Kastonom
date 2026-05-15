@@ -1,0 +1,84 @@
+task:
+  name: "BE-013 Backend Contract Test Suite"
+  goal: "Add focused backend tests for mock demo flow, fail-closed behavior, tenant isolation, no-fabrication rules, and API contract shape."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/tests/**"
+    - "backend/src/**"
+    - "backend/fixtures/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-011"
+    - "BE-012"
+  scope:
+    include:
+      - "Test full mock product-to-video-job flow."
+      - "Test live provider mode fails closed without credentials."
+      - "Test invalid tenant and cross-tenant job access."
+      - "Test missing product facts remain unknown or fallback-noted."
+      - "Test API response shapes for health, products, campaign generation, video job polling, and demo fallback."
+      - "Add a no-secret fixture/source scan if practical."
+    exclude:
+      - "Frontend end-to-end browser tests."
+      - "Live provider network tests."
+      - "Load testing."
+
+requirements:
+  - id: "REQ-BE013-001"
+    description: "Core tests must cover fail-closed paths."
+    source_contract: "docs/contracts/mvp.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE013-002"
+    description: "Mock provider fallback must be complete and deterministic."
+    source_contract: "docs/contracts/api.contract.yaml"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE013-001"
+    description: "Mock demo flow test passes from GET /products through POST /campaigns/generate and GET /video-jobs/{id}."
+    verification: "automated"
+  - id: "AC-BE013-002"
+    description: "Missing live provider credentials test returns PROVIDER_CONFIG_MISSING."
+    verification: "automated"
+  - id: "AC-BE013-003"
+    description: "Tenant isolation test proves cross-tenant data is not returned."
+    verification: "automated"
+  - id: "AC-BE013-004"
+    description: "No-fabrication test proves unsupported discounts, guarantees, stock claims, and demographics are not invented."
+    verification: "automated"
+  - id: "AC-BE013-005"
+    description: "Backend test command is documented and passing."
+    verification: "automated"
+
+failure_behavior:
+  missing_input: "Create deterministic test fixtures instead of relying on live external data."
+  missing_config: "Use mock mode for default tests and explicit env overrides for fail-closed tests."
+  external_dependency_failure: "Do not require live provider network access."
+  partial_completion: "Report missing coverage and next test to add."
+
+test_commands:
+  - command: "TBD backend test command"
+    expected_result: "All backend contract tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/tests/**"
+    - "backend/src/**"
+  user_visible_behavior:
+    - "Team can verify backend MVP behavior before demo."
+  machine_readable_artifacts:
+    - "Automated backend test suite."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Include exact pass/fail result and any intentionally skipped live-provider tests."
+

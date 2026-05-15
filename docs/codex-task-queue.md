@@ -43,6 +43,7 @@ This queue is the default implementation order for Kastonom. Each task should be
 - **Goal:** Implement stable backend API endpoints.
 - **Layer:** backend
 - **Inputs:** `docs/contracts/api.contract.yaml`
+- **Backend planning inputs:** `docs/backend/backend-system-plan.md`, `docs/backend/backend-subtask-plan.md`, `docs/backend/tasks/BE-005-product-api.contract.yaml`, `docs/backend/tasks/BE-006-campaign-generation-orchestrator.contract.yaml`, `docs/backend/tasks/BE-010-video-job-lifecycle-polling.contract.yaml`, `docs/backend/tasks/BE-011-demo-fallback-endpoint.contract.yaml`
 - **Allowed files:** backend routes/controllers/services, API tests
 - **Acceptance criteria:** `/health`, `/products`, `/campaigns/generate`, `/video-jobs/{id}`, and `/demo/fallback` behave as contracted.
 - **Test command placeholder:** `TBD`
@@ -70,9 +71,31 @@ This queue is the default implementation order for Kastonom. Each task should be
 - **Goal:** Implement provider adapter boundary and mock provider fallback.
 - **Layer:** backend
 - **Inputs:** MVP contract fallback behavior, API contract, prompt compiler contract
+- **Backend planning inputs:** `docs/backend/tasks/BE-009-provider-adapter-boundary-mock-provider.contract.yaml`, `docs/backend/tasks/BE-012-error-handling-observability.contract.yaml`
 - **Allowed files:** provider adapter files, video job service files, tests
 - **Acceptance criteria:** Missing live config fails closed; mock provider can complete demo flow.
 - **Test command placeholder:** `TBD`
+
+## Backend Planning Artifacts
+
+The backend workstream is now broken into detailed implementation contracts:
+
+- `BE-000`: Contract cleanup for backend-blocking data model gaps.
+- `BE-001`: Backend runtime skeleton.
+- `BE-002`: Configuration and mode guardrails.
+- `BE-003`: Tenant context and request guard.
+- `BE-004`: Data models, fixtures, and repositories.
+- `BE-005`: Product API.
+- `BE-006`: Campaign generation orchestrator.
+- `BE-007`: MCP client and AI validation.
+- `BE-008`: Prompt compiler backend integration.
+- `BE-009`: Provider adapter boundary and mock provider.
+- `BE-010`: Video job lifecycle and polling.
+- `BE-011`: Demo fallback endpoint.
+- `BE-012`: Error handling, logging, and secret redaction.
+- `BE-013`: Backend contract test suite.
+
+Use `docs/backend/backend-subtask-plan.md` as the default backend implementation order.
 
 ## Task 8: Frontend Demo Flow
 
@@ -100,4 +123,3 @@ This queue is the default implementation order for Kastonom. Each task should be
 - **Allowed files:** `README.md`, `docs/**`, demo assets if already part of project
 - **Acceptance criteria:** A new judge or teammate can run the demo from README instructions.
 - **Test command placeholder:** `TBD`
-

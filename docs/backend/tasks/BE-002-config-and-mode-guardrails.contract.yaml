@@ -1,0 +1,80 @@
+task:
+  name: "BE-002 Configuration and Mode Guardrails"
+  goal: "Implement explicit backend mode, fallback, provider, and credential readiness configuration."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/config/**"
+    - "backend/src/http/routes/health*"
+    - "backend/src/domain/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-001"
+  scope:
+    include:
+      - "Parse KASTONOM_MODE with default mock."
+      - "Parse KASTONOM_FALLBACK_ENABLED with safe default for local demo."
+      - "Parse default provider, platform, language, and duration."
+      - "Validate provider-specific credential readiness without exposing secrets."
+      - "Expose safe readiness flags through GET /health."
+      - "Add tests for mock mode, live missing credentials, and invalid mode."
+    exclude:
+      - "Actual live provider network calls."
+      - "Frontend environment wiring."
+
+requirements:
+  - id: "REQ-BE002-001"
+    description: "Backend must fail closed when required configuration is missing."
+    source_contract: "docs/contracts/mvp.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE002-002"
+    description: "API keys must come from environment variables and never be sent to frontend."
+    source_contract: "docs/contracts/api.contract.yaml"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE002-001"
+    description: "Mock mode starts without live provider credentials."
+    verification: "automated"
+  - id: "AC-BE002-002"
+    description: "Live provider readiness reports missing credentials without exposing values."
+    verification: "automated"
+  - id: "AC-BE002-003"
+    description: "Invalid mode returns a startup or config validation error."
+    verification: "automated"
+  - id: "AC-BE002-004"
+    description: "Health response contains only safe config summary."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Use documented defaults from backend-system-plan."
+  missing_config: "Fail closed in live provider mode and keep mock mode available."
+  external_dependency_failure: "Not applicable unless config loader depends on a package."
+  partial_completion: "Report which modes are implemented and which are pending."
+
+test_commands:
+  - command: "TBD backend test command for config"
+    expected_result: "Config and health mode tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/config/**"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Backend mode is explicit and safe."
+  machine_readable_artifacts:
+    - "Typed config object or equivalent runtime config schema."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Mention any selected default values."
+

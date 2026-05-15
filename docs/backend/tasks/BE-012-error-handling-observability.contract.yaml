@@ -1,0 +1,84 @@
+task:
+  name: "BE-012 Error Handling, Logging, and Secret Redaction"
+  goal: "Standardize backend API errors, request ids, safe logging, provider error normalization, and secret redaction."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/http/errors/**"
+    - "backend/src/http/middleware/**"
+    - "backend/src/providers/**"
+    - "backend/src/config/**"
+    - "backend/src/domain/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-002"
+    - "BE-010"
+  scope:
+    include:
+      - "Create stable API error mapper."
+      - "Attach request id to errors and safe logs."
+      - "Normalize provider failures into ProviderResult and VideoJob error shapes."
+      - "Redact authorization headers, API keys, and provider credential-like fields."
+      - "Add no-secret tests for config, logs where testable, fixtures, and API responses."
+    exclude:
+      - "Production monitoring vendor integration."
+      - "Distributed tracing."
+      - "User analytics."
+
+requirements:
+  - id: "REQ-BE012-001"
+    description: "Missing required config must fail closed with clear error."
+    source_contract: "docs/contracts/api.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE012-002"
+    description: "Logs must not include secrets or raw provider credentials."
+    source_contract: "docs/architecture.md"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE012-001"
+    description: "Common API errors map to documented status codes and error bodies."
+    verification: "automated"
+  - id: "AC-BE012-002"
+    description: "Provider errors are normalized and stored without secrets."
+    verification: "automated"
+  - id: "AC-BE012-003"
+    description: "API responses do not include stack traces or provider credentials."
+    verification: "automated"
+  - id: "AC-BE012-004"
+    description: "Request id is available in error responses or logs according to implementation policy."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Return INVALID_REQUEST with field-level message when possible."
+  missing_config: "Return CONFIGURATION_MISSING or provider-specific config error."
+  external_dependency_failure: "Normalize failure without leaking raw credentials."
+  partial_completion: "Report which error codes are implemented and which remain pending."
+
+test_commands:
+  - command: "TBD backend test command for error handling and redaction"
+    expected_result: "Error and redaction tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/http/errors/**"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Failures are clear, stable, and safe."
+  machine_readable_artifacts:
+    - "ApiError shape or equivalent."
+    - "Provider error normalization utilities."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Include any remaining unmapped error codes."
+

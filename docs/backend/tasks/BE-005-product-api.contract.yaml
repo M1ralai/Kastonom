@@ -1,0 +1,82 @@
+task:
+  name: "BE-005 Product API"
+  goal: "Implement GET /products using tenant-scoped product service and documented fallback behavior."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/products/**"
+    - "backend/src/http/routes/products*"
+    - "backend/src/repositories/**"
+    - "backend/src/http/errors/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-004"
+  scope:
+    include:
+      - "Create product service that loads products and metrics by tenant."
+      - "Implement GET /products with limit and cursor parsing if simple pagination is included."
+      - "Return source and fallback_reason fields."
+      - "Return mock products only when mock or fallback mode allows it."
+      - "Add tests for success, missing tenant, invalid tenant, and fallback disabled failure."
+    exclude:
+      - "Campaign generation."
+      - "Product mutation endpoints."
+      - "Live ERP integration."
+
+requirements:
+  - id: "REQ-BE005-001"
+    description: "GET /products must return tenant-scoped products with available metrics."
+    source_contract: "docs/contracts/api.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE005-002"
+    description: "If product data cannot load, fallback products are allowed only when fallback mode is enabled."
+    source_contract: "docs/contracts/mvp.contract.yaml"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE005-001"
+    description: "GET /products returns Product[] for the demo tenant in mock mode."
+    verification: "automated"
+  - id: "AC-BE005-002"
+    description: "GET /products response includes source and fallback_reason."
+    verification: "automated"
+  - id: "AC-BE005-003"
+    description: "GET /products does not return data for invalid tenant."
+    verification: "automated"
+  - id: "AC-BE005-004"
+    description: "Product facts are not invented when fixture fields are missing."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Return validation error for invalid pagination or tenant input."
+  missing_config: "Fail closed when product source is unavailable and fallback is disabled."
+  external_dependency_failure: "Return PRODUCT_SOURCE_UNAVAILABLE unless fallback is explicitly allowed."
+  partial_completion: "Report which success and failure states are covered."
+
+test_commands:
+  - command: "TBD backend test command for product API"
+    expected_result: "Product API tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/products/**"
+    - "backend/src/http/routes/products*"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Frontend can load product dashboard data from backend."
+  machine_readable_artifacts:
+    - "GET /products JSON response."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Include sample response shape if useful."
+
