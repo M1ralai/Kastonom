@@ -1,11 +1,33 @@
-version: "0.1.0"
+version: "0.2.0"
+
+model_purpose:
+  name: "Kastonom Creative Generation and Ad Publishing Data Model"
+  summary: "Tracks a user-provided visual asset through AI video generation, user selection, ad publication, platform metrics, and optional metric-informed creative iteration."
+  primary_flow:
+    - "User creates a creative project."
+    - "User provides one or more visual source assets."
+    - "User enters a small set of creative inputs about the advertised subject."
+    - "Backend compiles a provider-ready prompt payload."
+    - "Backend creates a video generation job through mock or live provider adapters."
+    - "Generated video variants are stored for user review."
+    - "User selects a generated video."
+    - "Selected video is published to Meta Ads or Google Ads through backend integrations."
+    - "Backend stores ad metrics snapshots from connected platforms."
+    - "When the user asks, backend creates a new creative iteration suggestion from the latest metrics."
+  removed_from_scope:
+    - "ERP product recommendation."
+    - "Commerce decision support."
+    - "Automatic product scoring from sales, stock, or trend data."
+    - "Audience segmentation inference."
+    - "Automatic media buying decisions without user action."
 
 entities:
   - name: Tenant
-    purpose: "Represents an isolated customer or demo workspace."
+    purpose: "Represents an isolated customer, workspace, or demo tenant."
     fields:
       id:
-        type: string := uuid
+        type: string
+        format: uuid_or_stable_demo_id
         required: true
         unique: true
       name:
@@ -15,200 +37,9 @@ entities:
         type: enum
         values: [demo, live]
         required: true
-      created_at:
-        type: datetime
-        required: true
-    relationships:
-      - "Tenant has many Products."
-      - "Tenant has many Campaigns."
-    constraints:
-      - "id must be unique."
-      - "mode must be demo or live."
-    indexes:
-      - fields: [id]
-        unique: true
-
-  - name: Product
-    purpose: "Commerce product available for campaign generation."
-    fields:
-      id:
-        type: string
-        required: true
-      tenant_id:
-        type: string
-        required: true
-      name:
-        type: string
-        required: true
-      description:
-        type: string
-        required: true
-      description:
-        type: string
-        required: false
-      price:
-        type: number
-        required: false
-      image_url:
-        type: string
-        required: false
-    relationships:
-      - "Product belongs to Tenant."
-      - "Product may have many Campaigns."
-    constraints:
-      - "Product facts must come from source data or be marked unknown."
-      - "Product id must be unique within tenant."
-    indexes:
-      - fields: [tenant_id, id]
-        unique: true
-      - fields: [tenant_id, category]
-        unique: false
-
-  - name: AudienceSegment
-    purpose: "Known or inferred-from-data customer segment used for creative targeting."
-    fields:
-      id:
-        type: string
-        required: true
-      tenant_id:
-        type: string
-        required: true
-      name:
-        type: string
-        required: true
-      age_range:
-        type: string
-        required: false
-      primary_motivation:
-        type: string
-        required: false
-    relationships:
-      - "AudienceSegment belongs to Tenant."
-      - "Campaign may reference AudienceSegment."
-    constraints:
-      - "Do not infer sensitive demographics without explicit source data."
-    indexes:
-      - fields: [tenant_id, id]
-        unique: true
-
-  - name: Campaign
-    purpose: "Generated advertising campaign request."
-    fields:
-      id:
-        type: string
-        required: true
-      tenant_id:
-        type: string
-        required: true
-      product_id:
-        type: string
-        required: true
       status:
         type: enum
-        values: [draft, generating, ready, failed]
-        required: true
-      platform:
-        type: enum
-        values: [tiktok, reels, youtube_shorts, unknown]
-        required: true
-      language:
-        type: string
-        required: true
-      created_at:
-        type: datetime
-        required: true
-    relationships:
-      - "Campaign belongs to Tenant."
-      - "Campaign belongs to Product."
-      - "Campaign has one CreativeBrief."
-      - "Campaign may have one or more VideoJobs."
-    constraints:
-      - "Campaign must not cross tenant boundaries."
-    indexes:
-      - fields: [tenant_id, id]
-        unique: true
-      - fields: [tenant_id, product_id]
-        unique: false
-
-  - name: CreativeBrief
-    purpose: "Structured creative decision output used by prompt compiler."
-    fields:
-      id:
-        type: string
-        required: true
-      campaign_id:
-        type: string
-        required: true
-      product_id:
-        type: string
-        required: true
-      hype_score:
-        type: number
-        required: false
-      trend_potential_score:
-        type: number
-        required: false
-      creative_angle:
-        type: string
-        required: true
-      tone:
-        type: string
-        required: true
-      visual_style:
-        type: string
-        required: true
-      main_claim:
-        type: string
-        required: false
-      call_to_action:
-        type: string
-        required: true
-      forbidden_claims:
-        type: array
-        item_type: string
-        required: true
-      fallback_notes:
-        type: array
-        item_type: string
-        required: true
-    relationships:
-      - "CreativeBrief belongs to Campaign."
-      - "CreativeBrief is input to prompt compiler."
-    constraints:
-      - "Must follow docs/prompts/creative-brief.template.yaml."
-      - "Must not contain unsupported product claims."
-    indexes:
-      - fields: [campaign_id]
-        unique: true
-
-  - name: VideoJob
-    purpose: "Tracks provider video generation lifecycle."
-    fields:
-      id:
-        type: string
-        required: true
-      tenant_id:
-        type: string
-        required: true
-      campaign_id:
-        type: string
-        required: true
-      provider:
-        type: enum
-        values: [pollo, kling, runway, mock]
-        required: true
-      status:
-        type: enum
-        values: [queued, processing, completed, failed]
-        required: true
-      provider_job_id:
-        type: string
-        required: false
-      preview_url:
-        type: string
-        required: false
-      is_mock:
-        type: boolean
+        values: [active, disabled]
         required: true
       created_at:
         type: datetime
@@ -217,20 +48,436 @@ entities:
         type: datetime
         required: true
     relationships:
-      - "VideoJob belongs to Campaign."
-      - "VideoJob has one ProviderResult."
+      - "Tenant has many CreativeProjects."
+      - "Tenant has many SourceAssets."
+      - "Tenant has many AdPlatformConnections."
     constraints:
-      - "Provider job ids must not be exposed across tenants."
+      - "Tenant id must be unique."
+      - "All tenant-scoped entities must include tenant_id."
+      - "Demo tenants must be clearly marked with mode=demo."
+    indexes:
+      - fields: [id]
+        unique: true
+      - fields: [mode]
+        unique: false
+
+  - name: CreativeProject
+    purpose: "Groups one ad creative workflow from source visual to generated videos, publication, metrics, and later iterations."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      name:
+        type: string
+        required: true
+      status:
+        type: enum
+        values: [draft, generating, ready, published, archived, failed]
+        required: true
+      selected_generated_video_id:
+        type: string
+        required: false
+      latest_generation_request_id:
+        type: string
+        required: false
+      created_at:
+        type: datetime
+        required: true
+      updated_at:
+        type: datetime
+        required: true
+    relationships:
+      - "CreativeProject belongs to Tenant."
+      - "CreativeProject has one CreativeSubject."
+      - "CreativeProject has many SourceAssets."
+      - "CreativeProject has many GenerationRequests."
+      - "CreativeProject has many GeneratedVideos."
+      - "CreativeProject has many AdPublications."
+      - "CreativeProject has many CreativeIterationSuggestions."
+    constraints:
+      - "CreativeProject must not cross tenant boundaries."
+      - "Project status must reflect the latest user-visible workflow state."
     indexes:
       - fields: [tenant_id, id]
         unique: true
-      - fields: [campaign_id]
+      - fields: [tenant_id, status]
+        unique: false
+
+  - name: CreativeSubject
+    purpose: "Represents the thing being advertised, based only on user-provided or explicitly imported facts."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      project_id:
+        type: string
+        required: true
+      subject_type:
+        type: enum
+        values: [product, service, brand, offer, event, place, other, unknown]
+        required: true
+      name:
+        type: string
+        required: true
+      description:
+        type: string
+        required: false
+      landing_url:
+        type: string
+        required: false
+      price:
+        type: number
+        required: false
+      currency:
+        type: string
+        required: false
+      allowed_claims:
+        type: array
+        item_type: string
+        required: true
+      forbidden_claims:
+        type: array
+        item_type: string
+        required: true
+      unknown_fields:
+        type: array
+        item_type: string
+        required: true
+      source:
+        type: enum
+        values: [user_input, import, mock, unknown]
+        required: true
+      created_at:
+        type: datetime
+        required: true
+      updated_at:
+        type: datetime
+        required: true
+    relationships:
+      - "CreativeSubject belongs to Tenant."
+      - "CreativeSubject belongs to CreativeProject."
+      - "GenerationRequest references CreativeSubject."
+    constraints:
+      - "Claims used in prompts must come from allowed_claims or direct user input."
+      - "Missing subject facts must be represented in unknown_fields."
+      - "No price, discount, guarantee, stock, shipping, medical, legal, financial, or safety claim may be invented."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, project_id]
+        unique: true
+
+  - name: SourceAsset
+    purpose: "Stores user-provided or demo visual references used for video generation."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      project_id:
+        type: string
+        required: true
+      asset_type:
+        type: enum
+        values: [image, video, url]
+        required: true
+      source:
+        type: enum
+        values: [upload, external_url, generated, mock]
+        required: true
+      url:
+        type: string
+        required: true
+      storage_key:
+        type: string
+        required: false
+      mime_type:
+        type: string
+        required: false
+      width:
+        type: integer
+        required: false
+      height:
+        type: integer
+        required: false
+      duration_seconds:
+        type: number
+        required: false
+      checksum:
+        type: string
+        required: false
+      metadata:
+        type: object
+        required: false
+      created_at:
+        type: datetime
+        required: true
+    relationships:
+      - "SourceAsset belongs to Tenant."
+      - "SourceAsset belongs to CreativeProject."
+      - "GenerationRequest may reference one or more SourceAssets."
+    constraints:
+      - "SourceAsset must not contain provider credentials."
+      - "External URLs must be treated as references, not proof of unavailable product facts."
+      - "Mock assets must be clearly marked with source=mock."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, project_id]
+        unique: false
+
+  - name: GenerationRequest
+    purpose: "Captures the normalized user input and generation settings used to create one or more video variants."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      project_id:
+        type: string
+        required: true
+      creative_subject_id:
+        type: string
+        required: true
+      source_asset_ids:
+        type: array
+        item_type: string
+        required: true
+      status:
+        type: enum
+        values: [draft, prompt_compiled, generating, completed, failed, canceled]
+        required: true
+      objective:
+        type: enum
+        values: [awareness, traffic, conversions, engagement, app_promotion, lead_generation, unknown]
+        required: true
+      target_audience:
+        type: string
+        required: false
+      platform:
+        type: enum
+        values: [meta_ads, google_ads, tiktok, reels, youtube_shorts, generic_vertical, unknown]
+        required: true
+      language:
+        type: string
+        required: true
+      tone:
+        type: string
+        required: false
+      style:
+        type: string
+        required: false
+      call_to_action:
+        type: string
+        required: false
+      duration_seconds:
+        type: integer
+        required: true
+      aspect_ratio:
+        type: enum
+        values: ["9:16", "1:1", "4:5", "16:9", unknown]
+        required: true
+      user_notes:
+        type: string
+        required: false
+      fallback_notes:
+        type: array
+        item_type: string
+        required: true
+      created_at:
+        type: datetime
+        required: true
+      updated_at:
+        type: datetime
+        required: true
+    relationships:
+      - "GenerationRequest belongs to Tenant."
+      - "GenerationRequest belongs to CreativeProject."
+      - "GenerationRequest references CreativeSubject."
+      - "GenerationRequest references one or more SourceAssets."
+      - "GenerationRequest has one or more PromptPayloads."
+      - "GenerationRequest has one or more VideoJobs."
+      - "GenerationRequest has one or more GeneratedVideos."
+    constraints:
+      - "User-provided inputs must remain distinguishable from system-generated prompt text."
+      - "Prompt generation must use only CreativeSubject facts, SourceAsset references, and GenerationRequest inputs."
+      - "Missing optional fields must produce fallback_notes, not invented values."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, project_id]
+        unique: false
+      - fields: [tenant_id, status]
+        unique: false
+
+  - name: PromptPayload
+    purpose: "Stores backend-compiled provider prompt data for a specific generation request."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      project_id:
+        type: string
+        required: true
+      generation_request_id:
+        type: string
+        required: true
+      provider:
+        type: enum
+        values: [pollo, kling, runway, mock]
+        required: true
+      prompt_text:
+        type: string
+        required: true
+      negative_prompt:
+        type: string
+        required: true
+      language:
+        type: string
+        required: true
+      duration_seconds:
+        type: integer
+        required: true
+      aspect_ratio:
+        type: enum
+        values: ["9:16", "1:1", "4:5", "16:9", unknown]
+        required: true
+      source_asset_ids:
+        type: array
+        item_type: string
+        required: true
+      provider_options:
+        type: object
+        required: false
+      is_mock:
+        type: boolean
+        required: true
+      fallback_notes:
+        type: array
+        item_type: string
+        required: true
+      created_at:
+        type: datetime
+        required: true
+    relationships:
+      - "PromptPayload belongs to Tenant."
+      - "PromptPayload belongs to CreativeProject."
+      - "PromptPayload belongs to GenerationRequest."
+      - "VideoJob references PromptPayload."
+    constraints:
+      - "PromptPayload is generated by backend, never by frontend."
+      - "PromptPayload must not contain provider credentials."
+      - "PromptPayload must preserve negative instructions and forbidden claims."
+      - "Mock prompt payloads must be marked with is_mock=true."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, generation_request_id]
+        unique: false
+
+  - name: VideoJob
+    purpose: "Tracks the lifecycle of an AI video generation request submitted to a mock or live provider adapter."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      project_id:
+        type: string
+        required: true
+      generation_request_id:
+        type: string
+        required: true
+      prompt_payload_id:
+        type: string
+        required: true
+      provider:
+        type: enum
+        values: [pollo, kling, runway, mock]
+        required: true
+      status:
+        type: enum
+        values: [queued, submitted, processing, completed, failed, canceled]
+        required: true
+      provider_job_id:
+        type: string
+        required: false
+      is_mock:
+        type: boolean
+        required: true
+      fallback_reason:
+        type: string
+        required: false
+      error_code:
+        type: string
+        required: false
+      error_message:
+        type: string
+        required: false
+      attempt_count:
+        type: integer
+        required: true
+      created_at:
+        type: datetime
+        required: true
+      submitted_at:
+        type: datetime
+        required: false
+      completed_at:
+        type: datetime
+        required: false
+      updated_at:
+        type: datetime
+        required: true
+    relationships:
+      - "VideoJob belongs to Tenant."
+      - "VideoJob belongs to CreativeProject."
+      - "VideoJob belongs to GenerationRequest."
+      - "VideoJob references PromptPayload."
+      - "VideoJob has one ProviderResult."
+      - "VideoJob may create one or more GeneratedVideos."
+    constraints:
+      - "Live provider jobs must not be created when provider configuration is incomplete."
+      - "Provider job ids must not be exposed across tenants."
+      - "Mock jobs must be marked with is_mock=true."
+      - "Failed jobs must store normalized error_code and error_message when available."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, generation_request_id]
+        unique: false
+      - fields: [tenant_id, status]
         unique: false
 
   - name: ProviderResult
-    purpose: "Normalized live or mock provider response."
+    purpose: "Stores a normalized, redacted response from a mock or live video provider."
     fields:
       id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
         type: string
         required: true
       video_job_id:
@@ -240,15 +487,209 @@ entities:
         type: enum
         values: [pollo, kling, runway, mock]
         required: true
+      provider_job_id:
+        type: string
+        required: false
       raw_status:
         type: string
         required: false
       normalized_status:
         type: enum
-        values: [queued, processing, completed, failed]
+        values: [queued, submitted, processing, completed, failed, canceled]
         required: true
-      result_url:
+      result_urls:
+        type: array
+        item_type: string
+        required: true
+      error_code:
         type: string
+        required: false
+      error_message:
+        type: string
+        required: false
+      redacted_metadata:
+        type: object
+        required: false
+      received_at:
+        type: datetime
+        required: true
+    relationships:
+      - "ProviderResult belongs to Tenant."
+      - "ProviderResult belongs to VideoJob."
+      - "GeneratedVideo may reference ProviderResult."
+    constraints:
+      - "Raw provider response must be redacted before storage."
+      - "ProviderResult must not store secrets, API keys, auth headers, or signed private URLs unless explicitly safe for frontend use."
+      - "Mock results must be marked through the related VideoJob.is_mock."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, video_job_id]
+        unique: true
+
+  - name: GeneratedVideo
+    purpose: "Represents a generated video variant that the user can preview, select, publish, or use as input for later iteration."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      project_id:
+        type: string
+        required: true
+      generation_request_id:
+        type: string
+        required: true
+      video_job_id:
+        type: string
+        required: true
+      provider_result_id:
+        type: string
+        required: false
+      url:
+        type: string
+        required: true
+      thumbnail_url:
+        type: string
+        required: false
+      duration_seconds:
+        type: integer
+        required: false
+      aspect_ratio:
+        type: enum
+        values: ["9:16", "1:1", "4:5", "16:9", unknown]
+        required: true
+      status:
+        type: enum
+        values: [generated, selected, rejected, published, unavailable]
+        required: true
+      is_selected:
+        type: boolean
+        required: true
+      is_mock:
+        type: boolean
+        required: true
+      created_at:
+        type: datetime
+        required: true
+      selected_at:
+        type: datetime
+        required: false
+    relationships:
+      - "GeneratedVideo belongs to Tenant."
+      - "GeneratedVideo belongs to CreativeProject."
+      - "GeneratedVideo belongs to GenerationRequest."
+      - "GeneratedVideo belongs to VideoJob."
+      - "AdPublication references one selected GeneratedVideo."
+    constraints:
+      - "Only tenant-owned generated videos may be selected or published."
+      - "A project may have many generated videos but should have at most one selected_generated_video_id at a time unless multi-select is explicitly added later."
+      - "Mock generated videos must be visible as mock in API responses."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, project_id]
+        unique: false
+      - fields: [tenant_id, generation_request_id]
+        unique: false
+
+  - name: AdPlatformConnection
+    purpose: "Stores non-secret metadata for a tenant's connection to an advertising platform."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      platform:
+        type: enum
+        values: [meta_ads, google_ads]
+        required: true
+      external_account_id:
+        type: string
+        required: false
+      external_account_name:
+        type: string
+        required: false
+      status:
+        type: enum
+        values: [not_connected, connected, expired, disabled, error]
+        required: true
+      scopes:
+        type: array
+        item_type: string
+        required: true
+      last_checked_at:
+        type: datetime
+        required: false
+      created_at:
+        type: datetime
+        required: true
+      updated_at:
+        type: datetime
+        required: true
+    relationships:
+      - "AdPlatformConnection belongs to Tenant."
+      - "AdPublication may reference AdPlatformConnection."
+    constraints:
+      - "This model must not store OAuth access tokens, refresh tokens, client secrets, or API keys."
+      - "Secret material must live in an environment variable, vault, or connector-managed secure storage outside this data model."
+      - "Connection status must not imply publishing permission unless required scopes are present."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, platform]
+        unique: false
+
+  - name: AdPublication
+    purpose: "Tracks the user's decision to publish a selected generated video to Meta Ads or Google Ads."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      project_id:
+        type: string
+        required: true
+      generated_video_id:
+        type: string
+        required: true
+      ad_platform_connection_id:
+        type: string
+        required: false
+      platform:
+        type: enum
+        values: [meta_ads, google_ads]
+        required: true
+      status:
+        type: enum
+        values: [draft, publishing, published, failed, paused, archived]
+        required: true
+      external_campaign_id:
+        type: string
+        required: false
+      external_ad_group_id:
+        type: string
+        required: false
+      external_ad_id:
+        type: string
+        required: false
+      destination_url:
+        type: string
+        required: false
+      published_at:
+        type: datetime
+        required: false
+      paused_at:
+        type: datetime
         required: false
       error_code:
         type: string
@@ -256,33 +697,250 @@ entities:
       error_message:
         type: string
         required: false
-      received_at:
+      created_at:
+        type: datetime
+        required: true
+      updated_at:
         type: datetime
         required: true
     relationships:
-      - "ProviderResult belongs to VideoJob."
+      - "AdPublication belongs to Tenant."
+      - "AdPublication belongs to CreativeProject."
+      - "AdPublication references one selected GeneratedVideo."
+      - "AdPublication may reference AdPlatformConnection."
+      - "AdPublication has many AdMetricsSnapshots."
+      - "CreativeIterationSuggestion may reference AdPublication."
     constraints:
-      - "Raw provider response must not include secrets."
-      - "Mock results must be marked by VideoJob.is_mock."
+      - "Publication must require explicit user action."
+      - "Backend must not publish unless platform connection and required configuration are available."
+      - "External ids must not be treated as tenant-global; always scope by tenant_id."
+      - "Failed publication must store normalized error_code and error_message when available."
     indexes:
-      - fields: [video_job_id]
+      - fields: [tenant_id, id]
         unique: true
+      - fields: [tenant_id, project_id]
+        unique: false
+      - fields: [tenant_id, platform, external_ad_id]
+        unique: false
+
+  - name: AdMetricsSnapshot
+    purpose: "Stores a point-in-time metrics pull from Meta Ads or Google Ads for a published ad."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      ad_publication_id:
+        type: string
+        required: true
+      platform:
+        type: enum
+        values: [meta_ads, google_ads]
+        required: true
+      date_start:
+        type: date
+        required: true
+      date_end:
+        type: date
+        required: true
+      impressions:
+        type: integer
+        required: false
+      clicks:
+        type: integer
+        required: false
+      spend:
+        type: number
+        required: false
+      currency:
+        type: string
+        required: false
+      ctr:
+        type: number
+        required: false
+      cpc:
+        type: number
+        required: false
+      conversions:
+        type: number
+        required: false
+      conversion_value:
+        type: number
+        required: false
+      roas:
+        type: number
+        required: false
+      video_views:
+        type: integer
+        required: false
+      video_view_rate:
+        type: number
+        required: false
+      cost_per_video_view:
+        type: number
+        required: false
+      source:
+        type: enum
+        values: [meta_ads_api, google_ads_api, mock, manual, unknown]
+        required: true
+      redacted_metadata:
+        type: object
+        required: false
+      fetched_at:
+        type: datetime
+        required: true
+    relationships:
+      - "AdMetricsSnapshot belongs to Tenant."
+      - "AdMetricsSnapshot belongs to AdPublication."
+      - "CreativeIterationSuggestion may reference AdMetricsSnapshot."
+    constraints:
+      - "Missing metrics must remain null or absent; do not invent performance values."
+      - "Snapshots must identify their source."
+      - "Platform-specific raw metrics must be redacted before storage."
+      - "Metric dates must be explicit."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, ad_publication_id, date_start, date_end]
+        unique: false
+
+  - name: CreativeIterationSuggestion
+    purpose: "Stores a user-requested suggestion for a new video variant based on previous ad metrics and project context."
+    fields:
+      id:
+        type: string
+        format: uuid
+        required: true
+      tenant_id:
+        type: string
+        required: true
+      project_id:
+        type: string
+        required: true
+      ad_publication_id:
+        type: string
+        required: false
+      metrics_snapshot_id:
+        type: string
+        required: false
+      base_generation_request_id:
+        type: string
+        required: false
+      new_generation_request_id:
+        type: string
+        required: false
+      status:
+        type: enum
+        values: [suggested, accepted, dismissed, generated, failed]
+        required: true
+      reason:
+        type: string
+        required: true
+      metric_drivers:
+        type: array
+        item_type: string
+        required: true
+      suggested_changes:
+        type: object
+        required: true
+      confidence:
+        type: enum
+        values: [low, medium, high]
+        required: true
+      fallback_notes:
+        type: array
+        item_type: string
+        required: true
+      created_at:
+        type: datetime
+        required: true
+      updated_at:
+        type: datetime
+        required: true
+    relationships:
+      - "CreativeIterationSuggestion belongs to Tenant."
+      - "CreativeIterationSuggestion belongs to CreativeProject."
+      - "CreativeIterationSuggestion may reference AdPublication."
+      - "CreativeIterationSuggestion may reference AdMetricsSnapshot."
+      - "CreativeIterationSuggestion may create a new GenerationRequest when accepted by the user."
+    constraints:
+      - "Suggestions are generated only when the user asks or when an explicit later automation contract allows it."
+      - "Suggestions must cite metric_drivers from stored metrics or state fallback_notes."
+      - "Suggestions must not invent platform performance metrics."
+      - "Accepted suggestions must create a new GenerationRequest rather than mutating the old one."
+    indexes:
+      - fields: [tenant_id, id]
+        unique: true
+      - fields: [tenant_id, project_id]
+        unique: false
+      - fields: [tenant_id, status]
+        unique: false
 
 relationships:
-  - "Tenant -> Product -> ProductMetric"
-  - "Tenant -> Campaign -> CreativeBrief"
-  - "Campaign -> VideoJob -> ProviderResult"
+  - "Tenant -> CreativeProject -> CreativeSubject"
+  - "Tenant -> CreativeProject -> SourceAsset"
+  - "CreativeProject -> GenerationRequest -> PromptPayload"
+  - "GenerationRequest -> VideoJob -> ProviderResult"
+  - "VideoJob -> GeneratedVideo"
+  - "GeneratedVideo -> AdPublication -> AdMetricsSnapshot"
+  - "AdMetricsSnapshot -> CreativeIterationSuggestion -> GenerationRequest"
+  - "Tenant -> AdPlatformConnection -> AdPublication"
 
-constraints:
+global_constraints:
   - "All tenant-scoped entities require tenant_id unless explicitly global."
-  - "No model may store provider secrets."
+  - "No model may store provider secrets, ad platform tokens, API keys, refresh tokens, or authorization headers."
   - "Unknown data must be represented explicitly rather than fabricated."
+  - "Frontend may display prompts only if returned by backend as explicit artifacts."
+  - "Frontend must not generate PromptPayload records."
+  - "Backend must not publish ads without explicit user action."
+  - "Backend must not call live video or ad platform providers unless configuration is complete and selected mode allows it."
+  - "Mock, fallback, and demo outputs must be clearly marked."
+  - "Metric-informed iteration must use stored metrics or explicit fallback notes."
+
+deprecated_entities:
+  - name: Product
+    replacement: CreativeSubject
+    reason: "The MVP no longer performs ERP/product-catalog decision support; the advertised subject comes from user input."
+  - name: ProductMetric
+    replacement: AdMetricsSnapshot
+    reason: "The MVP no longer scores products from commerce metrics; performance metrics come after ad publication."
+  - name: AudienceSegment
+    replacement: GenerationRequest.target_audience
+    reason: "The MVP does not infer audience segments; user-provided targeting text is enough for now."
+  - name: Campaign
+    replacement: CreativeProject and AdPublication
+    reason: "Internal creative workflow and external ad platform publication are separate concepts."
+  - name: CreativeBrief
+    replacement: GenerationRequest and PromptPayload
+    reason: "The MVP uses user inputs plus backend-compiled provider prompts instead of a commerce-intelligence brief."
 
 indexes:
-  - entity: Product
+  - entity: Tenant
+    fields: [id]
+  - entity: CreativeProject
     fields: [tenant_id, id]
-  - entity: Campaign
-    fields: [tenant_id, id]
+  - entity: CreativeSubject
+    fields: [tenant_id, project_id]
+  - entity: SourceAsset
+    fields: [tenant_id, project_id]
+  - entity: GenerationRequest
+    fields: [tenant_id, project_id]
+  - entity: PromptPayload
+    fields: [tenant_id, generation_request_id]
   - entity: VideoJob
-    fields: [tenant_id, id]
-
+    fields: [tenant_id, generation_request_id]
+  - entity: ProviderResult
+    fields: [tenant_id, video_job_id]
+  - entity: GeneratedVideo
+    fields: [tenant_id, project_id]
+  - entity: AdPlatformConnection
+    fields: [tenant_id, platform]
+  - entity: AdPublication
+    fields: [tenant_id, project_id]
+  - entity: AdMetricsSnapshot
+    fields: [tenant_id, ad_publication_id, date_start, date_end]
+  - entity: CreativeIterationSuggestion
+    fields: [tenant_id, project_id]
