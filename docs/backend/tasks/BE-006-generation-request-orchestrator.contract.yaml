@@ -1,0 +1,85 @@
+task:
+  name: "BE-006 Generation Request Orchestrator"
+  goal: "Implement POST /generation-requests as the backend orchestration workflow for prompt payload creation, MCP handoff, video job persistence, and generated video records."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/generation-requests/**"
+    - "backend/src/http/routes/generation-requests*"
+    - "backend/src/creative-projects/**"
+    - "backend/src/repositories/**"
+    - "backend/src/domain/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-005"
+  scope:
+    include:
+      - "Validate project_id, source_asset_ids, provider, platform, duration_seconds, aspect_ratio, language, tone, style, call_to_action, target_audience, and user_notes."
+      - "Load CreativeProject, CreativeSubject, and SourceAsset records by tenant."
+      - "Create GenerationRequest record with deterministic status transitions."
+      - "Call placeholder interfaces for prompt compiler and MCP network execution handoff."
+      - "Return generation_request, prompt_payload, provider_result, video_job, generated_videos, and fallback_reason."
+      - "Add tests for invalid project id, missing source asset, cross-tenant access, and happy path with mocked dependencies."
+    exclude:
+      - "Full AI implementation."
+      - "Full prompt compiler implementation."
+      - "Live provider network execution implementation."
+      - "Ad publication."
+      - "MCP implementation, AI validation, model prompts, or backend/src/mcp/**."
+
+requirements:
+  - id: "REQ-BE006-001"
+    description: "Generation requests must reference CreativeProject, CreativeSubject, and one or more SourceAssets."
+    source_contract: "docs/contracts/data-model.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE006-002"
+    description: "Backend must coordinate generation request, prompt payload, provider result, video job, and generated video records without sending provider HTTP requests itself."
+    source_contract: "docs/layers/backend.contract.md"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE006-001"
+    description: "POST /generation-requests creates a GenerationRequest scoped to tenant."
+    verification: "automated"
+  - id: "AC-BE006-002"
+    description: "Invalid project or source asset input returns stable validation or not-found errors without provider calls."
+    verification: "automated"
+  - id: "AC-BE006-003"
+    description: "Successful response follows API contract and returns 202."
+    verification: "automated"
+  - id: "AC-BE006-004"
+    description: "Generation service does not call live provider adapters directly and instead relies on MCP network execution plus backend persistence."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Return INVALID_REQUEST without creating provider jobs."
+  missing_config: "Delegate provider config failure to MCP execution and fail closed when needed."
+  external_dependency_failure: "Store generation failure or return normalized error according to implemented boundary."
+  partial_completion: "Report which downstream services are still placeholders."
+
+test_commands:
+  - command: "TBD backend test command for generation request orchestrator"
+    expected_result: "Generation request orchestrator tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/generation-requests/**"
+    - "backend/src/http/routes/generation-requests*"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Frontend can request video generation through backend."
+  machine_readable_artifacts:
+    - "POST /generation-requests JSON response."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "State which collaborators are mocked or fully implemented."

@@ -21,6 +21,7 @@ task:
       - "Create PromptPayload interface with fields: provider, model, prompt_text, parameters, is_mock, fallback_reason, tenant_id."
       - "Implement PromptCompiler with selectAdapter() logic: if TenantMode='demo' use MockPromptAdapter, else try live adapters."
       - "Implement fail-closed fallback: if live adapter (Pollo, Kling, Runway) throws error, catch and fallback to MockPromptAdapter with fallback_reason logged."
+      - "Forward compiled PromptPayload to the MCP-007 network execution layer when the selected flow requires live provider submission."
       - "Create MockPromptAdapter returning PromptPayload with is_mock=true, provider='mock', deterministic mock prompt_text based on creative_angle."
       - "Create PolloPromptAdapter translating CreativeBrief to Pollo API format (if Pollo contract available; otherwise stub with TODO)."
       - "Create KlingPromptAdapter translating CreativeBrief to Kling API format (if Kling contract available; otherwise stub with TODO)."
@@ -31,7 +32,6 @@ task:
       - "Add deterministic tests confirming same CreativeBrief input produces same PromptPayload output per adapter."
       - "Add fallback behavior tests: verify live adapter errors trigger fallback, is_mock flag set correctly, fallback_reason logged."
     exclude:
-      - "Actual API calls to video providers (deferred to provider integration tasks)."
       - "LLM-based prompt refinement."
       - "Frontend rendering of PromptPayload."
       - "Video generation job scheduling (handled by backend job queue)."
@@ -106,6 +106,9 @@ acceptance_criteria:
   - id: "AC-MCP004-013"
     description: "Error handling test: simulate PolloPromptAdapter.compile() throws; verify fallback to MockPromptAdapter succeeds and is_mock=true."
     verification: "automated"
+  - id: "AC-MCP004-014"
+    description: "Compiled PromptPayload can be handed off to MCP-007 for live provider submission when the live execution path is selected."
+    verification: "review"
 
 failure_behavior:
   missing_input: "If CreativeBrief missing: return structured error with payload=null. If TenantContext missing: reject and log security error."

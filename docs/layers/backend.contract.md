@@ -12,8 +12,9 @@ The backend is the orchestration API for Kastonom. It connects frontend requests
 - Call MCP / AI intelligence layer for recommendations and creative briefs.
 - Call prompt compiler for provider-specific prompt payloads.
 - Create and track campaign and video job records.
-- Call external AI video providers only through provider adapters.
-- Normalize provider results.
+- Receive normalized provider results from the MCP network execution layer.
+- Validate ProviderResult, JobID, Video_URL, and is_mock payloads before persistence.
+- Persist provider results and generated video records.
 - Provide deterministic mock fallback for demos.
 - Fail closed on missing live-provider configuration.
 
@@ -44,21 +45,26 @@ The backend is the orchestration API for Kastonom. It connects frontend requests
 
 - Creates video jobs.
 - Tracks status.
-- Stores provider result or normalized errors.
+- Stores normalized provider result or normalized errors.
 - Supports polling by frontend.
 
-### ai-provider.service
+### mcp-network-result.service
 
-- Selects provider adapter.
-- Validates provider configuration.
-- Calls provider adapter.
-- Falls back to mock provider only when allowed.
+- Validates normalized MCP network output.
+- Persists VideoJob, ProviderResult, and GeneratedVideo records.
+- Applies backend-side persistence rules for live and mock outcomes.
 
 ### mcp-client.service
 
 - Sends structured product and metric input to MCP / AI intelligence layer.
 - Validates structured output.
 - Rejects unsafe or invalid AI output.
+
+### prompt-handoff.service
+
+- Receives compiled PromptPayload artifacts from MCP.
+- Passes validated prompt payloads to the MCP network execution result flow.
+- Keeps provider-specific transport details outside backend orchestration.
 
 ## Implementation Planning Docs
 
@@ -84,11 +90,12 @@ Responses must follow `docs/contracts/api.contract.yaml`.
 
 ## Provider Adapter Rules
 
-- Each provider adapter must accept a normalized prompt payload.
-- Each provider adapter must return a normalized provider result.
+- Backend must not issue live provider HTTP requests directly.
+- MCP network execution is responsible for provider submission.
+- Backend must accept normalized provider results and store them safely.
 - Provider-specific fields must not leak into frontend contracts unless explicitly allowed.
-- Missing credentials must produce a configuration error.
-- Mock adapter must be deterministic and clearly marked.
+- Missing credentials must produce a configuration error in MCP execution or a rejected persistence payload in backend.
+- Mock outcomes must be deterministic and clearly marked.
 
 Supported provider adapter names:
 
@@ -101,7 +108,7 @@ Supported provider adapter names:
 
 - Missing tenant: return tenant/auth error.
 - Missing product: return not found.
-- Missing live provider config: fail closed.
+- Missing live provider config: fail closed at MCP execution boundary.
 - Provider timeout: mark job failed or use labeled fallback when enabled.
 - Invalid MCP / AI output: reject output and return error or fallback reason.
 - Missing mock fallback asset: return explicit fallback failure.

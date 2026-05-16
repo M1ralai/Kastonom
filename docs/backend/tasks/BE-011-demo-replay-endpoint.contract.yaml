@@ -1,6 +1,6 @@
 task:
-  name: "BE-011 Demo Fallback Endpoint and Replay Payload"
-  goal: "Implement GET /demo/fallback with deterministic products, campaign, creative brief, video job, and fallback reason."
+  name: "BE-011 Demo Replay Endpoint"
+  goal: "Implement GET /demo/fallback with deterministic creative project, source assets, generation request, prompt payload, video job, generated videos, optional publication, metrics snapshot, iteration suggestion, and fallback reason."
   layer: "backend"
   status: "planned"
   owner: "codex"
@@ -17,14 +17,15 @@ task:
     - "BE-010"
   scope:
     include:
-      - "Create demo fallback service."
-      - "Load deterministic fallback products, sample campaign, sample creative brief, sample prompt payload if stored, and sample video job."
+      - "Create demo replay service."
+      - "Load deterministic fallback CreativeProject, CreativeSubject, SourceAsset[], GenerationRequest, PromptPayload, VideoJob, ProviderResult, GeneratedVideo[], selected video, optional AdPublication, optional AdMetricsSnapshot, and optional CreativeIterationSuggestion."
       - "Return fallback_reason=demo_fallback."
       - "Validate required fallback fixtures and preview asset reference."
       - "Add tests for complete fallback response and missing fixture failure."
     exclude:
       - "Frontend fallback rendering."
       - "Live provider calls."
+      - "Live ad platform calls."
       - "New AI-generated demo assets unless separately requested."
 
 requirements:
@@ -39,7 +40,7 @@ requirements:
 
 acceptance_criteria:
   - id: "AC-BE011-001"
-    description: "GET /demo/fallback returns products, sample_campaign, sample_creative_brief, sample_video_job, and fallback_reason."
+    description: "GET /demo/fallback returns latest data model replay artifacts and fallback_reason."
     verification: "automated"
   - id: "AC-BE011-002"
     description: "Fallback response is deterministic across test runs."
@@ -48,7 +49,7 @@ acceptance_criteria:
     description: "Missing fallback fixture returns DEMO_FALLBACK_UNAVAILABLE."
     verification: "automated"
   - id: "AC-BE011-004"
-    description: "Mock/live labeling is present in fallback job output."
+    description: "Mock/live labeling is present in fallback job and generated video output."
     verification: "review"
 
 failure_behavior:
@@ -58,8 +59,8 @@ failure_behavior:
   partial_completion: "Report which fallback artifacts are present and which are pending."
 
 test_commands:
-  - command: "TBD backend test command for demo fallback"
-    expected_result: "Demo fallback tests pass."
+  - command: "TBD backend test command for demo replay"
+    expected_result: "Demo replay tests pass."
 
 expected_output:
   changed_files:
@@ -68,7 +69,7 @@ expected_output:
     - "backend/fixtures/**"
     - "backend/tests/**"
   user_visible_behavior:
-    - "Frontend can recover a full deterministic demo flow."
+    - "Frontend can recover a full deterministic demo replay flow."
   machine_readable_artifacts:
     - "GET /demo/fallback JSON response."
 
@@ -80,4 +81,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "Mention whether fallback preview is a local asset path or URL."
-

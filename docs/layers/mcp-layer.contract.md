@@ -12,6 +12,7 @@ The MCP / AI intelligence layer turns commerce data into structured creative dec
 - Extract or summarize audience data.
 - Choose creative angle.
 - Produce a structured creative brief.
+- Execute provider network requests for live video generation when the selected flow requires direct provider submission.
 - Return fallback notes when data is missing or weak.
 - Keep outputs deterministic for identical inputs.
 
@@ -91,10 +92,16 @@ Final weights are `TBD` and must be documented in the implementation task.
 
 - Must not invent product claims, prices, discounts, stock, guarantees, or shipping promises.
 - Must not invent customer demographics.
-- Must not call AI video provider APIs.
 - Must not store secrets.
 - Must not make frontend-specific rendering decisions.
 - Must not hide missing data.
+
+## Network Client Role
+
+- MCP may act as a direct network client for AI video providers when the task contract explicitly enables live provider execution.
+- Live provider requests must remain deterministic in payload shape and must use validated prompt payloads as input.
+- Provider-specific response handling must preserve raw identifiers such as provider job ids or video urls in normalized output artifacts.
+- Backend remains responsible for persistence, while MCP remains responsible for submission and response normalization when the network execution contract applies.
 
 ## Failure Behavior
 

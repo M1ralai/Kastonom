@@ -25,9 +25,10 @@ task:
       - "Add a minimal automated test for /health."
       - "Document run and test commands."
     exclude:
-      - "Product API implementation."
-      - "Campaign generation."
+      - "Creative project API implementation."
+      - "Generation request orchestration."
       - "Provider calls."
+      - "Ad platform publication."
       - "Frontend integration."
 
 requirements:
@@ -83,4 +84,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "Include exact local URL if the server is started."
-

@@ -115,14 +115,14 @@ The MCP / AI layer returns a structured creative brief. The prompt compiler conv
 
 ## Backend To Video Provider Call
 
-The backend calls providers only through adapters:
+The MCP network execution layer submits prompt payloads to providers directly:
 
 - Pollo
 - Kling
 - Runway
 - Mock
 
-The backend must validate configuration before live provider calls. Missing live configuration fails closed unless mock fallback mode is explicitly enabled.
+The backend validates and persists normalized provider results returned by MCP. Missing live configuration fails closed at the MCP execution boundary unless mock fallback mode is explicitly enabled.
 
 ## Frontend Polling Behavior
 
@@ -138,14 +138,15 @@ The frontend must show status changes and must not fabricate progress. If the ba
 
 ```text
 Provider config missing or provider call fails
-  -> Backend checks fallback mode
+  -> MCP checks fallback mode
   -> If fallback enabled: use mock provider
-  -> Store fallback reason
-  -> Return mock video job with is_mock=true
+  -> MCP returns normalized mock ProviderResult
+  -> Backend stores fallback reason and video job state
   -> Frontend displays fallback label and preview
 
 Provider config missing and fallback disabled
-  -> Backend fails closed
+  -> MCP fails closed
+  -> Backend records the failure state
   -> Frontend displays actionable error
 ```
 

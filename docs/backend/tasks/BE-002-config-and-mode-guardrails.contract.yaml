@@ -1,6 +1,6 @@
 task:
   name: "BE-002 Configuration and Mode Guardrails"
-  goal: "Implement explicit backend mode, fallback, provider, and credential readiness configuration."
+  goal: "Implement explicit backend mode, fallback, video provider, ad platform, and credential readiness configuration."
   layer: "backend"
   status: "planned"
   owner: "codex"
@@ -18,12 +18,14 @@ task:
     include:
       - "Parse KASTONOM_MODE with default mock."
       - "Parse KASTONOM_FALLBACK_ENABLED with safe default for local demo."
-      - "Parse default provider, platform, language, and duration."
-      - "Validate provider-specific credential readiness without exposing secrets."
+      - "Parse default video provider, platform, language, duration, and aspect ratio."
+      - "Validate video provider credential readiness without exposing secrets."
+      - "Validate ad platform readiness without storing or exposing secrets."
       - "Expose safe readiness flags through GET /health."
-      - "Add tests for mock mode, live missing credentials, and invalid mode."
+      - "Add tests for mock mode, live missing credentials, invalid mode, and no-secret health output."
     exclude:
       - "Actual live provider network calls."
+      - "Actual ad platform publication calls."
       - "Frontend environment wiring."
 
 requirements:
@@ -32,13 +34,13 @@ requirements:
     source_contract: "docs/contracts/mvp.contract.yaml"
     priority: "must"
   - id: "REQ-BE002-002"
-    description: "API keys must come from environment variables and never be sent to frontend."
+    description: "API keys and platform credentials must come from environment variables or secure connector storage and never be sent to frontend."
     source_contract: "docs/contracts/api.contract.yaml"
     priority: "must"
 
 acceptance_criteria:
   - id: "AC-BE002-001"
-    description: "Mock mode starts without live provider credentials."
+    description: "Mock mode starts without live video provider or ad platform credentials."
     verification: "automated"
   - id: "AC-BE002-002"
     description: "Live provider readiness reports missing credentials without exposing values."
@@ -52,7 +54,7 @@ acceptance_criteria:
 
 failure_behavior:
   missing_input: "Use documented defaults from backend-system-plan."
-  missing_config: "Fail closed in live provider mode and keep mock mode available."
+  missing_config: "Fail closed in live video provider or ad platform mode and keep mock mode available."
   external_dependency_failure: "Not applicable unless config loader depends on a package."
   partial_completion: "Report which modes are implemented and which are pending."
 
@@ -77,4 +79,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "Mention any selected default values."
-

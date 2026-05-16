@@ -104,7 +104,7 @@ Potential external AI video providers:
 - Runway
 - Mock provider
 
-Provider calls must go through backend provider adapters. Each adapter must normalize request and response data into the internal video job contract.
+Live provider calls are executed by the MCP network execution layer when enabled by contract. Backend receives normalized results and persists them into the internal video job contract.
 
 ## Data Flow
 
@@ -114,8 +114,8 @@ Provider calls must go through backend provider adapters. Each adapter must norm
 4. Backend calls MCP / AI intelligence layer.
 5. MCP layer returns recommendation, audience summary, and creative brief.
 6. Prompt compiler creates provider-specific prompt payload.
-7. Backend creates a video job.
-8. Backend sends the job to a live provider or mock provider.
+7. MCP network execution layer submits the prompt payload to the selected live provider or mock provider.
+8. Backend receives the normalized ProviderResult / JobID response and creates or updates the video job record.
 9. Frontend polls job status.
 10. Frontend displays final ad preview or fallback preview.
 
@@ -143,6 +143,7 @@ Fallback mode must allow the full demo to run without live ERP or video provider
 - Mock scoring outputs
 - Mock creative brief generation
 - Mock video job status transitions
+- Mock provider network execution results
 - Static demo ad preview asset or placeholder result
 
 Fallback data must be clearly marked as demo/mock data in internal contracts.
