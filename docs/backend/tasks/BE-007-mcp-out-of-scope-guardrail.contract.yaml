@@ -1,0 +1,77 @@
+task:
+  name: "BE-007 MCP Out-of-Scope Guardrail"
+  goal: "Document that MCP implementation is forbidden in the backend workstream and owned by a separate teammate."
+  layer: "docs"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "docs/backend/**"
+    - "docs/layers/backend.contract.md"
+    - "docs/layers/integration-flow.md"
+  forbidden_files:
+    - "backend/**"
+    - "frontend/**"
+    - "docs/layers/mcp-layer.contract.md"
+    - "docs/contracts/ai-behavior.contract.yaml"
+  dependencies:
+    - "BE-006"
+  scope:
+    include:
+      - "State clearly that backend agents must not implement MCP."
+      - "State clearly that backend agents must not create backend/src/mcp/**."
+      - "State clearly that backend agents must not create MCP mocks, model prompts, scoring logic, AI validators, recommendation logic, audience inference, or metric-informed suggestion generation."
+      - "State that backend may only consume an externally provided MCP integration contract in a later explicit task."
+    exclude:
+      - "Any runtime implementation."
+      - "Any MCP contract edits."
+      - "Any MCP service, validator, mock, or model prompt code."
+
+requirements:
+  - id: "REQ-BE007-001"
+    description: "MCP work is owned by a separate workstream and must not be implemented by backend tasks."
+    source_contract: "User instruction in backend planning turn."
+    priority: "must"
+  - id: "REQ-BE007-002"
+    description: "Backend remains focused on orchestration, persistence, prompt compiler integration, provider adapters, video jobs, publication guardrails, metrics storage, and demo replay."
+    source_contract: "docs/layers/backend.contract.md"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE007-001"
+    description: "Backend task contracts do not allow backend/src/mcp/**."
+    verification: "review"
+  - id: "AC-BE007-002"
+    description: "Backend planning docs explicitly say MCP must not be implemented in backend."
+    verification: "review"
+  - id: "AC-BE007-003"
+    description: "No backend task requires AI validation or MCP mock implementation."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Keep MCP out of backend scope and document the unresolved integration as future work."
+  missing_config: "Not applicable."
+  external_dependency_failure: "Not applicable."
+  partial_completion: "Report any remaining backend doc references that could cause MCP implementation."
+
+test_commands:
+  - command: "rg -n \"backend/src/mcp|MCP mocks|AI validators|AI validation|mock validation\" docs/backend docs/layers/backend.contract.md docs/layers/integration-flow.md"
+    expected_result: "Only out-of-scope guardrail language appears."
+
+expected_output:
+  changed_files:
+    - "docs/backend/**"
+    - "docs/layers/backend.contract.md"
+    - "docs/layers/integration-flow.md"
+  user_visible_behavior:
+    - "Future backend agents know not to implement MCP."
+  machine_readable_artifacts:
+    - "Updated backend task contract."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Call out that MCP-owned docs and runtime are untouched."

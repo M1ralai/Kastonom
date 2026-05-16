@@ -1,6 +1,6 @@
 task:
   name: "BE-013 Backend Contract Test Suite"
-  goal: "Add focused backend tests for mock demo flow, fail-closed behavior, tenant isolation, no-fabrication rules, and API contract shape."
+  goal: "Add focused backend tests for mock demo flow, fail-closed behavior, tenant isolation, no-fabrication rules, publication guardrails, metrics snapshots, iteration suggestions, and API contract shape."
   layer: "backend"
   status: "planned"
   owner: "codex"
@@ -16,15 +16,17 @@ task:
     - "BE-012"
   scope:
     include:
-      - "Test full mock product-to-video-job flow."
-      - "Test live provider mode fails closed without credentials."
-      - "Test invalid tenant and cross-tenant job access."
-      - "Test missing product facts remain unknown or fallback-noted."
-      - "Test API response shapes for health, products, campaign generation, video job polling, and demo fallback."
+      - "Test full mock creative-project-to-generated-video flow."
+      - "Test live video provider mode fails closed without credentials."
+      - "Test ad publication fails closed without explicit user action or platform readiness."
+      - "Test invalid tenant and cross-tenant access for projects, jobs, generated videos, publications, and metrics."
+      - "Test missing subject facts and platform metrics remain unknown, absent, or fallback-noted."
+      - "Test API response shapes for health, creative projects, generation requests, video job polling, generated video selection, publication, metrics sync, iteration suggestions, and demo fallback."
       - "Add a no-secret fixture/source scan if practical."
     exclude:
       - "Frontend end-to-end browser tests."
       - "Live provider network tests."
+      - "Live ad platform network tests."
       - "Load testing."
 
 requirements:
@@ -36,28 +38,35 @@ requirements:
     description: "Mock provider fallback must be complete and deterministic."
     source_contract: "docs/contracts/api.contract.yaml"
     priority: "must"
+  - id: "REQ-BE013-003"
+    description: "Backend must not invent subject facts, provider state, publication state, or platform metrics."
+    source_contract: "docs/contracts/data-model.contract.yaml"
+    priority: "must"
 
 acceptance_criteria:
   - id: "AC-BE013-001"
-    description: "Mock demo flow test passes from GET /products through POST /campaigns/generate and GET /video-jobs/{id}."
+    description: "Mock demo flow test passes from POST /creative-projects through POST /generation-requests and GET /video-jobs/{id}."
     verification: "automated"
   - id: "AC-BE013-002"
     description: "Missing live provider credentials test returns PROVIDER_CONFIG_MISSING."
     verification: "automated"
   - id: "AC-BE013-003"
-    description: "Tenant isolation test proves cross-tenant data is not returned."
+    description: "Tenant isolation tests prove cross-tenant data is not returned."
     verification: "automated"
   - id: "AC-BE013-004"
-    description: "No-fabrication test proves unsupported discounts, guarantees, stock claims, and demographics are not invented."
+    description: "No-fabrication tests prove unsupported discounts, guarantees, subject facts, demographics, and metrics are not invented."
     verification: "automated"
   - id: "AC-BE013-005"
+    description: "Publication guardrail tests prove ads are not published without explicit user action and readiness."
+    verification: "automated"
+  - id: "AC-BE013-006"
     description: "Backend test command is documented and passing."
     verification: "automated"
 
 failure_behavior:
   missing_input: "Create deterministic test fixtures instead of relying on live external data."
   missing_config: "Use mock mode for default tests and explicit env overrides for fail-closed tests."
-  external_dependency_failure: "Do not require live provider network access."
+  external_dependency_failure: "Do not require live provider or ad platform network access."
   partial_completion: "Report missing coverage and next test to add."
 
 test_commands:
@@ -80,5 +89,4 @@ reporting_format:
     - "assumptions"
     - "risks"
     - "next_safe_step"
-  notes: "Include exact pass/fail result and any intentionally skipped live-provider tests."
-
+  notes: "Include exact pass/fail result and any intentionally skipped live-provider/ad-platform tests."

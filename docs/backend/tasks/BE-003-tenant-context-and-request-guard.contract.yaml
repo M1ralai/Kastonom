@@ -21,6 +21,7 @@ task:
       - "Read x-tenant-id for tenant-scoped endpoints."
       - "Use configured demo tenant only when demo/mock mode allows it."
       - "Reject missing or invalid tenant outside demo mode."
+      - "Ensure tenant-scoped routes cannot access repositories without tenant_id."
       - "Add tests for missing tenant, demo tenant fallback, and invalid tenant."
     exclude:
       - "Production authentication provider."
@@ -78,4 +79,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "Call out any temporary demo auth assumptions."
-

@@ -1,0 +1,84 @@
+task:
+  name: "BE-005 Creative Project and Asset API"
+  goal: "Implement tenant-scoped creative project creation/read endpoints for CreativeProject, CreativeSubject, and SourceAsset records."
+  layer: "backend"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "backend/src/creative-projects/**"
+    - "backend/src/http/routes/creative-projects*"
+    - "backend/src/repositories/**"
+    - "backend/src/http/errors/**"
+    - "backend/tests/**"
+    - "docs/backend/**"
+  forbidden_files:
+    - "frontend/**"
+  dependencies:
+    - "BE-004"
+  scope:
+    include:
+      - "Create creative project service that stores project, subject, and source asset references by tenant."
+      - "Implement POST /creative-projects."
+      - "Implement GET /creative-projects/{id}."
+      - "Validate subject facts, allowed_claims, forbidden_claims, unknown_fields, and source asset references."
+      - "Return source and fallback_reason fields when applicable."
+      - "Add tests for success, missing tenant, invalid tenant, project not found, and no-fabrication of subject facts."
+    exclude:
+      - "Generation request orchestration."
+      - "Prompt compilation."
+      - "Video provider calls."
+      - "Live file upload storage unless a later task explicitly adds it."
+
+requirements:
+  - id: "REQ-BE005-001"
+    description: "Backend must store creative projects, creative subjects, and source assets according to the data model contract."
+    source_contract: "docs/contracts/data-model.contract.yaml"
+    priority: "must"
+  - id: "REQ-BE005-002"
+    description: "Frontend must not generate prompt payload records."
+    source_contract: "docs/contracts/data-model.contract.yaml"
+    priority: "must"
+
+acceptance_criteria:
+  - id: "AC-BE005-001"
+    description: "POST /creative-projects creates CreativeProject, CreativeSubject, and SourceAsset records for the tenant."
+    verification: "automated"
+  - id: "AC-BE005-002"
+    description: "GET /creative-projects/{id} returns the tenant-scoped project bundle."
+    verification: "automated"
+  - id: "AC-BE005-003"
+    description: "Invalid tenant or cross-tenant project access does not return data."
+    verification: "automated"
+  - id: "AC-BE005-004"
+    description: "Missing subject facts are stored in unknown_fields or omitted optional fields rather than invented."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Return validation error for invalid project, subject, or asset input."
+  missing_config: "Fail closed if demo tenant id is required but missing."
+  external_dependency_failure: "Do not call external asset fetchers or storage services in this task."
+  partial_completion: "Report which success and failure states are covered."
+
+test_commands:
+  - command: "TBD backend test command for creative project API"
+    expected_result: "Creative project API tests pass."
+
+expected_output:
+  changed_files:
+    - "backend/src/creative-projects/**"
+    - "backend/src/http/routes/creative-projects*"
+    - "backend/tests/**"
+  user_visible_behavior:
+    - "Frontend can start a creative workflow through backend APIs."
+  machine_readable_artifacts:
+    - "POST /creative-projects JSON response."
+    - "GET /creative-projects/{id} JSON response."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "risks"
+    - "next_safe_step"
+  notes: "Include sample response shape if useful."
