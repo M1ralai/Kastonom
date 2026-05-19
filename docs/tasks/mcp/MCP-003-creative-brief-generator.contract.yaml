@@ -1,11 +1,13 @@
 task:
-  name: "MCP-003 Structured Creative Brief Generation"
-  goal: "Transform scoring output, product details, and audience data into a deterministic structured JSON creative brief ready for prompt compilation, with strict guardrails preventing fabricated claims."
+  name: "MCP-003 Structured Creative Brief Generation with LLM Enhancement"
+  goal: "Transform scoring output, product details, and audience data into a deterministic structured JSON creative brief using LLM for creative content generation (hook, main_claim, CTA, creative_angle) with rule-based fallback for deterministic output."
   layer: "mcp_ai"
   status: "planned"
   owner: "codex"
+  llm_provider: "codex/openai"
   allowed_files:
     - "mcp/src/brief-generator/**"
+    - "mcp/src/llm/**"
     - "mcp/tests/brief-generator/**"
     - "docs/tasks/mcp/**"
     - "docs/prompts/**"
@@ -19,24 +21,123 @@ task:
   scope:
     include:
       - "Create BriefGenerator interface accepting AIBehaviorOutput and ProductMetrics."
-      - "Implement generateCreativeBrief() deterministic function returning JSON matching docs/prompts/creative-brief.template.yaml schema."
+      - "Implement LLM-based creative content generation for hook, main_claim, call_to_action, and creative_angle."
+      - "Use Codex/OpenAI API for creative text generation with Turkish language support."
+      - "Implement deterministic rule-based fallback when LLM is unavailable or fails."
       - "Map product fields (id, name, category, is_new, price, stock_quantity, source) from input without modification or invention."
       - "Extract audience segment, age_range, buying_motivation from input; mark source (mock|erp|commerce|analytics|unknown)."
       - "Pass through score fields (hype_score, trend_potential_score, sales_velocity, stock_movement, new_product_boost, audience_fit) with confidence level."
-      - "Generate creative_angle and tone based on hype_score and audience_fit combinations (rule-based, deterministic)."
+      - "Generate creative_angle and tone using LLM based on hype_score and audience_fit combinations."
       - "Preserve forbidden_claims array; add new constraints detected from product data (e.g., if price=null, add 'Do not claim price' to forbidden_claims)."
-      - "Generate hook, main_claim, and call_to_action based on creative_angle and product category (template-based mapping)."
-      - "Validate all text outputs do not contain invented product features, price claims, discounts, guarantees, or shipping promises."
-      - "Populate fallback_notes with all data gaps and guardrail triggers (e.g., 'price_unavailable', 'stock_not_provided', 'claim_removed_no_evidence')."
+      - "Validate LLM outputs do not contain invented product features, price claims, discounts, guarantees, or shipping promises."
+      - "Populate fallback_notes with all data gaps and guardrail triggers (e.g., 'price_unavailable', 'llm_fallback', 'claim_removed_no_evidence')."
       - "Set confidence field: 'high' if all product/audience data present, 'medium' if partial, 'low' if >50% data missing."
-      - "Add deterministic unit tests with fixture AIBehaviorOutput inputs proving same input = same CreativeBrief."
+      - "Add deterministic unit tests with fixture AIBehaviorOutput inputs proving consistent output."
       - "Add claim-validation tests verifying no invented prices, discounts, unavailable features."
+      - "Implement LLM client wrapper with retry logic and timeout handling."
+      - "Support Turkish language prompts and responses for ecommerce advertising."
     exclude:
-      - "LLM-based narrative or copywriting (defer to later integration tasks)."
-      - "Live API calls or ERP integration."
+      - "Direct LLM model training or fine-tuning."
+      - "Live API calls to ERP systems."
       - "Database persistence."
       - "User interface rendering."
       - "Video style or platform-specific rendering (handled downstream)."
+      - "Fabricating product facts that are not in input data."
+
+  llm_configuration:
+    provider: "codex/openai"
+    model: "gpt-4"
+    temperature: 0.7
+    max_tokens: 500
+    timeout_ms: 30000
+    retry_attempts: 2
+    fallback_to_rule_based: true
+
+  llm_prompt_template: |
+    Sen bir e-ticaret reklam creative direktörüsün.
+
+    Ürün Bilgileri:
+    - Adı: {product_name}
+    - Kategori: {category}
+    - Fiyat: {price_status}
+    - Yeni Ürün: {is_new}
+    - Stok: {stock_status}
+
+    Hedef Kitle:
+    - Ana Segment: {primary_segment}
+    - Yaş Aralığı: {age_range}
+    - Satın Alma Motivasyonu: {buying_motivation}
+
+    Metrikler:
+    - Hype Score: {hype_score}/100
+    - Trend Potansiyeli: {trend_potential_score}/100
+    - Satış Hızı: {sales_velocity}/100
+
+    Platform: {platform}
+    Kampanya Hedefi: {goal}
+
+    Görev:
+    Aşağıdaki JSON formatında reklam creative içeriği üret:
+
+    {
+      "hook": "İlk 3 saniyede dikkat çekecek cümle (maks 15 kelime)",
+      "main_claim": "Ana mesaj/iddia (maks 20 kelime)",
+      "call_to_action": "Harekete geçirici ifade (maks 8 kelime)",
+      "creative_angle": "Yaratıcı açı (one word: trending, premium, value, emotion, story)",
+      "tone": "Ton (modern, playful, professional, luxury, casual)"
+    }
+
+    Kurallar:
+    - Türkçe yaz
+    - Fiyat, indirim, garanti YAZMA
+    - Stok durumu YAZMA
+    - Aciliyet hissi yarat
+    - Sadece verilen bilgileri kullan, icat etme
+
+  llm_response_validation:
+    required_fields:
+      - "hook"
+      - "main_claim"
+      - "call_to_action"
+      - "creative_angle"
+      - "tone"
+    forbidden_content:
+      - "fiyat"
+      - "indirim"
+      - "%"
+      - "TL"
+      - "garanti"
+      - "stokta var"
+      - "son bir kaç"
+    max_length:
+      hook: 15
+      main_claim: 20
+      call_to_action: 8
+
+  rule_based_fallback:
+    description: "Deterministic template-based fallback when LLM is unavailable"
+    templates:
+      hook:
+        high_hype: "{product_name} şimdi trend!"
+        medium_hype: "{product_name} keşfet"
+        low_hype: "{product_name} incele"
+      main_claim:
+        trending_tech: "En son teknoloji, en uygun fiyat"
+        fashion: "Stilinizi yansıtın"
+        lifestyle: "Hayatınızı kolaylaştırın"
+      call_to_action:
+        default: "Detayları gör"
+        urgency: "Şimdi dene"
+        luxury: "Keşfet"
+      creative_angle:
+        high_hype_young: "trending"
+        high_hype_mature: "premium"
+        medium_hype: "value"
+        low_hype: "general"
+      tone:
+        high_hype: "modern"
+        medium_hype: "professional"
+        low_hype: "casual"
 
 requirements:
   - id: "REQ-MCP003-001"
@@ -44,99 +145,134 @@ requirements:
     source_contract: "docs/prompts/creative-brief.template.yaml"
     priority: "must"
   - id: "REQ-MCP003-002"
+    description: "LLM (Codex/OpenAI) must be used for creative content generation when available."
+    source_contract: "llm_configuration"
+    priority: "must"
+  - id: "REQ-MCP003-003"
+    description: "Rule-based fallback must activate when LLM is unavailable, returns deterministic output."
+    source_contract: "rule_based_fallback"
+    priority: "must"
+  - id: "REQ-MCP003-004"
     description: "forbidden_claims array must be preserved from input and augmented with detected guardrail violations; never removed or truncated."
     source_contract: "docs/contracts/ai-behavior.contract.yaml"
     priority: "must"
-  - id: "REQ-MCP003-003"
+  - id: "REQ-MCP003-005"
     description: "All product factual fields (price, stock, features) must come from input data or marked unknown; zero invented claims."
     source_contract: "docs/contracts/ai-behavior.contract.yaml (forbidden_outputs)"
     priority: "must"
-  - id: "REQ-MCP003-004"
-    description: "BriefGenerator must be pure function: same AIBehaviorOutput input produces identical CreativeBrief output."
-    source_contract: "docs/layers/mcp-layer.contract.md (Deterministic Rules)"
+  - id: "REQ-MCP003-006"
+    description: "LLM response must be validated against forbidden_content list before acceptance."
+    source_contract: "llm_response_validation"
     priority: "must"
-  - id: "REQ-MCP003-005"
-    description: "Fallback notes must track: field_name, reason (e.g., 'price_unavailable', 'claim_removed_halucination_risk'), data_source."
+  - id: "REQ-MCP003-007"
+    description: "Fallback notes must track: field_name, reason (e.g., 'llm_used', 'llm_fallback', 'price_unavailable'), data_source."
     source_contract: "docs/contracts/ai-behavior.contract.yaml (fallback_behavior)"
     priority: "should"
-  - id: "REQ-MCP003-006"
-    description: "Creative angle and tone selection must follow documented rule-based mapping, not randomized or context-dependent."
-    source_contract: "docs/layers/mcp-layer.contract.md"
-    priority: "should"
+  - id: "REQ-MCP003-008"
+    description: "LLM prompt must include Turkish language instruction and forbidden content rules."
+    source_contract: "llm_prompt_template"
+    priority: "must"
+  - id: "REQ-MCP003-009"
+    description: "LLM timeout must trigger fallback to rule-based generation."
+    source_contract: "llm_configuration.timeout_ms"
+    priority: "must"
 
 acceptance_criteria:
   - id: "AC-MCP003-001"
     description: "CreativeBrief JSON output is valid and contains all required fields from template: product, audience, insight, campaign, message, constraints, fallback_notes."
     verification: "automated"
   - id: "AC-MCP003-002"
-    description: "Product fields (name, category, price, stock_quantity) are passed through unchanged from input; none are synthesized or modified."
-    verification: "review"
+    description: "LLM is called for creative content generation (hook, main_claim, CTA, creative_angle, tone) when API key is available."
+    verification: "automated"
   - id: "AC-MCP003-003"
-    description: "Audience fields (age_range, primary_segment, buying_motivation, source) are mapped from input data; unknown values explicitly marked 'unknown'."
+    description: "Rule-based fallback activates when LLM fails or is unavailable; output is deterministic."
     verification: "automated"
   - id: "AC-MCP003-004"
-    description: "Insight object contains: hype_score, trend_potential_score, sales_velocity, stock_movement, new_product_boost, audience_fit, reason, confidence."
-    verification: "review"
-  - id: "AC-MCP003-005"
-    description: "Creative_angle selected by rule-based mapping (e.g., high_hype + young_audience → 'trending_must_have'); determinism verified with identical fixture inputs."
+    description: "LLM response is validated against forbidden_content; invalid content triggers fallback."
     verification: "automated"
+  - id: "AC-MCP003-005"
+    description: "Product fields (name, category, price, stock_quantity) are passed through unchanged from input; none are synthesized or modified."
+    verification: "review"
   - id: "AC-MCP003-006"
-    description: "Forbidden_claims array preserved from input; new guardrail violations added (e.g., 'Do not claim price' if price=null)."
+    description: "Audience fields (age_range, primary_segment, buying_motivation, source) are mapped from input data; unknown values explicitly marked 'unknown'."
     verification: "automated"
   - id: "AC-MCP003-007"
-    description: "Hook, main_claim, call_to_action generated from template mappings; zero invented product features or unsupported claims."
+    description: "Insight object contains: hype_score, trend_potential_score, sales_velocity, stock_movement, new_product_boost, audience_fit, reason, confidence."
     verification: "review"
   - id: "AC-MCP003-008"
-    description: "Confidence level set correctly: 'high' if all core fields populated, 'medium' if 30-70% missing, 'low' if >70% missing."
+    description: "Creative_angle and tone generated by LLM or rule-based fallback; determinism verified with identical fixture inputs."
     verification: "automated"
   - id: "AC-MCP003-009"
-    description: "Fallback_notes array populated with entry for each missing product/audience field or guardrail trigger; format: [{ field, reason, source }]."
+    description: "Forbidden_claims array preserved from input; new guardrail violations added (e.g., 'Do not claim price' if price=null)."
     verification: "automated"
   - id: "AC-MCP003-010"
-    description: "Determinism test: run BriefGenerator with 10 identical fixture AIBehaviorOutput inputs; confirm all outputs are byte-identical JSON."
-    verification: "automated"
+    description: "Hook, main_claim, call_to_action generated by LLM with Turkish language output; validated for forbidden content."
+    verification: "review"
   - id: "AC-MCP003-011"
+    description: "Confidence level set correctly: 'high' if LLM used successfully, 'medium' if partial, 'low' if rule-based only."
+    verification: "automated"
+  - id: "AC-MCP003-012"
+    description: "Fallback_notes array populated with entry for each missing product/audience field or generation method used (llm_used or llm_fallback)."
+    verification: "automated"
+  - id: "AC-MCP003-013"
+    description: "Determinism test: run BriefGenerator with 10 identical fixture AIBehaviorOutput inputs; confirm consistent JSON output."
+    verification: "automated"
+  - id: "AC-MCP003-014"
     description: "Claim validation test: verify no output contains invented prices, discounts, guarantees, shipping claims, or unavailable features."
     verification: "automated"
 
 failure_behavior:
   missing_input: "If AIBehaviorOutput missing: return structured error with brief_id=null. If ProductMetrics missing: set affected fields to null, add fallback note, return partial brief."
-  missing_config: "If creative angle mapping not configured: default to 'general' tone, document assumption in fallback_notes."
-  external_dependency_failure: "Do not call external service to generate brief; use only rule-based mapping and provided input data."
+  missing_config: "If LLM API key missing: use rule-based fallback, document assumption in fallback_notes."
+  llm_timeout: "Trigger rule-based fallback after timeout_ms exceeded; log 'llm_timeout' in fallback_notes."
+  llm_error: "Catch LLM API errors, retry up to retry_attempts, then fallback to rule-based; log 'llm_error' and error_code."
+  invalid_llm_response: "If LLM response contains forbidden content or invalid JSON: fallback to rule-based, add 'invalid_llm_response' to fallback_notes."
   partial_completion: "Return CreativeBrief with confidence='low' and comprehensive fallback_notes; never skip brief generation."
 
 test_commands:
+  - command: "npm test -- mcp/brief-generator --testNamePattern='llm' --verbose"
+    expected_result: "LLM integration tests pass; verify API calls made when key available."
+  - command: "npm test -- mcp/brief-generator --testNamePattern='fallback' --verbose"
+    expected_result: "Rule-based fallback tests pass; deterministic output confirmed."
+  - command: "npm test -- mcp/brief-generator --testNamePattern='validation' --verbose"
+    expected_result: "LLM response validation tests pass; forbidden content rejected."
   - command: "npm test -- mcp/brief-generator --testNamePattern='schema' --verbose"
     expected_result: "All CreativeBrief JSON schema validation tests pass; output contains all required fields."
-  - command: "npm test -- mcp/brief-generator --testNamePattern='determinism' --verbose"
-    expected_result: "Determinism test confirms identical fixture inputs produce identical JSON output."
   - command: "npm test -- mcp/brief-generator --testNamePattern='guardrails' --coverage"
     expected_result: "Guardrail and claim validation tests pass; zero invented claims in test output."
 
 expected_output:
   changed_files:
     - "mcp/src/brief-generator/brief-generator.ts"
-    - "mcp/src/brief-generator/creative-angle-mapper.ts"
+    - "mcp/src/brief-generator/creative-content-generator.ts"
+    - "mcp/src/brief-generator/rule-based-fallback.ts"
+    - "mcp/src/llm/llm-client.ts"
+    - "mcp/src/llm/prompt-builder.ts"
     - "mcp/src/brief-generator/claim-validator.ts"
     - "mcp/tests/brief-generator/brief-generator.test.ts"
+    - "mcp/tests/brief-generator/llm-integration.test.ts"
     - "mcp/tests/fixtures/ai-behavior-output-fixtures.ts"
   user_visible_behavior:
     - "Backend can call BriefGenerator with MCP scoring output and receive JSON CreativeBrief ready for prompt compilation."
-    - "Creative angle, tone, and message are deterministic and traceable to input data."
-    - "Fallback notes clearly document missing data and guardrail decisions."
+    - "Creative angle, tone, hook, and CTA are generated by LLM with Turkish language support."
+    - "Rule-based fallback activates when LLM is unavailable, maintaining deterministic output."
+    - "Fallback notes clearly document generation method (llm_used or llm_fallback) and any data gaps."
   machine_readable_artifacts:
     - "brief-generator.ts exports: generateCreativeBrief(input: AIBehaviorOutput): CreativeBrief."
-    - "creative-angle-mapper.ts exports mapping rules (score ranges → angles)."
-    - "claim-validator.ts exports validation checks (no_price_claims, no_guarantees, etc)."
+    - "llm-client.ts exports: callLLM(prompt: string): Promise<LLMResponse> with timeout and retry."
+    - "rule-based-fallback.ts exports: generateFallbackContent(scores: Scores): CreativeContent."
+    - "claim-validator.ts exports: validateContent(content: CreativeContent): ValidationResult."
 
 reporting_format:
   required_sections:
     - "changed_files"
     - "tests_run"
+    - "llm_integration_status"
+    - "llm_fallback_verification"
     - "creative_angle_mapping_rules"
-    - "determinism_verification_results"
     - "claim_validation_coverage"
+    - "turkish_language_quality"
     - "assumptions"
     - "fallback_notes_statistics"
     - "next_safe_step"
-  notes: "Include example CreativeBrief JSON output for demo and live tenant modes. Document creative-angle mapper rules with examples. Highlight any field conflicts between input AIBehaviorOutput and CreativeBrief template that required resolution."
+  notes: "Include example CreativeBrief JSON output for both LLM and fallback modes. Document LLM prompt template used. Highlight any content validation failures and fallback triggers. Report LLM vs rule-based generation ratio from tests."

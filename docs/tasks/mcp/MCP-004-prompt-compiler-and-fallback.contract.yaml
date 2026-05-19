@@ -1,162 +1,295 @@
 task:
-  name: "MCP-004 Prompt Compilation and Mock Provider Fallback Adapters"
-  goal: "Compile deterministic CreativeBrief into provider-specific PromptPayload formats with fail-closed fallback logic: demo mode and live adapter errors automatically fallback to MockPromptAdapter."
+  name: "MCP-004 Prompt Compilation with LLM Optimization"
+  goal: "Compile CreativeBrief into provider-specific PromptPayload formats using LLM for prompt optimization, with rule-based fallback and fail-closed logic for demo mode and live adapter errors."
   layer: "mcp_ai"
   status: "planned"
   owner: "codex"
+  llm_provider: "codex/openai"
   allowed_files:
     - "mcp/src/prompt-compiler/**"
     - "mcp/src/adapters/**"
-    - "backend/src/providers/**"
+    - "mcp/src/llm/**"
     - "mcp/tests/prompt-compiler/**"
     - "docs/tasks/mcp/**"
   forbidden_files:
     - "frontend/**"
+    - "backend/src/providers/**"
     - "docs/contracts/**"
   dependencies:
     - "MCP-003"
   scope:
     include:
       - "Define BaseAdapter interface: compile(brief: CreativeBrief, tenant: TenantContext): PromptPayload."
-      - "Create PromptPayload interface with fields: provider, model, prompt_text, parameters, is_mock, fallback_reason, tenant_id."
-      - "Implement PromptCompiler with selectAdapter() logic: if TenantMode='demo' use MockPromptAdapter, else try live adapters."
-      - "Implement fail-closed fallback: if live adapter (Pollo, Kling, Runway) throws error, catch and fallback to MockPromptAdapter with fallback_reason logged."
-      - "Forward compiled PromptPayload to the MCP-007 network execution layer when the selected flow requires live provider submission."
-      - "Create MockPromptAdapter returning PromptPayload with is_mock=true, provider='mock', deterministic mock prompt_text based on creative_angle."
-      - "Create PolloPromptAdapter translating CreativeBrief to Pollo API format (if Pollo contract available; otherwise stub with TODO)."
-      - "Create KlingPromptAdapter translating CreativeBrief to Kling API format (if Kling contract available; otherwise stub with TODO)."
-      - "Create RunwayPromptAdapter translating CreativeBrief to Runway API format (if Runway contract available; otherwise stub with TODO)."
+      - "Create PromptPayload interface with fields: provider, model, prompt_text, negative_prompt, parameters, is_mock, fallback_reason, tenant_id."
+      - "Implement LLM-based prompt optimization for provider-specific formats (Pollo, Kling, Runway)."
+      - "Use Codex/OpenAI API to enhance prompt_text with provider-specific nuances, visual instructions, and Turkish overlays."
+      - "Implement deterministic MockPromptAdapter returning PromptPayload with is_mock=true, provider='mock', deterministic mock prompt_text."
+      - "Implement rule-based fallback when LLM is unavailable or fails."
+      - "Implement fail-closed fallback: if live adapter throws error, catch and fallback to MockPromptAdapter with fallback_reason logged."
+      - "Forward compiled PromptPayload to the MCP-007 network execution layer when live provider submission is required."
+      - "Create PolloPromptAdapter with LLM optimization and rule-based fallback."
+      - "Create KlingPromptAdapter with LLM optimization and rule-based fallback."
+      - "Create RunwayPromptAdapter with LLM optimization and rule-based fallback."
       - "Implement adapter selection strategy: check TenantContext.preferred_provider or default platform selection."
       - "Add comprehensive error logging for all adapter selections and fallback triggers with timestamp and tenant_id."
       - "Validate PromptPayload structure before return: required fields present, prompt_text not empty, tenant_id matches context."
-      - "Add deterministic tests confirming same CreativeBrief input produces same PromptPayload output per adapter."
+      - "Add deterministic tests confirming same CreativeBrief input produces consistent PromptPayload output."
+      - "Add LLM integration tests verifying prompt optimization when API key is available."
       - "Add fallback behavior tests: verify live adapter errors trigger fallback, is_mock flag set correctly, fallback_reason logged."
     exclude:
-      - "LLM-based prompt refinement."
       - "Frontend rendering of PromptPayload."
       - "Video generation job scheduling (handled by backend job queue)."
+      - "LLM model training or fine-tuning."
+      - "Fabricating provider-specific features not supported by the provider."
 
-requirements:
-  - id: "REQ-MCP004-001"
-    description: "BaseAdapter interface must define compile(brief, tenant) method; all adapters implement this interface."
-    source_contract: "docs/layers/mcp-layer.contract.md"
-    priority: "must"
-  - id: "REQ-MCP004-002"
-    description: "PromptPayload must include provider, model, prompt_text, parameters, is_mock, fallback_reason, tenant_id; all fields serializable to JSON."
-    source_contract: "docs/contracts/ai-behavior.contract.yaml"
-    priority: "must"
-  - id: "REQ-MCP004-003"
-    description: "TenantMode='demo' must always use MockPromptAdapter; never attempt live provider compilation for demo tenants."
-    source_contract: "docs/contracts/data-model.contract.yaml"
-    priority: "must"
-  - id: "REQ-MCP004-004"
-    description: "Live adapter errors must trigger automatic fallback to MockPromptAdapter (fail-closed); error logged with context."
-    source_contract: "docs/layers/mcp-layer.contract.md (Failure Behavior)"
-    priority: "must"
-  - id: "REQ-MCP004-005"
-    description: "MockPromptAdapter must return is_mock=true and generate deterministic mock prompt_text based on CreativeBrief angle."
-    source_contract: "docs/layers/mcp-layer.contract.md (Must Not Do - never claim live output when using mock)"
-    priority: "must"
-  - id: "REQ-MCP004-006"
-    description: "PromptCompiler output must be machine-readable JSON with no embedded secrets or provider credentials."
-    source_contract: "docs/contracts/ai-behavior.contract.yaml (forbidden_outputs)"
-    priority: "must"
-  - id: "REQ-MCP004-007"
-    description: "All adapter selections and fallback events must be logged with timestamp, tenant_id, reason, and source adapter."
-    source_contract: "docs/layers/mcp-layer.contract.md"
-    priority: "should"
+  llm_configuration:
+    provider: "codex/openai"
+    model: "gpt-4"
+    temperature: 0.5
+    max_tokens: 800
+    timeout_ms: 30000
+    retry_attempts: 2
+    fallback_to_rule_based: true
 
-acceptance_criteria:
-  - id: "AC-MCP004-001"
-    description: "BaseAdapter interface defined with compile() method; TypeScript compilation succeeds."
-    verification: "automated"
-  - id: "AC-MCP004-002"
-    description: "MockPromptAdapter implemented returning PromptPayload with is_mock=true, provider='mock', deterministic prompt_text."
-    verification: "automated"
-  - id: "AC-MCP004-003"
-    description: "PromptCompiler.compile() with TenantMode='demo' always uses MockPromptAdapter regardless of preferred_provider."
-    verification: "automated"
-  - id: "AC-MCP004-004"
-    description: "Live adapter error triggers fallback: error caught, MockPromptAdapter used, is_mock=true returned, fallback_reason populated."
-    verification: "automated"
-  - id: "AC-MCP004-005"
-    description: "PolloPromptAdapter stub or implementation exists; if stub, includes TODO comment with link to provider contract."
-    verification: "review"
-  - id: "AC-MCP004-006"
-    description: "KlingPromptAdapter stub or implementation exists; if stub, includes TODO comment with link to provider contract."
-    verification: "review"
-  - id: "AC-MCP004-007"
-    description: "RunwayPromptAdapter stub or implementation exists; if stub, includes TODO comment with link to provider contract."
-    verification: "review"
-  - id: "AC-MCP004-008"
-    description: "PromptPayload validation: required fields present, prompt_text not empty/whitespace, tenant_id matches TenantContext."
-    verification: "automated"
-  - id: "AC-MCP004-009"
-    description: "JSON serialization test: PromptPayload.toJSON() succeeds; no circular references or non-serializable objects."
-    verification: "automated"
-  - id: "AC-MCP004-010"
-    description: "Determinism test: same CreativeBrief and TenantContext input produces identical PromptPayload output for MockPromptAdapter (byte-identical JSON)."
-    verification: "automated"
-  - id: "AC-MCP004-011"
-    description: "Adapter selection test: verify correct adapter chosen based on tenant.preferred_provider or default strategy."
-    verification: "automated"
-  - id: "AC-MCP004-012"
-    description: "Logging test: verify adapter selection and fallback events logged with tenant_id, timestamp, and reason; logs do not expose secrets."
-    verification: "review"
-  - id: "AC-MCP004-013"
-    description: "Error handling test: simulate PolloPromptAdapter.compile() throws; verify fallback to MockPromptAdapter succeeds and is_mock=true."
-    verification: "automated"
-  - id: "AC-MCP004-014"
-    description: "Compiled PromptPayload can be handed off to MCP-007 for live provider submission when the live execution path is selected."
-    verification: "review"
+  llm_prompt_optimization:
+    description: "LLM enhances provider-specific prompt with visual instructions, timing, and Turkish overlays"
+    provider_templates:
+      pollo:
+        system_prompt: |
+          Sen bir AI video production uzmanısın. Pollo platformu için optimize prompt'lar oluşturuyorsun.
+          
+          Kurallar:
+          - Kısa ve etkili görsel talimatlar ver
+          - Pollo'nun güçlü yönlerini vurgula (dinamik hareket, renk geçişleri)
+          - Türkçe metin overlay'leri dahil et
+          - Maksimum 500 kelime kullan
+        include_fields:
+          - "visual_style"
+          - "creative_angle"
+          - "tone"
+          - "hook"
+          - "main_claim"
+          - "duration_seconds"
+          - "aspect_ratio"
+      kling:
+        system_prompt: |
+          Sen bir AI video production uzmanısın. Kling platformu için optimize prompt'lar oluşturuyorsun.
+          
+          Kurallar:
+          - Kling'in görsel kalitesi için talimatlar ver
+          - Studio lighting ve camera movement dahil et
+          - Türkçe metin overlay'leri dahil et
+          - Maksimum 500 kelime kullan
+        include_fields:
+          - "visual_style"
+          - "creative_angle"
+          - "tone"
+          - "hook"
+          - "main_claim"
+          - "call_to_action"
+          - "duration_seconds"
+          - "aspect_ratio"
+      runway:
+        system_prompt: |
+          Sen bir AI video production uzmanısın. Runway platformu için optimize prompt'lar oluşturuyorsun.
+          
+          Kurallar:
+          - Runway'nin motion graphics yeteneklerini kullan
+          - Scene transitions ve timing dahil et
+          - Türkçe metin overlay'leri dahil et
+          - Maksimum 500 kelime kullan
+        include_fields:
+          - "visual_style"
+          - "creative_angle"
+          - "tone"
+          - "hook"
+          - "main_claim"
+          - "duration_seconds"
+          - "aspect_ratio"
 
-failure_behavior:
-  missing_input: "If CreativeBrief missing: return structured error with payload=null. If TenantContext missing: reject and log security error."
-  missing_config: "If adapter configuration missing: log assumption, default to MockPromptAdapter, set fallback_reason='adapter_config_missing'."
-  external_dependency_failure: "If live adapter unavailable: immediately fallback to MockPromptAdapter without retries; log fallback event."
-  partial_completion: "If some adapters fail to initialize: log failure, use available adapters; if none available, fallback to MockPromptAdapter."
+  llm_response_validation:
+    required_fields:
+      - "prompt_text"
+      - "negative_prompt"
+    max_length:
+      prompt_text: 1000
+      negative_prompt: 500
+    forbidden_content:
+      - "fiyat"
+      - "indirim"
+      - "%"
+      - "TL"
+      - "garanti"
+      - "stokta var"
 
-test_commands:
-  - command: "npm test -- mcp/prompt-compiler --testNamePattern='adapter' --verbose"
-    expected_result: "All adapter interface and implementation tests pass; MockPromptAdapter tests confirm is_mock=true and determinism."
-  - command: "npm test -- mcp/prompt-compiler --testNamePattern='fallback' --verbose"
-    expected_result: "Fallback tests confirm: demo mode uses MockPromptAdapter, live adapter errors trigger fallback, fallback_reason populated."
-  - command: "npm test -- mcp/prompt-compiler --testNamePattern='determinism' --coverage"
-    expected_result: "Determinism tests confirm identical CreativeBrief inputs produce identical PromptPayload outputs."
+  rule_based_fallback:
+    description: "Deterministic template-based prompt generation when LLM is unavailable"
+    templates:
+      mock:
+        prompt_text: "Create a {duration_seconds} second {aspect_ratio} video ad for {product_name}. {hook}. Show product clearly throughout. CTA: {call_to_action}."
+        negative_prompt: "Do not show price, discount, warranty, or unavailable features. Do not claim stock availability."
+      pollo:
+        prompt_text: "Create a dynamic {duration_seconds}s {aspect_ratio} vertical ad. Subject: {product_name}. Opening: {hook}. Main message: {main_claim}. Style: {visual_style}. Tone: {tone}. End with CTA overlay in Turkish: '{call_to_action}'."
+        negative_prompt: "No price claims. No discount mentions. No warranty statements. No stock availability claims. No medical/legal claims."
+      kling:
+        prompt_text: "Cinematic {duration_seconds}s {aspect_ratio} video of {product_name}. Begin with {hook}. Show {main_claim}. Visual style: {visual_style}. Professional lighting. Turkish overlay at end: '{call_to_action}'."
+        negative_prompt: "No price. No discount. No guarantee. No stock claims. No medical claims. No legal claims."
+      runway:
+        prompt_text: "Motion graphics video {duration_seconds}s {aspect_ratio}. {product_name} in focus. Open with {hook}. Key message: {main_claim}. Style: {visual_style}. Turkish text overlay: '{call_to_action}'."
+        negative_prompt: "No price mentions. No discount claims. No warranty. No stock availability. No medical/legal assertions."
 
-expected_output:
-  changed_files:
-    - "mcp/src/prompt-compiler/prompt-compiler.ts"
-    - "mcp/src/prompt-compiler/adapter.interface.ts"
-    - "mcp/src/adapters/mock-prompt-adapter.ts"
-    - "mcp/src/adapters/pollo-prompt-adapter.ts"
-    - "mcp/src/adapters/kling-prompt-adapter.ts"
-    - "mcp/src/adapters/runway-prompt-adapter.ts"
-    - "mcp/src/prompt-compiler/adapter-selector.ts"
-    - "mcp/tests/prompt-compiler/prompt-compiler.test.ts"
-    - "mcp/tests/adapters/mock-prompt-adapter.test.ts"
-    - "mcp/tests/fixtures/creative-brief-fixtures.ts"
-  user_visible_behavior:
-    - "Backend can call PromptCompiler.compile() with CreativeBrief and TenantContext."
-    - "Demo tenants always receive mock prompts with is_mock=true."
-    - "Live tenant adapter errors gracefully fallback to MockPromptAdapter with clear logging."
-    - "PromptPayload is deterministic and ready for downstream video generation jobs."
-  machine_readable_artifacts:
-    - "prompt-compiler.ts exports: PromptCompiler class with compile() method."
-    - "adapter.interface.ts exports: BaseAdapter interface."
-    - "Adapter implementations: MockPromptAdapter, PolloPromptAdapter, KlingPromptAdapter, RunwayPromptAdapter."
-    - "Error logs with tenant_id, timestamp, fallback_reason for observability."
+  requirements:
+    - id: "REQ-MCP004-001"
+      description: "BaseAdapter interface must define compile(brief, tenant) method; all adapters implement this interface."
+      source_contract: "docs/layers/mcp-layer.contract.md"
+      priority: "must"
+    - id: "REQ-MCP004-002"
+      description: "PromptPayload must include provider, prompt_text, negative_prompt, parameters, is_mock, fallback_reason, tenant_id; all fields serializable to JSON."
+      source_contract: "docs/contracts/ai-behavior.contract.yaml"
+      priority: "must"
+    - id: "REQ-MCP004-003"
+      description: "LLM must be used for prompt optimization when API key is available."
+      source_contract: "llm_configuration"
+      priority: "must"
+    - id: "REQ-MCP004-004"
+      description: "Rule-based fallback must activate when LLM is unavailable, returns deterministic output."
+      source_contract: "rule_based_fallback"
+      priority: "must"
+    - id: "REQ-MCP004-005"
+      description: "TenantMode='demo' must always use MockPromptAdapter; never attempt live provider compilation for demo tenants."
+      source_contract: "docs/contracts/data-model.contract.yaml"
+      priority: "must"
+    - id: "REQ-MCP004-006"
+      description: "Live adapter errors must trigger automatic fallback to MockPromptAdapter (fail-closed); error logged with context."
+      source_contract: "docs/layers/mcp-layer.contract.md (Failure Behavior)"
+      priority: "must"
+    - id: "REQ-MCP004-007"
+      description: "MockPromptAdapter must return is_mock=true and generate deterministic mock prompt_text based on CreativeBrief."
+      source_contract: "docs/layers/mcp-layer.contract.md (Must Not Do - never claim live output when using mock)"
+      priority: "must"
+    - id: "REQ-MCP004-008"
+      description: "PromptCompiler output must be machine-readable JSON with no embedded secrets or provider credentials."
+      source_contract: "docs/contracts/ai-behavior.contract.yaml (forbidden_outputs)"
+      priority: "must"
+    - id: "REQ-MCP004-009"
+      description: "LLM response must be validated for required fields and forbidden content before acceptance."
+      source_contract: "llm_response_validation"
+      priority: "must"
+    - id: "REQ-MCP004-010"
+      description: "All adapter selections and fallback events must be logged with timestamp, tenant_id, reason, and source adapter."
+      source_contract: "docs/layers/mcp-layer.contract.md"
+      priority: "should"
 
-reporting_format:
-  required_sections:
-    - "changed_files"
-    - "tests_run"
-    - "adapter_implementations_status"
-    - "fallback_behavior_verification"
-    - "determinism_validation"
-    - "mock_adapter_output_examples"
-    - "logging_samples"
-    - "assumptions"
-    - "risks"
-    - "next_safe_step"
-  notes: "Include example PromptPayload JSON for demo and live tenants. Document adapter selection logic and tie-breaker strategy. Include sample error logs demonstrating fallback trigger. Highlight any blocking dependencies on external provider contracts (Pollo, Kling, Runway API specs) that are TBD."
+  acceptance_criteria:
+    - id: "AC-MCP004-001"
+      description: "BaseAdapter interface defined with compile() method; TypeScript compilation succeeds."
+      verification: "automated"
+    - id: "AC-MCP004-002"
+      description: "MockPromptAdapter implemented returning PromptPayload with is_mock=true, provider='mock', deterministic prompt_text."
+      verification: "automated"
+    - id: "AC-MCP004-003"
+      description: "LLM is called for prompt optimization when API key is available; optimized prompts include provider-specific nuances."
+      verification: "automated"
+    - id: "AC-MCP004-004"
+      description: "Rule-based fallback activates when LLM fails or is unavailable; output is deterministic."
+      verification: "automated"
+    - id: "AC-MCP004-005"
+      description: "PromptCompiler.compile() with TenantMode='demo' always uses MockPromptAdapter regardless of preferred_provider."
+      verification: "automated"
+    - id: "AC-MCP004-006"
+      description: "Live adapter error triggers fallback: error caught, MockPromptAdapter used, is_mock=true returned, fallback_reason populated."
+      verification: "automated"
+    - id: "AC-MCP004-007"
+      description: "PolloPromptAdapter with LLM optimization; fallback to rule-based when LLM unavailable."
+      verification: "review"
+    - id: "AC-MCP004-008"
+      description: "KlingPromptAdapter with LLM optimization; fallback to rule-based when LLM unavailable."
+      verification: "review"
+    - id: "AC-MCP004-009"
+      description: "RunwayPromptAdapter with LLM optimization; fallback to rule-based when LLM unavailable."
+      verification: "review"
+    - id: "AC-MCP004-010"
+      description: "PromptPayload validation: required fields present, prompt_text not empty/whitespace, tenant_id matches TenantContext."
+      verification: "automated"
+    - id: "AC-MCP004-011"
+      description: "JSON serialization test: PromptPayload.toJSON() succeeds; no circular references or non-serializable objects."
+      verification: "automated"
+    - id: "AC-MCP004-012"
+      description: "Determinism test: same CreativeBrief and TenantContext input produces consistent PromptPayload output."
+      verification: "automated"
+    - id: "AC-MCP004-013"
+      description: "Adapter selection test: verify correct adapter chosen based on tenant.preferred_provider or default strategy."
+      verification: "automated"
+    - id: "AC-MCP004-014"
+      description: "Logging test: verify adapter selection, LLM usage, and fallback events logged with tenant_id, timestamp, and reason; logs do not expose secrets."
+      verification: "review"
+    - id: "AC-MCP004-015"
+      description: "Error handling test: simulate live adapter throws; verify fallback to MockPromptAdapter succeeds and is_mock=true."
+      verification: "automated"
+    - id: "AC-MCP004-016"
+      description: "Compiled PromptPayload can be handed off to MCP-007 for live provider submission when the live execution path is selected."
+      verification: "review"
+
+  failure_behavior:
+    missing_input: "If CreativeBrief missing: return structured error with payload=null. If TenantContext missing: reject and log security error."
+    missing_config: "If LLM API key missing: use rule-based fallback for all adapters, log 'llm_not_configured'."
+    llm_timeout: "Trigger rule-based fallback after timeout_ms exceeded; log 'llm_timeout' in fallback_reason."
+    llm_error: "Catch LLM API errors, retry up to retry_attempts, then fallback to rule-based; log 'llm_error' and error_code."
+    invalid_llm_response: "If LLM response invalid: fallback to rule-based, add 'invalid_llm_response' to fallback_reason."
+    adapter_error: "If live adapter (Pollo/Kling/Runway) throws: catch, fallback to MockPromptAdapter, log 'adapter_error'."
+    external_dependency_failure: "If live adapter unavailable: immediately fallback to MockPromptAdapter without retries; log fallback event."
+    partial_completion: "If some adapters fail to initialize: log failure, use available adapters; if none available, fallback to MockPromptAdapter."
+
+  test_commands:
+    - command: "npm test -- mcp/prompt-compiler --testNamePattern='llm' --verbose"
+      expected_result: "LLM optimization tests pass; verify API calls made when key available."
+    - command: "npm test -- mcp/prompt-compiler --testNamePattern='adapter' --verbose"
+      expected_result: "All adapter interface and implementation tests pass; MockPromptAdapter tests confirm is_mock=true and determinism."
+    - command: "npm test -- mcp/prompt-compiler --testNamePattern='fallback' --verbose"
+      expected_result: "Fallback tests confirm: demo mode uses MockPromptAdapter, LLM failure triggers rule-based, live adapter errors trigger MockPromptAdapter."
+    - command: "npm test -- mcp/prompt-compiler --testNamePattern='determinism' --coverage"
+      expected_result: "Determinism tests confirm identical CreativeBrief inputs produce consistent PromptPayload outputs."
+
+  expected_output:
+    changed_files:
+      - "mcp/src/prompt-compiler/prompt-compiler.ts"
+      - "mcp/src/prompt-compiler/adapter.interface.ts"
+      - "mcp/src/prompt-compiler/adapter-selector.ts"
+      - "mcp/src/adapters/mock-prompt-adapter.ts"
+      - "mcp/src/adapters/pollo-prompt-adapter.ts"
+      - "mcp/src/adapters/kling-prompt-adapter.ts"
+      - "mcp/src/adapters/runway-prompt-adapter.ts"
+      - "mcp/src/llm/prompt-optimizer.ts"
+      - "mcp/tests/prompt-compiler/prompt-compiler.test.ts"
+      - "mcp/tests/prompt-compiler/llm-optimization.test.ts"
+      - "mcp/tests/adapters/mock-prompt-adapter.test.ts"
+      - "mcp/tests/fixtures/creative-brief-fixtures.ts"
+    user_visible_behavior:
+      - "Backend can call PromptCompiler.compile() with CreativeBrief and TenantContext."
+      - "Demo tenants always receive mock prompts with is_mock=true."
+      - "Live tenants receive LLM-optimized prompts when API key is available."
+      - "LLM failure gracefully falls back to rule-based generation maintaining deterministic output."
+      - "Live tenant adapter errors gracefully fallback to MockPromptAdapter with clear logging."
+      - "PromptPayload is deterministic and ready for downstream video generation jobs."
+    machine_readable_artifacts:
+      - "prompt-compiler.ts exports: PromptCompiler class with compile() method."
+      - "adapter.interface.ts exports: BaseAdapter interface."
+      - "prompt-optimizer.ts exports: optimizePrompt(brief, provider): Promise<PromptPayload> with LLM and fallback."
+      - "Adapter implementations: MockPromptAdapter, PolloPromptAdapter, KlingPromptAdapter, RunwayPromptAdapter."
+      - "Error logs with tenant_id, timestamp, fallback_reason, generation_method (llm_used or rule_based) for observability."
+
+  reporting_format:
+    required_sections:
+      - "changed_files"
+      - "tests_run"
+      - "llm_optimization_status"
+      - "adapter_implementations_status"
+      - "llm_vs_rule_based_ratio"
+      - "fallback_behavior_verification"
+      - "determinism_validation"
+      - "mock_adapter_output_examples"
+      - "logging_samples"
+      - "assumptions"
+      - "risks"
+      - "next_safe_step"
+    notes: "Include example PromptPayload JSON for demo, LLM-optimized live, and rule-based fallback modes. Document LLM optimization changes per provider. Include sample error logs demonstrating fallback triggers. Report LLM vs rule-based generation ratio from tests."

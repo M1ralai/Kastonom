@@ -1,0 +1,14 @@
+{
+  "name": "kastonom-backend",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Kastonom hackathon MVP backend orchestration API.",
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test tests/*.test.js"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

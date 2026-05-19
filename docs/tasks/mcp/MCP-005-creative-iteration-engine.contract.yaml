@@ -1,14 +1,16 @@
 task:
   task_id: MCP-005
-  title: "Metric-Informed Creative Iteration Engine"
+  title: "Metric-Informed Creative Iteration Engine with LLM Analysis"
   name: "Metric-Informed Creative Iteration Engine"
-  goal: "Generate deterministic CreativeIterationSuggestion outputs from AdMetricsSnapshot data so the system can propose a new GenerationRequest when published ads underperform or show actionable decline signals."
-  description: "Yayınlanmış reklamların AdMetricsSnapshot verilerini okuyarak deterministik kurallarla yeni GenerationRequest oluşturmak için CreativeIterationSuggestion üreten motorun inşası."
+  goal: "Generate CreativeIterationSuggestion outputs from AdMetricsSnapshot data using LLM for creative analysis and rule-based fallback for deterministic output. Propose new GenerationRequest when published ads underperform or show actionable decline signals."
+  description: "Yayınlanmış reklamların AdMetricsSnapshot verilerini okuyarak LLM ile yaratıcı analiz yapıp yeni GenerationRequest önerisi üreten motorun inşası."
   layer: "mcp_ai"
   status: "planned"
   owner: "codex"
+  llm_provider: "codex/openai"
   allowed_files:
     - "mcp/src/iteration-engine/**"
+    - "mcp/src/llm/**"
     - "mcp/src/shared/**"
     - "mcp/tests/iteration-engine/**"
     - "docs/tasks/mcp/**"
@@ -24,18 +26,132 @@ task:
     - "MCP-003"
   scope:
     include:
-      - "Read AdMetricsSnapshot records and identify deterministic metric drivers from stored values such as ctr, cost_per_video_view, video_view_rate, cpc, roas, conversions, conversion_value, impressions, clicks, and spend."
-      - "Detect decline, stagnation, or efficiency loss patterns using a fixed rule set and produce a CreativeIterationSuggestion reason that explains why an iteration is needed."
-      - "Generate suggested_changes for the next GenerationRequest using only evidence present in the metrics snapshot and related project context."
-      - "Map weak-performing hooks, calls to action, pacing, or creative angles into structured change suggestions without inventing missing facts."
+      - "Read AdMetricsSnapshot records and identify metric drivers from stored values such as ctr, cost_per_video_view, video_view_rate, cpc, roas, conversions, conversion_value, impressions, clicks, and spend."
+      - "Use LLM (Codex/OpenAI) to analyze metric patterns and generate creative improvement suggestions."
+      - "Detect decline, stagnation, or efficiency loss patterns using LLM analysis enhanced with rule-based thresholds."
+      - "Generate suggested_changes for the next GenerationRequest using LLM creativity combined with stored evidence."
+      - "Map weak-performing hooks, calls to action, pacing, or creative angles into structured change suggestions."
       - "Populate metric_drivers with the exact stored signals that triggered the suggestion."
+      - "Implement rule-based fallback when LLM is unavailable or fails."
       - "Populate fallback_notes when metrics are missing, null, stale, or insufficient to support a recommendation."
-      - "Keep the output deterministic for identical snapshot and project inputs."
+      - "Keep the output deterministic for identical snapshot and project inputs when using rule-based fallback."
+      - "Add LLM integration tests verifying metric analysis when API key is available."
     exclude:
       - "Inventing missing metric values or estimating platform performance that is not stored."
       - "Direct connections to Meta Ads, Google Ads, or any external ad platform API."
       - "Database writes outside the returned contract object."
-      - "LLM-generated reasoning or narrative copywriting."
+      - "LLM model training or fine-tuning."
+      - "Fabricating performance predictions or conversions."
+
+  llm_configuration:
+    provider: "codex/openai"
+    model: "gpt-4"
+    temperature: 0.6
+    max_tokens: 600
+    timeout_ms: 25000
+    retry_attempts: 2
+    fallback_to_rule_based: true
+
+  llm_analysis_prompt: |
+    Sen bir e-ticaret reklam performans uzmanısın.
+
+    Reklam Metrikleri:
+    - CTR (Click-through Rate): {ctr}%
+    - Video View Rate: {video_view_rate}%
+    - Cost per Video View: {cost_per_video_view} TL
+    - CPC (Cost per Click): {cpc} TL
+    - ROAS (Return on Ad Spend): {roas}
+    - Dönüşümler: {conversions}
+    - Dönüşüm Değeri: {conversion_value} TL
+    - Gösterim: {impressions}
+    - Tıklama: {clicks}
+    - Harcama: {spend} TL
+
+    Önceki Kampanya Bilgileri:
+    - Hook: {previous_hook}
+    - CTA: {previous_cta}
+    - Creative Angle: {previous_creative_angle}
+    - Platform: {platform}
+
+    Görev:
+    Aşağıdaki JSON formatında yaratıcı iyileştirme önerisi üret:
+
+    {
+      "reason": "Metrik düşüşünün/seviyenin sebebi (kısa açıklama)",
+      "metric_drivers": ["etkilenen metrikler listesi"],
+      "suggested_changes": {
+        "opening": "Açılış değişikliği önerisi veya null",
+        "hook": "Hook değişikliği önerisi veya null",
+        "cta": "CTA değişikliği önerisi veya null",
+        "angle": "Creative angle değişikliği önerisi veya null",
+        "pacing": "Pacing/tempo değişikliği önerisi veya null"
+      },
+      "confidence": "high|medium|low",
+      "alternative_angles": ["alternatif creative angle önerileri"]
+    }
+
+    Kurallar:
+    - Sadece verilen metriklere dayan
+    - İcat etme, tahmin yapma
+    - Yaratıcı öneriler Türkçe olmalı
+    - Metrik değerlerini yorumlarken somut ol
+
+  llm_response_validation:
+    required_fields:
+      - "reason"
+      - "metric_drivers"
+      - "suggested_changes"
+    allowed_change_types:
+      - "opening"
+      - "hook"
+      - "cta"
+      - "angle"
+      - "pacing"
+    max_length:
+      reason: 100
+      alternative_angle: 30
+
+  rule_based_fallback:
+    description: "Deterministic rule-based iteration suggestions when LLM is unavailable"
+    thresholds:
+      ctr_low: 0.02
+      ctr_very_low: 0.01
+      video_view_rate_low: 0.30
+      cost_per_video_view_high: 0.50
+      roas_low: 1.5
+      roas_very_low: 1.0
+    templates:
+      low_ctr:
+        reason: "CTR düşüşü tespit edildi"
+        metric_drivers: ["ctr_below_threshold"]
+        suggested_changes:
+          hook: "Daha dikkat çekici hook kullan"
+          cta: "Daha net CTA kullan"
+      low_video_view:
+        reason: "Video izleme oranı düşük"
+        metric_drivers: ["video_view_rate_below_threshold"]
+        suggested_changes:
+          opening: "İlk 3 saniyeyi güçlendir"
+          pacing: "Daha dinamik kurgu kullan"
+      high_cost:
+        reason: "Video başı maliyet yüksek"
+        metric_drivers: ["cost_per_video_view_above_threshold"]
+        suggested_changes:
+          hook: "Erken dikkat çekici içerik"
+          pacing: "Ana mesajı erken ver"
+      low_roas:
+        reason: "ROAS beklenenin altında"
+        metric_drivers: ["roas_below_threshold"]
+        suggested_changes:
+          cta: "Daha ikna edici CTA"
+          angle: "Değer vurgusu ekle"
+      high_impressions_low_ctr:
+        reason: "Çok gösterim az tıklama"
+        metric_drivers: ["high_impressions", "ctr_below_threshold"]
+        suggested_changes:
+          hook: " Hedef kitleye özel hook"
+          opening: "Görsel değişikliği"
+
   requirements:
     - id: "REQ-MCP005-001"
       description: "The engine must read only persisted AdMetricsSnapshot data and related project context; it must not query ad platform APIs directly."
@@ -46,64 +162,103 @@ task:
       source_contract: "docs/contracts/data-model.contract.yaml"
       priority: "must"
     - id: "REQ-MCP005-003"
-      description: "CTR, cost_per_video_view, video_view_rate, cpc, roas, conversions, and conversion_value must be interpreted with deterministic rule-based thresholds."
-      source_contract: "docs/layers/mcp-layer.contract.md"
+      description: "LLM must be used for metric analysis and creative suggestion generation when API key is available."
+      source_contract: "llm_configuration"
       priority: "must"
     - id: "REQ-MCP005-004"
+      description: "Rule-based fallback must activate when LLM is unavailable, returns deterministic output."
+      source_contract: "rule_based_fallback"
+      priority: "must"
+    - id: "REQ-MCP005-005"
+      description: "CTR, cost_per_video_view, video_view_rate, cpc, roas, conversions, and conversion_value must be interpreted with threshold-based rules when LLM is unavailable."
+      source_contract: "docs/layers/mcp-layer.contract.md"
+      priority: "must"
+    - id: "REQ-MCP005-006"
       description: "Missing or null metric values must never be fabricated; the engine must return fallback_notes that explain insufficient data."
       source_contract: "docs/contracts/data-model.contract.yaml"
       priority: "must"
-    - id: "REQ-MCP005-005"
+    - id: "REQ-MCP005-007"
       description: "The output must remain JSON-compatible and deterministic for the same input snapshot and project state."
       source_contract: "docs/contracts/ai-behavior.contract.yaml"
       priority: "must"
+    - id: "REQ-MCP005-008"
+      description: "LLM response must be validated for required fields and allowed change types before acceptance."
+      source_contract: "llm_response_validation"
+      priority: "must"
   acceptance_criteria:
     - id: "AC-MCP005-001"
-      description: "Given a snapshot with declining CTR, rising cost_per_video_view, or falling video_view_rate, the engine produces a clear rule-based reason and a matching suggested_changes payload."
+      description: "Given a snapshot with declining CTR, rising cost_per_video_view, or falling video_view_rate, the engine produces a clear reason and matching suggested_changes."
       verification: "automated"
     - id: "AC-MCP005-002"
-      description: "When metrics are missing or null, the engine never invents values and returns fallback_notes containing an insufficient-data reason."
+      description: "LLM is called for metric analysis and creative suggestions when API key is available."
       verification: "automated"
     - id: "AC-MCP005-003"
-      description: "The same AdMetricsSnapshot input always yields the same CreativeIterationSuggestion output byte-for-byte."
+      description: "Rule-based fallback activates when LLM fails or is unavailable; output is deterministic with threshold-based rules."
       verification: "automated"
     - id: "AC-MCP005-004"
-      description: "metric_drivers lists only stored signals that actually influenced the suggestion."
-      verification: "review"
+      description: "When metrics are missing or null, the engine never invents values and returns fallback_notes containing an insufficient-data reason."
+      verification: "automated"
     - id: "AC-MCP005-005"
-      description: "suggested_changes references only allowed creative adjustments such as hook, CTA, pacing, or angle changes and does not fabricate platform results."
+      description: "The same AdMetricsSnapshot input with LLM yields consistent creative suggestions (may vary slightly due to LLM creativity)."
       verification: "review"
     - id: "AC-MCP005-006"
+      description: "The same AdMetricsSnapshot input with rule-based fallback always yields byte-identical output."
+      verification: "automated"
+    - id: "AC-MCP005-007"
+      description: "metric_drivers lists only stored signals that actually influenced the suggestion."
+      verification: "review"
+    - id: "AC-MCP005-008"
+      description: "suggested_changes references only allowed creative adjustments (opening, hook, cta, angle, pacing) and does not fabricate platform results."
+      verification: "review"
+    - id: "AC-MCP005-009"
       description: "Fallback handling returns a structured suggestion with confidence lowered and a human-readable insufficient-data note."
       verification: "automated"
   failure_behavior:
     missing_input: "If AdMetricsSnapshot or required project context is missing, return a structured fallback suggestion and do not infer performance values."
-    missing_config: "Use documented metric thresholds only; do not invent heuristic thresholds at runtime."
+    missing_config: "If LLM API key missing: use rule-based fallback, log 'llm_not_configured' in fallback_notes."
+    llm_timeout: "Trigger rule-based fallback after timeout_ms exceeded; log 'llm_timeout' in fallback_notes."
+    llm_error: "Catch LLM API errors, retry up to retry_attempts, then fallback to rule-based; log 'llm_error' and error_code."
+    invalid_llm_response: "If LLM response invalid: fallback to rule-based, add 'invalid_llm_response' to fallback_notes."
     external_dependency_failure: "Do not call external ad APIs; if snapshot data is stale or incomplete, fallback_notes must explain the limitation."
     partial_completion: "Return the suggestion fields that can be derived from stored data and explicitly mark unsupported fields in fallback_notes."
   test_commands:
+    - command: "npm test -- mcp/iteration-engine --testNamePattern='llm' --verbose"
+      expected_result: "LLM integration tests pass; verify API calls made when key available."
     - command: "npm test -- mcp/iteration-engine --testNamePattern='rule-based' --coverage"
       expected_result: "Rule-based iteration tests pass and confirm deterministic reason and suggested_changes generation."
+    - command: "npm test -- mcp/iteration-engine --testNamePattern='fallback' --verbose"
+      expected_result: "Fallback tests confirm: LLM failure triggers rule-based, deterministic output confirmed."
     - command: "npm test -- mcp/iteration-engine --testNamePattern='missing metrics' --verbose"
       expected_result: "Missing-metric tests confirm no fabricated values and fallback_notes include insufficient-data reasons."
   expected_output:
     changed_files:
       - "mcp/src/iteration-engine/creative-iteration-engine.ts"
+      - "mcp/src/iteration-engine/metric-analyzer.ts"
       - "mcp/src/iteration-engine/iteration-rules.ts"
+      - "mcp/src/llm/metric-llm-client.ts"
       - "mcp/tests/iteration-engine/creative-iteration-engine.test.ts"
+      - "mcp/tests/iteration-engine/llm-analysis.test.ts"
       - "mcp/tests/fixtures/ad-metrics-fixtures.ts"
     user_visible_behavior:
-      - "Backend can request a deterministic creative iteration suggestion from stored ad metrics."
+      - "Backend can request a creative iteration suggestion from stored ad metrics."
+      - "LLM provides deeper analysis and creative suggestions when API key is available."
+      - "Rule-based fallback maintains deterministic output when LLM is unavailable."
       - "Underperforming ad metrics produce an explainable reason and a structured set of suggested creative changes."
       - "Missing or null metrics produce a safe fallback with explicit insufficient-data notes."
+      - "Fallback_notes clearly document generation method (llm_used or rule_based) and any data gaps."
     machine_readable_artifacts:
       - "CreativeIterationSuggestion JSON compatible output."
-      - "Metric driver classification rules for CTR, cost_per_video_view, video_view_rate, cpc, roas, conversions, and conversion_value."
+      - "Metric thresholds and driver classification rules."
+      - "LLM analysis prompt templates per metric pattern."
+      - "Claim validation for suggested_changes."
   reporting_format:
     required_sections:
       - "changed_files"
       - "tests_run"
+      - "llm_analysis_status"
+      - "rule_based_fallback_verification"
+      - "metric_thresholds_documented"
       - "assumptions"
       - "risks"
       - "next_safe_step"
-    notes: "Keep the implementation deterministic and reference only stored metrics."
+    notes: "Document LLM analysis prompt template and example outputs. Include rule-based threshold values and example suggestions. Report LLM vs rule-based generation ratio from tests."

@@ -1,0 +1,295 @@
+{
+  "tenants": [
+    {
+      "id": "demo-tenant",
+      "name": "Kastonom Demo Tenant",
+      "mode": "demo",
+      "status": "active",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    },
+    {
+      "id": "other-tenant",
+      "name": "Kastonom Other Tenant",
+      "mode": "demo",
+      "status": "active",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "creative_project": {
+    "id": "demo-project",
+    "tenant_id": "demo-tenant",
+    "name": "Demo mock source asset ad",
+    "status": "ready",
+    "selected_generated_video_id": "demo-generated-video",
+    "latest_generation_request_id": "demo-generation-request",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  "creative_subject": {
+    "id": "demo-creative-subject",
+    "tenant_id": "demo-tenant",
+    "project_id": "demo-project",
+    "subject_type": "product",
+    "name": "Kastonom Demo Mug",
+    "description": "Mock ceramic mug used only for the backend fallback replay.",
+    "landing_url": "https://example.com/kastonom-demo-mug",
+    "price": null,
+    "currency": null,
+    "allowed_claims": [
+      "Ceramic mug",
+      "Mock product for Kastonom demo"
+    ],
+    "forbidden_claims": [
+      "Do not claim a discount.",
+      "Do not claim limited stock.",
+      "Do not claim free shipping.",
+      "Do not claim guaranteed results."
+    ],
+    "unknown_fields": [
+      "price",
+      "stock",
+      "discount",
+      "shipping"
+    ],
+    "source": "mock",
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  "source_assets": [
+    {
+      "id": "demo-source-asset",
+      "tenant_id": "demo-tenant",
+      "project_id": "demo-project",
+      "asset_type": "image",
+      "source": "mock",
+      "url": "/demo-assets/mock-mug-reference.png",
+      "storage_key": null,
+      "mime_type": "image/png",
+      "width": 1080,
+      "height": 1080,
+      "duration_seconds": null,
+      "checksum": null,
+      "metadata": {
+        "label": "mock reference asset"
+      },
+      "created_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "generation_request": {
+    "id": "demo-generation-request",
+    "tenant_id": "demo-tenant",
+    "project_id": "demo-project",
+    "creative_subject_id": "demo-creative-subject",
+    "source_asset_ids": [
+      "demo-source-asset"
+    ],
+    "status": "completed",
+    "objective": "awareness",
+    "target_audience": "Demo audience supplied by fixture",
+    "platform": "reels",
+    "language": "Turkish",
+    "tone": "clear",
+    "style": "simple product close-up",
+    "call_to_action": "Detayları gör",
+    "duration_seconds": 15,
+    "aspect_ratio": "9:16",
+    "user_notes": "Fixture replay only; no live provider call.",
+    "fallback_notes": [
+      "demo_fallback",
+      "price_unknown",
+      "stock_unknown"
+    ],
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  "prompt_payload": {
+    "id": "demo-prompt-payload",
+    "tenant_id": "demo-tenant",
+    "project_id": "demo-project",
+    "generation_request_id": "demo-generation-request",
+    "provider": "mock",
+    "prompt_text": "Create a 15 second 9:16 Turkish video ad for Kastonom Demo Mug. Keep the product visible, use the mock source asset as reference, and include only approved claims: Ceramic mug; Mock product for Kastonom demo. Objective: awareness. Platform: reels. CTA: Detayları gör.",
+    "negative_prompt": "Do not invent subject claims. Do not claim a discount. Do not claim limited stock. Do not claim free shipping. Do not claim guaranteed results.",
+    "language": "Turkish",
+    "duration_seconds": 15,
+    "aspect_ratio": "9:16",
+    "source_asset_ids": [
+      "demo-source-asset"
+    ],
+    "provider_options": {
+      "adapter": "MockPromptAdapter",
+      "platform": "reels",
+      "is_demo_fixture": true
+    },
+    "is_mock": true,
+    "fallback_notes": [
+      "demo_fallback",
+      "price_unknown",
+      "stock_unknown"
+    ],
+    "created_at": "2026-01-01T00:00:00.000Z"
+  },
+  "video_job": {
+    "id": "demo-video-job",
+    "tenant_id": "demo-tenant",
+    "project_id": "demo-project",
+    "generation_request_id": "demo-generation-request",
+    "prompt_payload_id": "demo-prompt-payload",
+    "provider": "mock",
+    "status": "completed",
+    "provider_job_id": "mock-job-demo-generation-request",
+    "is_mock": true,
+    "fallback_reason": "demo_fallback",
+    "error_code": null,
+    "error_message": null,
+    "attempt_count": 1,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "submitted_at": "2026-01-01T00:00:00.000Z",
+    "completed_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  "provider_result": {
+    "id": "demo-provider-result",
+    "tenant_id": "demo-tenant",
+    "video_job_id": "demo-video-job",
+    "provider": "mock",
+    "provider_job_id": "mock-job-demo-generation-request",
+    "raw_status": "mock_completed",
+    "normalized_status": "completed",
+    "result_urls": [
+      "/demo-assets/mock-ad-preview.mp4"
+    ],
+    "error_code": null,
+    "error_message": null,
+    "redacted_metadata": {
+      "adapter": "mock",
+      "is_demo_fixture": true
+    },
+    "received_at": "2026-01-01T00:00:00.000Z"
+  },
+  "generated_videos": [
+    {
+      "id": "demo-generated-video",
+      "tenant_id": "demo-tenant",
+      "project_id": "demo-project",
+      "generation_request_id": "demo-generation-request",
+      "video_job_id": "demo-video-job",
+      "provider_result_id": "demo-provider-result",
+      "url": "/demo-assets/mock-ad-preview.mp4",
+      "thumbnail_url": "/demo-assets/mock-ad-preview-thumbnail.png",
+      "duration_seconds": 15,
+      "aspect_ratio": "9:16",
+      "status": "selected",
+      "is_selected": true,
+      "is_mock": true,
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "selected_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "selected_generated_video": {
+    "id": "demo-generated-video",
+    "tenant_id": "demo-tenant",
+    "project_id": "demo-project",
+    "generation_request_id": "demo-generation-request",
+    "video_job_id": "demo-video-job",
+    "provider_result_id": "demo-provider-result",
+    "url": "/demo-assets/mock-ad-preview.mp4",
+    "thumbnail_url": "/demo-assets/mock-ad-preview-thumbnail.png",
+    "duration_seconds": 15,
+    "aspect_ratio": "9:16",
+    "status": "selected",
+    "is_selected": true,
+    "is_mock": true,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "selected_at": "2026-01-01T00:00:00.000Z"
+  },
+  "ad_platform_connections": [
+    {
+      "id": "demo-ad-connection-meta",
+      "tenant_id": "demo-tenant",
+      "platform": "meta_ads",
+      "external_account_id": "mock-meta-account",
+      "external_account_name": "Mock Meta Ads demo account",
+      "status": "connected",
+      "scopes": [
+        "demo_mock"
+      ],
+      "last_checked_at": "2026-01-01T00:00:00.000Z",
+      "created_at": "2026-01-01T00:00:00.000Z",
+      "updated_at": "2026-01-01T00:00:00.000Z"
+    }
+  ],
+  "ad_publication": {
+    "id": "demo-ad-publication",
+    "tenant_id": "demo-tenant",
+    "project_id": "demo-project",
+    "generated_video_id": "demo-generated-video",
+    "ad_platform_connection_id": "demo-ad-connection-meta",
+    "platform": "meta_ads",
+    "status": "published",
+    "external_campaign_id": "mock-campaign-demo",
+    "external_ad_group_id": "mock-ad-group-demo",
+    "external_ad_id": "mock-ad-demo",
+    "destination_url": "https://example.com/kastonom-demo-mug",
+    "published_at": "2026-01-01T00:00:00.000Z",
+    "paused_at": null,
+    "error_code": null,
+    "error_message": null,
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  "metrics_snapshot": {
+    "id": "demo-metrics-snapshot",
+    "tenant_id": "demo-tenant",
+    "ad_publication_id": "demo-ad-publication",
+    "platform": "meta_ads",
+    "date_start": "2026-01-01",
+    "date_end": "2026-01-07",
+    "impressions": 1200,
+    "clicks": 84,
+    "spend": null,
+    "currency": null,
+    "ctr": 0.07,
+    "cpc": null,
+    "conversions": null,
+    "conversion_value": null,
+    "roas": null,
+    "video_views": 640,
+    "video_view_rate": null,
+    "cost_per_video_view": null,
+    "source": "mock",
+    "redacted_metadata": {
+      "is_demo_fixture": true
+    },
+    "fetched_at": "2026-01-01T00:00:00.000Z"
+  },
+  "creative_iteration_suggestion": {
+    "id": "demo-iteration-suggestion",
+    "tenant_id": "demo-tenant",
+    "project_id": "demo-project",
+    "ad_publication_id": "demo-ad-publication",
+    "metrics_snapshot_id": "demo-metrics-snapshot",
+    "base_generation_request_id": "demo-generation-request",
+    "new_generation_request_id": null,
+    "status": "suggested",
+    "reason": "Demo fixture suggests testing a clearer opening frame based only on mock metrics.",
+    "metric_drivers": [
+      "mock.video_views",
+      "mock.ctr"
+    ],
+    "suggested_changes": {
+      "opening": "Keep the mug visible in the first second.",
+      "cta": "Use the existing CTA without adding unsupported claims."
+    },
+    "confidence": "low",
+    "fallback_notes": [
+      "demo_fixture",
+      "mock_metrics_only"
+    ],
+    "created_at": "2026-01-01T00:00:00.000Z",
+    "updated_at": "2026-01-01T00:00:00.000Z"
+  },
+  "fallback_reason": "demo_fallback"
+}

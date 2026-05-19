@@ -1,16 +1,20 @@
 task:
   task_id: MCP-006
   title: "MCP Integration Facade for Backend Boundary"
-  name: "MCP Integration Facade for Backend Boundary"
-  goal: "Expose a single TypeScript facade that backend orchestration tasks can call without knowing MCP internals, while keeping prompt compilation, scoring, and creative iteration behind the boundary."
-  description: "Backend'in (BE-006 ve BE-008) MCP iç mimarisini bilmesine gerek kalmadan tek bir noktadan tüm AI zekasını ve prompt derleme işlemlerini çağırabileceği Facade (Gişe) arayüzünün oluşturulması."
+  name: "MCP Integration Facade for Backend Boundary with LLM Support"
+  goal: "Expose a single TypeScript facade that backend orchestration tasks can call without knowing MCP internals, while keeping LLM-enhanced scoring, creative brief generation, prompt compilation, and creative iteration behind the boundary."
+  description: "Backend'in (BE-006 ve BE-008) MCP iç mimarisini bilmesine gerek kalmadan tek bir noktadan tüm AI zekasını ve LLM destekli işlemleri çağırabileceği Facade (Gişe) arayüzünün oluşturulması. LLM entegrasyonu scoring, brief generation, prompt compilation ve iteration'da kullanılacak."
   layer: "mcp_ai_backend_boundary"
   status: "planned"
   owner: "codex"
+  llm_provider: "codex/openai"
   allowed_files:
     - "mcp/src/facade/**"
     - "mcp/src/prompt-compiler/**"
     - "mcp/src/iteration-engine/**"
+    - "mcp/src/scoring/**"
+    - "mcp/src/brief-generator/**"
+    - "mcp/src/llm/**"
     - "mcp/src/types/**"
     - "backend/src/integrations/**"
     - "backend/src/services/**"
@@ -22,6 +26,9 @@ task:
     - "backend/src/providers/**"
     - "backend/src/db/**"
   dependencies:
+    - "MCP-001"
+    - "MCP-002"
+    - "MCP-003"
     - "MCP-004"
     - "MCP-005"
   scope:
@@ -30,13 +37,25 @@ task:
       - "Provide unified methods such as generateInitialCampaign, iterateCampaign, and compilePrompt that accept TenantContext and only the required input payload for the operation."
       - "Return standardized AIBehaviorOutput, CreativeIterationSuggestion, or PromptPayload objects depending on the operation."
       - "Enforce tenant isolation at the facade boundary so no call can proceed without a valid TenantContext."
-      - "Bridge backend orchestration tasks to MCP modules while keeping provider-specific prompt compilation hidden from backend callers."
+      - "Bridge backend orchestration tasks to MCP modules while keeping LLM client internals hidden from backend callers."
       - "Keep the facade deterministic, serializable, and safe for demo fallback mode."
+      - "Expose LLM configuration status through facade for backend visibility."
+      - "Support both LLM-enhanced and rule-based fallback modes transparently."
     exclude:
       - "HTTP server setup or route registration."
       - "Backend database connections or persistence implementation."
-      - "Direct provider calls from backend services."
-      - "Reimplementation of MCP scoring, brief generation, or prompt adapter internals inside backend code."
+      - "Direct provider calls from facade (delegated to MCP-007)."
+      - "LLM model training or fine-tuning."
+      - "Reimplementation of MCP scoring, brief generation, prompt adapter, or iteration internals inside backend code."
+  llm_configuration:
+    provider: "codex/openai"
+    model: "gpt-4"
+    temperature: 0.3-0.7
+    max_tokens: 400-800
+    timeout_ms: 20000-30000
+    retry_attempts: 2
+    fallback_to_rule_based: true
+
   requirements:
     - id: "REQ-MCP006-001"
       description: "The facade must expose a TypeScript interface that allows backend tasks to call MCP capabilities without importing internal MCP modules directly."
@@ -55,12 +74,20 @@ task:
       source_contract: "docs/contracts/ai-behavior.contract.yaml"
       priority: "must"
     - id: "REQ-MCP006-005"
-      description: "Backend callers must not need to know whether the underlying prompt path used mock, live, or fallback behavior."
+      description: "Backend callers must not need to know whether the underlying path used LLM or rule-based generation."
       source_contract: "docs/layers/mcp-layer.contract.md"
       priority: "must"
     - id: "REQ-MCP006-006"
-      description: "Facade operations must remain deterministic and must not expose internal provider credentials or adapter details."
+      description: "Facade operations must remain deterministic and must not expose internal provider credentials or LLM API keys."
       source_contract: "docs/contracts/ai-behavior.contract.yaml"
+      priority: "must"
+    - id: "REQ-MCP006-007"
+      description: "The facade must expose LLM availability status (llm_available: boolean) in response metadata."
+      source_contract: "llm_configuration"
+      priority: "should"
+    - id: "REQ-MCP006-008"
+      description: "All LLM calls must use retry logic and timeout handling exposed through facade options."
+      source_contract: "llm_configuration"
       priority: "must"
   acceptance_criteria:
     - id: "AC-MCP006-001"
@@ -73,17 +100,21 @@ task:
       description: "generateInitialCampaign returns a standardized AIBehaviorOutput payload, iterateCampaign returns CreativeIterationSuggestion, and compilePrompt returns PromptPayload."
       verification: "automated"
     - id: "AC-MCP006-004"
-      description: "Backend task BE-007 style isolation is preserved because backend code does not import or instantiate internal MCP scoring or adapter modules directly."
+      description: "Backend task BE-007 style isolation is preserved because backend code does not import or instantiate internal MCP scoring, LLM client, or adapter modules directly."
       verification: "review"
     - id: "AC-MCP006-005"
       description: "The facade is serializable, deterministic, and compatible with demo fallback mode."
       verification: "automated"
     - id: "AC-MCP006-006"
-      description: "No provider credentials, API keys, or internal adapter configuration are exposed through the facade contract."
+      description: "No provider credentials, API keys, or internal LLM configuration are exposed through the facade contract."
       verification: "review"
+    - id: "AC-MCP006-007"
+      description: "Response metadata includes llm_used: boolean flag indicating whether LLM was used in generation."
+      verification: "automated"
   failure_behavior:
     missing_input: "Reject the call with a structured validation error if TenantContext or required operation input is missing."
     missing_config: "Fail closed if the requested operation cannot resolve a valid MCP path, and do not bypass the facade boundary."
+    llm_failure: "Automatic fallback to rule-based generation; facade returns response with llm_used: false and fallback_reason populated."
     external_dependency_failure: "If downstream prompt compilation or iteration fails, return a structured failure without leaking internal stack traces or secrets."
     partial_completion: "Return the highest-level standardized output that can be safely produced, otherwise return a structured error object."
   test_commands:
@@ -91,24 +122,32 @@ task:
       expected_result: "Facade boundary tests confirm backend can call MCP through one interface only."
     - command: "npm test -- mcp/facade --coverage"
       expected_result: "Facade tests confirm TenantContext enforcement and standardized return shapes."
+    - command: "npm test -- mcp/facade --testNamePattern='llm' --verbose"
+      expected_result: "LLM integration tests confirm facade delegates to LLM-enhanced MCP modules when API key available."
   expected_output:
     changed_files:
       - "mcp/src/facade/mcp-integration-facade.ts"
       - "mcp/src/facade/mcp-integration-facade.interface.ts"
+      - "mcp/src/facade/mcp-facade-options.ts"
       - "backend/src/integrations/mcp-facade-client.ts"
       - "mcp/tests/facade/mcp-integration-facade.test.ts"
+      - "mcp/tests/facade/llm-delegation.test.ts"
     user_visible_behavior:
       - "Backend can access MCP capabilities through one stable integration point."
-      - "Prompt compilation and creative iteration stay hidden behind a contract-driven facade."
+      - "Prompt compilation, creative brief generation, and creative iteration stay hidden behind a contract-driven facade."
       - "Tenant isolation is enforced before any MCP work begins."
+      - "LLM usage is transparent through response metadata without exposing API keys."
     machine_readable_artifacts:
       - "A TypeScript facade interface for backend orchestration calls."
       - "Standardized AIBehaviorOutput, CreativeIterationSuggestion, and PromptPayload return shapes."
+      - "FacadeResponseMetadata with llm_available and llm_used flags."
   reporting_format:
     required_sections:
       - "changed_files"
       - "tests_run"
+      - "llm_integration_status"
+      - "llm_vs_rule_based_ratio"
       - "assumptions"
       - "risks"
       - "next_safe_step"
-    notes: "Document facade methods, return types, and tenant enforcement clearly."
+    notes: "Document facade methods, return types, tenant enforcement, and LLM fallback behavior clearly. Include example responses showing llm_used flag in metadata."

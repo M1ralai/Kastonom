@@ -1,12 +1,14 @@
 task:
-  name: "MCP-002 Deterministic Scoring and Recommendation Engine"
-  goal: "Implement pure, rule-based TypeScript functions that calculate hype_score, trend_potential_score, and product recommendation logic from commerce data without external API calls or invented claims."
+  name: "MCP-002 Scoring and Recommendation Engine with LLM Enhancement"
+  goal: "Calculate hype_score, trend_potential_score, and product recommendation logic using rule-based functions for core metrics, enhanced with LLM for trend analysis, audience fit interpretation, and recommendation narrative generation."
   layer: "mcp_ai"
   status: "planned"
   owner: "codex"
+  llm_provider: "codex/openai"
   allowed_files:
     - "mcp/src/scoring/**"
     - "mcp/src/rules/**"
+    - "mcp/src/llm/**"
     - "mcp/tests/scoring/**"
     - "docs/tasks/mcp/**"
     - "docs/layers/mcp-layer.contract.md"
@@ -14,32 +16,122 @@ task:
     - "frontend/**"
     - "backend/src/api/**"
     - "backend/src/providers/**"
-    - "mcp/src/ai/**"
   dependencies:
     - "MCP-001"
   scope:
     include:
       - "Define weight constants for scoring formula: sales_velocity_weight, stock_movement_weight, trend_potential_weight, new_product_boost_weight, audience_fit_weight."
       - "Implement hype_score calculation as deterministic weighted sum of commerce signals."
-      - "Implement trend_potential_score from category trend signals (if available) or default to 0 with fallback note."
       - "Implement sales_velocity extractor from recent order counts (threshold-based: high/medium/low)."
       - "Implement stock_movement extractor from inventory sell-through or days-on-hand heuristic."
       - "Implement new_product_boost conditional logic (boost if product marked as 'new' and stock > threshold)."
-      - "Implement audience_fit calculation from segment preference match (categorical: high/medium/low) or 0 if no segment."
-      - "All score components must be bounded 0-100 before summation."
+      - "Use LLM for trend_potential_score analysis: analyze category trend signals, competitor activity hints, and market context from available data."
+      - "Use LLM for audience_fit interpretation: analyze segment characteristics and product fit when segment data is available."
+      - "Use LLM to generate recommendation_reason narrative explaining why product was selected based on scoring signals."
+      - "All rule-based score components must be bounded 0-100 before summation."
       - "Final hype_score must be normalized to 0-100 range (clamped or scaled)."
       - "Implement fallback behavior: missing input data results in 0 or documented default, not invention or crash."
       - "Collect all data gaps in fallback_notes array with (field_name, reason, default_used) tuples."
       - "Implement recommendation_selected logic: return true if hype_score >= threshold (threshold to be documented), else false."
       - "Implement tie-breaker rule for equal scores (e.g., prefer higher product_id or earliest created_at)."
-      - "Add deterministic unit tests with fixture inputs proving same input = same output."
+      - "Add rule-based unit tests with fixture inputs proving same input = same output."
+      - "Add LLM integration tests verifying trend analysis and recommendation narrative when API key available."
       - "Add edge case tests: zero commerce data, negative values, null segments, extreme outlier metrics."
+      - "Implement LLM client wrapper with retry logic and timeout handling for trend analysis."
     exclude:
-      - "LLM-based scoring or narrative generation (defer to later MCP-008 MCP Client task)."
-      - "Live API calls to commerce platform, ERP, or trend service."
+      - "LLM model training or fine-tuning."
+      - "Live API calls to commerce platform, ERP, or external trend service (use only provided input data)."
       - "Database persistence of scores."
       - "User interface or reporting."
       - "Product claim validation (safety guardrails handled separately)."
+
+  llm_configuration:
+    provider: "codex/openai"
+    model: "gpt-4"
+    temperature: 0.3
+    max_tokens: 400
+    timeout_ms: 20000
+    retry_attempts: 2
+    fallback_to_rule_based: true
+
+  llm_trend_analysis_prompt: |
+    Sen bir e-ticaret trend analiz uzmanısın.
+
+    Ürün Bilgileri:
+    - Ürün Adı: {product_name}
+    - Kategori: {category}
+    - Yeni Ürün: {is_new}
+
+    Metrikler:
+    - Satış Hızı: {sales_velocity}/100
+    - Stok Hareketi: {stock_movement}/100
+    - Yeni Ürün Bonus: {new_product_boost}/100
+    - Mevcut Trend Sinyalleri: {trend_signals}
+
+    Pazar Bağlamı:
+    - Mevsim: {season}
+    - Rakip Aktivitesi: {competitor_activity}
+
+    Görev:
+    Aşağıdaki formatta trend potansiyeli analizi yap:
+
+    {
+      "trend_potential_score": 0-100 arası sayı,
+      "trend_signals_found": ["bulunan trend sinyalleri listesi"],
+      "confidence": "high|medium|low",
+      "analysis_note": "Kısa analiz notu (maks 50 kelime)"
+    }
+
+    Kurallar:
+    - Sadece verilen verileri kullan, icat etme
+    - Sinyal bulunamazsa score 0-20 arası düşük ver
+    - Güçlü trend sinyali varsa 60-100 arası yüksek ver
+    - Türkçe yanıt ver
+
+  llm_recommendation_reason_prompt: |
+    Sen bir e-ticaret creative direktörüsün.
+
+    Ürün: {product_name}
+    Hype Score: {hype_score}/100
+    Trend Potansiyeli: {trend_potential_score}/100
+    Satış Hızı: {sales_velocity}/100
+    Stok Hareketi: {stock_movement}/100
+    Yeni Ürün: {is_new}
+
+    Görev:
+    Bu ürünün neden önerildiğini açıklayan kısa bir Türkçe cümle üret (maks 80 karakter):
+
+    Örnek: "Yüksek satış hızı ve trend potansiyeli ile öne çıkan ürün"
+    Örnek: "Yeni ürün bonusu ve güçlü stok hareketi ile momentumda"
+
+    Kurallar:
+    - Sadece verilen metrikleri kullan
+    - İcat etme veya abartma
+    - Kısa ve öz tut
+
+  llm_response_validation:
+    trend_analysis:
+      required_fields:
+        - "trend_potential_score"
+        - "trend_signals_found"
+        - "confidence"
+      bounds:
+        trend_potential_score: [0, 100]
+    recommendation_reason:
+      max_length: 80
+      forbidden_content:
+        - "garanti"
+        - "en iyi"
+        - "süper"
+        - "muhteşem"
+
+  rule_based_fallback:
+    trend_potential_score:
+      no_signals: 15
+      weak_signals: 25
+      moderate_signals: 40
+    recommendation_reason:
+      default: "Metrikler öneri sinyali veriyor"
 
 requirements:
   - id: "REQ-MCP002-001"
@@ -66,13 +158,29 @@ requirements:
     description: "No invented or hallucinated product facts (prices, discounts, claims, guarantees); only pass-through verified fields."
     source_contract: "docs/layers/mcp-layer.contract.md (Must Not Do)"
     priority: "must"
+  - id: "REQ-MCP002-007"
+    description: "LLM must be used for trend_potential_score analysis when API key is available."
+    source_contract: "llm_configuration"
+    priority: "must"
+  - id: "REQ-MCP002-008"
+    description: "LLM must be used for recommendation_reason narrative generation when API key is available."
+    source_contract: "llm_configuration"
+    priority: "must"
+  - id: "REQ-MCP002-009"
+    description: "Rule-based fallback must activate when LLM is unavailable or fails; output remains deterministic."
+    source_contract: "rule_based_fallback"
+    priority: "must"
+  - id: "REQ-MCP002-010"
+    description: "LLM response must be validated for required fields and bounds before acceptance."
+    source_contract: "llm_response_validation"
+    priority: "must"
 
 acceptance_criteria:
   - id: "AC-MCP002-001"
     description: "hype_score is calculated as weighted sum and clamped to [0, 100]; test confirms boundaries with extreme inputs."
     verification: "automated"
   - id: "AC-MCP002-002"
-    description: "trend_potential_score calculated from category signals or defaults to 0 with fallback note 'no_trend_data_available'."
+    description: "trend_potential_score analyzed by LLM using available trend signals and market context; falls back to rule-based when LLM unavailable."
     verification: "automated"
   - id: "AC-MCP002-003"
     description: "sales_velocity extracted from metrics.recent_sales_count with thresholds: >=100=75pts, 50-99=50pts, 1-49=25pts, 0=0pts."
@@ -84,62 +192,77 @@ acceptance_criteria:
     description: "new_product_boost applied only if product.is_new=true AND product.current_stock > 50 (threshold); boost amount documented."
     verification: "automated"
   - id: "AC-MCP002-006"
-    description: "audience_fit defaults to 0 if no audience segment provided; calculated as match percentage if segment available."
+    description: "audience_fit analyzed by LLM for segment interpretation when segment data is available; defaults to 0 if no segment."
     verification: "automated"
   - id: "AC-MCP002-007"
-    description: "All test cases run with identical ProductMetrics fixtures; confirm identical hype_score output."
-    verification: "automated"
+    description: "recommendation_reason generated by LLM describing why product was selected; rule-based fallback when LLM unavailable."
+    verification: "review"
   - id: "AC-MCP002-008"
-    description: "Edge case tests pass: empty product, negative metric values, null segment, decimal precision (all default gracefully)."
+    description: "All rule-based test cases run with identical ProductMetrics fixtures; confirm identical hype_score output."
     verification: "automated"
   - id: "AC-MCP002-009"
-    description: "fallback_notes array populated with [{ field_name, reason, default_used }, ...] for each missing data point."
-    verification: "review"
+    description: "Edge case tests pass: empty product, negative metric values, null segment, decimal precision (all default gracefully)."
+    verification: "automated"
   - id: "AC-MCP002-010"
-    description: "recommendation_selected = (hype_score >= 65) ? true : false; threshold and logic documented in code."
+    description: "fallback_notes array populated with [{ field_name, reason, default_used, llm_used/fallback }, ...] for each data point."
     verification: "review"
   - id: "AC-MCP002-011"
+    description: "recommendation_selected = (hype_score >= 65) ? true : false; threshold and logic documented in code."
+    verification: "review"
+  - id: "AC-MCP002-012"
     description: "Tie-breaker rule explicitly tested: two products with identical hype_score consistently return one result."
     verification: "automated"
 
 failure_behavior:
   missing_input: "If product_id missing: return structured error with product_id=null. If metrics missing: return hype_score=0 with fallback note. Do not invent metric values."
-  missing_config: "If scoring weights not configured: use documented defaults and log assumption. Do not skip scoring step."
-  external_dependency_failure: "Do not call external API (trend service, AI model, ERP) to compute score; use only provided input data or documented defaults."
-  partial_completion: "Report which scoring functions are implemented, which remain stub, and what fixture coverage exists. Do not merge incomplete scoring."
+  missing_config: "If LLM API key missing: use rule-based fallback for trend analysis and recommendation reason; log 'llm_not_configured'. If scoring weights not configured: use documented defaults."
+  llm_timeout: "Trigger rule-based fallback after timeout_ms exceeded; log 'llm_timeout' in fallback_notes."
+  llm_error: "Catch LLM API errors, retry up to retry_attempts, then fallback to rule-based; log 'llm_error' and error_code."
+  invalid_llm_response: "If LLM response contains invalid data or forbidden content: fallback to rule-based, add 'invalid_llm_response' to fallback_notes."
+  external_dependency_failure: "Do not call external trend service; use provided input data or rule-based defaults."
+  partial_completion: "Return highest-level output with confidence set appropriately; do not skip scoring step."
 
 test_commands:
+  - command: "npm test -- mcp/scoring --testNamePattern='llm' --verbose"
+    expected_result: "LLM integration tests pass: trend analysis and recommendation reason generated by LLM when API key available."
   - command: "npm test -- mcp/scoring --testNamePattern='determinism' --verbose"
     expected_result: "All determinism tests pass: identical fixtures produce identical hype_score output."
   - command: "npm test -- mcp/scoring --testNamePattern='edge_case' --coverage"
     expected_result: "Edge case tests pass with >95% line coverage of scoring module."
   - command: "npm test -- mcp/scoring --testNamePattern='fallback' --verbose"
-    expected_result: "Fallback behavior tests confirm fallback_notes are populated correctly for missing inputs."
+    expected_result: "Fallback behavior tests confirm LLM failure triggers rule-based fallback; fallback_notes populated correctly."
 
 expected_output:
   changed_files:
     - "mcp/src/scoring/scoring-engine.ts"
     - "mcp/src/scoring/rules.ts"
     - "mcp/src/scoring/weights.ts"
+    - "mcp/src/llm/trend-llm-client.ts"
+    - "mcp/src/llm/reason-llm-client.ts"
     - "mcp/tests/scoring/scoring-engine.test.ts"
+    - "mcp/tests/scoring/llm-integration.test.ts"
     - "mcp/tests/fixtures/product-metrics-fixtures.ts"
-    - "docs/tasks/mcp/MCP-002-scoring-weights.md (inline documentation)"
   user_visible_behavior:
-    - "Backend can call MCP scoring function with ProductMetrics and receive deterministic AIBehaviorOutput."
-    - "Scores are bounded, reproducible, and include fallback notes for missing data."
+    - "Backend can call MCP scoring function with ProductMetrics and receive AIBehaviorOutput with bounded scores."
+    - "LLM provides trend analysis and recommendation reason narrative when API key is available."
+    - "Rule-based fallback maintains deterministic output when LLM is unavailable."
+    - "Scores are reproducible and include fallback notes for missing data or LLM fallback."
   machine_readable_artifacts:
-    - "scoring-engine.ts exports: calculateHypeScore(), calculateTrendScore(), recommendProduct(), determineFallbackNotes()."
+    - "scoring-engine.ts exports: calculateHypeScore(), calculateTrendScore(), analyzeTrendWithLLM(), generateRecommendationReason(), recommendProduct(), determineFallbackNotes()."
+    - "trend-llm-client.ts exports: analyzeTrend(input): Promise<TrendAnalysis> with retry and timeout."
+    - "reason-llm-client.ts exports: generateReason(scores): Promise<string> with retry and timeout."
     - "Test fixtures in JSON format demonstrating boundary inputs and expected outputs."
-    - "Code comments documenting weight constants and scoring rationale."
 
 reporting_format:
   required_sections:
     - "changed_files"
     - "tests_run"
+    - "llm_integration_status"
     - "scoring_weight_choices_and_rationale"
     - "determinism_verification_method"
     - "fallback_coverage"
+    - "llm_vs_rule_based_ratio"
     - "assumptions"
     - "risks"
     - "next_safe_step"
-  notes: "Include actual weight values chosen, explain tie-breaker strategy, and list all test fixture product IDs used for determinism validation. Highlight any data field assumptions that differ from commerce platform reality."
+  notes: "Include actual weight values chosen. Document LLM prompt templates used. Report LLM vs rule-based generation ratio from tests. Explain tie-breaker strategy and list all test fixture product IDs used for determinism validation."
