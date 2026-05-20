@@ -112,6 +112,11 @@ export function createMemoryStore({ fixture, config, clock }) {
       return cloneJson(next);
     },
 
+    // Query collection without tenant isolation (for auth)
+    query(collection, predicate) {
+      return Array.from(getCollection(collection).values()).filter(predicate);
+    },
+
     unsafeState() {
       return state;
     }

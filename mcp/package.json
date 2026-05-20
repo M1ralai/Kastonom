@@ -1,0 +1,74 @@
+{
+  "name": "@kastonom/mcp",
+  "version": "1.0.0",
+  "description": "MCP/AI Intelligence Layer for Kastonom - Commerce scoring, creative brief generation, and prompt compilation",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    },
+    "./types": {
+      "import": "./src/types/index.js",
+      "types": "./src/types/index.ts"
+    }
+  },
+  "files": [
+    "dist",
+    "src"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "build:watch": "tsc --watch",
+    "test": "node --experimental-vm-modules node:test",
+    "test:types": "node --experimental-vm-modules node:test tests/types/",
+    "test:scoring": "node --experimental-vm-modules node:test tests/scoring/",
+    "test:brief": "node --experimental-vm-modules node:test tests/brief-generator/",
+    "test:all": "node --experimental-vm-modules node:test tests/",
+    "lint": "tsc --noEmit",
+    "lint:strict": "tsc --strict --noImplicitAny --noEmit",
+    "clean": "rm -rf dist"
+  },
+  "keywords": [
+    "kastonom",
+    "mcp",
+    "ai",
+    "advertising",
+    "creative",
+    "video-generation",
+    "scoring",
+    "commerce"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.41",
+    "typescript": "^5.3.0"
+  },
+  "tsconfig": {
+    "target": "ES2022",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "lib": [
+      "ES2022"
+    ],
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "declaration": true,
+    "declarationMap": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./src"
+  }
+}

@@ -1,6 +1,7 @@
 import { ApiError } from "./api-error.js";
 
 export function mapError(error, requestId) {
+  // Handle ApiError instance
   if (error instanceof ApiError) {
     const body = {
       error: error.error,
@@ -15,6 +16,17 @@ export function mapError(error, requestId) {
     return {
       status: error.status,
       body
+    };
+  }
+
+  // Handle plain error objects with { status, body } shape
+  if (error && typeof error === "object" && typeof error.status === "number" && error.body) {
+    return {
+      status: error.status,
+      body: {
+        ...error.body,
+        request_id: requestId
+      }
     };
   }
 

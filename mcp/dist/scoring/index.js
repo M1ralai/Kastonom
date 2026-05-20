@@ -1,0 +1,13 @@
+/**
+ * MCP Scoring Engine - Module Exports
+ * @module mcp/scoring
+ * @file MCP-002: Scoring module exports
+ */
+export { 
+// Weights
+SCORING_WEIGHTS, RECOMMENDATION_THRESHOLD, SALES_VELOCITY_THRESHOLDS, STOCK_MOVEMENT_THRESHOLDS, NEW_PRODUCT_BOOST_CONFIG, TREND_POTENTIAL_DEFAULTS, validateWeights } from "./weights.js";
+// Rules
+export { extractSalesVelocity, extractStockMovement, extractNewProductBoost, extractAudienceFit, calculateHypeScore, shouldRecommend, tieBreaker, isValidScore, extractAllScores, salesVelocityFallbackNote, stockMovementFallbackNote } from "./rules.js";
+// Scoring Engine
+export { ScoringEngine, createScoringEngine, quickScore } from "./scoring-engine.js";
+//# sourceMappingURL=index.js.map

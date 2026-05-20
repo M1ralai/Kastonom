@@ -13,6 +13,7 @@ import { createAdPublicationService } from "./ad-publications/ad-publication.ser
 import { createMetricsService } from "./metrics/metrics.service.js";
 import { createIterationSuggestionService } from "./iteration-suggestions/iteration-suggestion.service.js";
 import { createDemoReplayService } from "./demo/demo-replay.service.js";
+import { createAuthService } from "./auth/auth.service.js";
 import { cloneDemoFixture, defaultDemoFixturePath } from "./demo/demo-fixture.loader.js";
 import { mapError } from "./http/errors/error-mapper.js";
 import {
@@ -114,6 +115,7 @@ export function createApp(options = {}) {
   const metrics = createMetricsService({ store, ids, clock, config });
   const iterationSuggestions = createIterationSuggestionService({ store, ids, clock });
   const demoReplay = createDemoReplayService({ fixturePath });
+  const auth = createAuthService({ store, ids, clock, config });
   const openApiSpec = createOpenApiSpec(config);
   const swaggerHtml = createSwaggerHtml();
 
@@ -155,6 +157,15 @@ export function createApp(options = {}) {
 
       if (method === "GET" && pathname === "/demo/fallback") {
         return { status: 200, body: demoReplay.getFallbackReplay() };
+      }
+
+      // Auth endpoints (no tenant required)
+      if (method === "POST" && pathname === "/auth/register") {
+        return { status: 201, body: auth.register(body) };
+      }
+
+      if (method === "POST" && pathname === "/auth/login") {
+        return { status: 200, body: auth.login(body) };
       }
 
       if (method === "POST" && pathname === "/creative-projects") {

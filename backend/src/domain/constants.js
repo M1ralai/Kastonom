@@ -108,6 +108,7 @@ export const STANDARD_NEGATIVE_INSTRUCTIONS = [
 
 export const COLLECTIONS = [
   "tenants",
+  "users",
   "creativeProjects",
   "creativeSubjects",
   "sourceAssets",

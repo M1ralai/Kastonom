@@ -9,6 +9,7 @@ import {
   stringArray
 } from "../domain/validation.js";
 import { notFound, validationError } from "../http/errors/api-error.js";
+import { createProviderOrchestratorService } from "../providers/provider-orchestrator.service.js";
 
 export function createGenerationRequestService({
   store,
@@ -189,10 +190,15 @@ export function createGenerationRequestService({
           })
         );
 
-        // TODO: MCP-007 implementation will replace this mock provider call
-        // For now, use mock provider for demo purposes
-        // When MCP is implemented, this will call MCP-006 facade
-        const providerOutput = createMockVideoJobResult(context, {
+        // Use provider orchestrator to create video job (supports MCP network execution)
+        const providerOrchestrator = createProviderOrchestratorService({
+          store,
+          ids,
+          clock,
+          config
+        });
+
+        const providerOutput = providerOrchestrator.createVideoJob(context, {
           project,
           generationRequest: promptCompiledRequest,
           promptPayload,
