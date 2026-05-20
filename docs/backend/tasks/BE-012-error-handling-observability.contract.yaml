@@ -1,6 +1,6 @@
 task:
-  name: "BE-012 Error Handling, Logging, and Secret Redaction"
-  goal: "Standardize backend API errors, request ids, safe logging, provider error normalization, and secret redaction."
+  name: "BE-012 Error Handling, Logging, Secret Redaction, and Publication Safety"
+  goal: "Standardize backend API errors, request ids, safe logging, provider and ad platform error normalization, publication guardrails, and secret redaction."
   layer: "backend"
   status: "planned"
   owner: "codex"
@@ -8,6 +8,8 @@ task:
     - "backend/src/http/errors/**"
     - "backend/src/http/middleware/**"
     - "backend/src/providers/**"
+    - "backend/src/ad-publications/**"
+    - "backend/src/metrics/**"
     - "backend/src/config/**"
     - "backend/src/domain/**"
     - "backend/tests/**"
@@ -21,13 +23,17 @@ task:
     include:
       - "Create stable API error mapper."
       - "Attach request id to errors and safe logs."
-      - "Normalize provider failures into ProviderResult and VideoJob error shapes."
-      - "Redact authorization headers, API keys, and provider credential-like fields."
+      - "Normalize video provider failures into ProviderResult and VideoJob error shapes."
+      - "Normalize ad platform failures into AdPublication error shapes."
+      - "Ensure POST /ad-publications requires explicit user action, selected generated video ownership, platform readiness, and safe destination URL handling."
+      - "Ensure POST /ad-publications/{id}/metrics/sync does not invent missing metrics."
+      - "Redact authorization headers, API keys, tokens, and provider/ad-platform credential-like fields."
       - "Add no-secret tests for config, logs where testable, fixtures, and API responses."
     exclude:
       - "Production monitoring vendor integration."
       - "Distributed tracing."
       - "User analytics."
+      - "Live ad platform network calls unless a later task explicitly allows them."
 
 requirements:
   - id: "REQ-BE012-001"
@@ -38,24 +44,31 @@ requirements:
     description: "Logs must not include secrets or raw provider credentials."
     source_contract: "docs/architecture.md"
     priority: "must"
+  - id: "REQ-BE012-003"
+    description: "Backend must not publish ads without explicit user action."
+    source_contract: "docs/contracts/data-model.contract.yaml"
+    priority: "must"
 
 acceptance_criteria:
   - id: "AC-BE012-001"
     description: "Common API errors map to documented status codes and error bodies."
     verification: "automated"
   - id: "AC-BE012-002"
-    description: "Provider errors are normalized and stored without secrets."
+    description: "Provider and ad platform errors are normalized and stored without secrets."
     verification: "automated"
   - id: "AC-BE012-003"
-    description: "API responses do not include stack traces or provider credentials."
+    description: "API responses do not include stack traces, provider credentials, or ad platform credentials."
     verification: "automated"
   - id: "AC-BE012-004"
     description: "Request id is available in error responses or logs according to implementation policy."
     verification: "review"
+  - id: "AC-BE012-005"
+    description: "Publication and metrics endpoints fail closed on missing readiness and do not invent state."
+    verification: "automated"
 
 failure_behavior:
   missing_input: "Return INVALID_REQUEST with field-level message when possible."
-  missing_config: "Return CONFIGURATION_MISSING or provider-specific config error."
+  missing_config: "Return CONFIGURATION_MISSING or provider/ad-platform-specific config error."
   external_dependency_failure: "Normalize failure without leaking raw credentials."
   partial_completion: "Report which error codes are implemented and which remain pending."
 
@@ -66,12 +79,14 @@ test_commands:
 expected_output:
   changed_files:
     - "backend/src/http/errors/**"
+    - "backend/src/ad-publications/**"
+    - "backend/src/metrics/**"
     - "backend/tests/**"
   user_visible_behavior:
     - "Failures are clear, stable, and safe."
   machine_readable_artifacts:
     - "ApiError shape or equivalent."
-    - "Provider error normalization utilities."
+    - "Provider and ad platform error normalization utilities."
 
 reporting_format:
   required_sections:
@@ -81,4 +96,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "Include any remaining unmapped error codes."
-

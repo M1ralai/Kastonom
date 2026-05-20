@@ -1,6 +1,6 @@
 task:
   name: "BE-009 Provider Adapter Boundary and Mock Provider"
-  goal: "Implement provider adapter interface, provider selection, config checks, and deterministic mock provider."
+  goal: "Implement video provider adapter interface, provider selection, config checks, and deterministic mock provider."
   layer: "backend"
   status: "planned"
   owner: "codex"
@@ -8,6 +8,7 @@ task:
     - "backend/src/providers/**"
     - "backend/src/config/**"
     - "backend/src/video-jobs/**"
+    - "backend/src/generated-videos/**"
     - "backend/src/repositories/**"
     - "backend/fixtures/**"
     - "backend/tests/**"
@@ -18,16 +19,18 @@ task:
     - "BE-008"
   scope:
     include:
-      - "Create provider adapter interface."
+      - "Create video provider adapter interface."
       - "Implement provider orchestrator that selects mock, pollo, kling, or runway."
-      - "Implement MockProviderAdapter with deterministic result and mock label."
+      - "Implement MockProviderAdapter with deterministic result URLs and mock label."
       - "Create live provider adapter skeletons that fail closed when config is missing."
-      - "Normalize provider errors."
+      - "Normalize provider errors into ProviderResult and VideoJob fields."
+      - "Create GeneratedVideo records from provider result URLs when available."
       - "Add tests for mock success, missing live config, unsupported provider, and fallback enabled behavior."
     exclude:
       - "Real live provider network submissions unless a later task explicitly allows them."
       - "Provider webhooks."
       - "Advanced provider render controls."
+      - "Ad platform publication."
 
 requirements:
   - id: "REQ-BE009-001"
@@ -41,7 +44,7 @@ requirements:
 
 acceptance_criteria:
   - id: "AC-BE009-001"
-    description: "Mock provider returns deterministic normalized provider result with is_mock=true."
+    description: "Mock provider returns deterministic normalized ProviderResult and GeneratedVideo records with is_mock=true."
     verification: "automated"
   - id: "AC-BE009-002"
     description: "Live provider selected without credentials returns PROVIDER_CONFIG_MISSING."
@@ -68,9 +71,10 @@ expected_output:
     - "backend/src/providers/**"
     - "backend/tests/**"
   user_visible_behavior:
-    - "Backend can create deterministic mock video provider results."
+    - "Backend can create deterministic mock generated video results."
   machine_readable_artifacts:
     - "ProviderResult schema or validator."
+    - "GeneratedVideo creation path."
 
 reporting_format:
   required_sections:
@@ -80,4 +84,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "Explicitly state that live provider calls were not made unless allowed by task."
-

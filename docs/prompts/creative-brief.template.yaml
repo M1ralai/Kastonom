@@ -1,54 +1,49 @@
-product:
+template_purpose:
+  name: "Deprecated creative brief template placeholder"
+  status: "deprecated"
+  replacement: "Use CreativeSubject + SourceAsset[] + GenerationRequest records from docs/contracts/data-model.contract.yaml and docs/prompts/prompt-compiler.contract.md."
+  note: "This file remains only so older references fail softly during the transition. New backend tasks must not build a separate CreativeBrief entity."
+
+creative_subject:
   id: "TBD"
+  subject_type: "product | service | brand | offer | event | place | other | unknown"
   name: "TBD"
-  category: "TBD"
-  is_new: false
+  description: null
+  landing_url: null
   price: null
   currency: null
-  stock_quantity: null
-  source: "mock | erp | commerce | unknown"
-
-audience:
-  age_range: "unknown"
-  primary_segment: "TBD"
-  buying_motivation: "TBD"
-  source: "mock | erp | commerce | analytics | unknown"
-
-insight:
-  hype_score: null
-  trend_potential_score: null
-  sales_velocity: null
-  stock_movement: null
-  new_product_boost: null
-  audience_fit: null
-  reason: "TBD"
-  confidence: "low | medium | high"
-
-campaign:
-  goal: "TBD"
-  platform: "tiktok | reels | youtube_shorts"
-  duration: 15
-  creative_angle: "TBD"
-  tone: "TBD"
-  visual_style: "TBD"
-
-message:
-  hook: "TBD"
-  main_claim: "TBD"
-  call_to_action: "TBD"
-
-constraints:
+  allowed_claims: []
   forbidden_claims:
     - "Do not claim discounts unless discount data is provided."
     - "Do not claim guaranteed results."
-    - "Do not claim unavailable product features."
-  required_words: []
+    - "Do not claim unavailable features."
+  unknown_fields: []
+  source: "user_input | import | mock | unknown"
+
+source_assets:
+  - id: "TBD"
+    asset_type: "image | video | url"
+    source: "upload | external_url | generated | mock"
+    url: "TBD"
+    metadata: {}
+
+generation_request:
+  id: "TBD"
+  objective: "awareness | traffic | conversions | engagement | app_promotion | lead_generation | unknown"
+  target_audience: null
+  platform: "meta_ads | google_ads | tiktok | reels | youtube_shorts | generic_vertical | unknown"
   language: "Turkish"
-  negative_instructions:
-    - "Do not invent product claims."
-    - "Do not show unavailable features."
-    - "Do not imply fake scarcity."
+  tone: null
+  style: null
+  call_to_action: null
+  duration_seconds: 15
+  aspect_ratio: "9:16"
+  user_notes: null
+  fallback_notes:
+    - "TBD: add missing data notes here."
 
-fallback_notes:
-  - "TBD: add missing data notes here."
-
+negative_instructions:
+  - "Do not invent subject claims."
+  - "Do not show unavailable features."
+  - "Do not imply fake scarcity."
+  - "Do not infer audience demographics."

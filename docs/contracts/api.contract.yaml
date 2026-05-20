@@ -1,16 +1,16 @@
-version: "0.1.0"
+version: "0.2.0"
 
 auth_requirements:
   mode: "TBD"
   tenant_required: true
   frontend_auth: "TBD"
   local_demo_auth: "May use a fixed demo tenant only when clearly marked as demo mode."
-  secrets_policy: "API keys must come from environment variables and must never be sent to the frontend."
+  secrets_policy: "Video provider keys and ad platform credentials must come from environment variables or secure connector storage and must never be sent to the frontend."
 
 endpoints:
   - method: GET
     path: /health
-    purpose: "Return service health and mode."
+    purpose: "Return service health and safe readiness state."
     request:
       headers: {}
       query: {}
@@ -19,9 +19,11 @@ endpoints:
       success:
         status: 200
         body:
-          status: "ok"
+          status: "ok | degraded"
           mode: "mock | live | degraded"
           version: "string"
+          video_provider_readiness: "object"
+          ad_platform_readiness: "object"
       error:
         status: 500
         body:
@@ -31,72 +33,58 @@ endpoints:
       - HEALTH_CHECK_FAILED
     failure_behavior: "Return degraded status if optional provider checks fail; fail only for core service failure."
 
-  - method: GET
-    path: /products
-    purpose: "Return tenant-scoped products with available metrics for the creative console."
-    request:
-      headers:
-        x-tenant-id: "required string unless demo mode supplies default"
-      query:
-        limit: "optional integer"
-        cursor: "optional string"
-      body: null
-    response:
-      success:
-        status: 200
-        body:
-          products: "Product[]"
-          source: "mock | live"
-          fallback_reason: "string | null"
-      error:
-        status: "400 | 401 | 403 | 500"
-        body:
-          error: "string"
-          message: "string"
-    error_codes:
-      - INVALID_TENANT
-      - UNAUTHORIZED
-      - PRODUCT_SOURCE_UNAVAILABLE
-    failure_behavior: "Return mock products only when fallback mode is enabled; otherwise fail closed."
-
   - method: POST
-    path: /campaigns/generate
-    purpose: "Generate product intelligence, creative brief, prompt payload, and video job."
+    path: /creative-projects
+    purpose: "Create a tenant-scoped creative project with advertised subject facts and source asset references."
     request:
       headers:
         x-tenant-id: "required string unless demo mode supplies default"
       body:
-        product_id: "required string"
-        provider: "optional enum: pollo | kling | runway | mock"
-        platform: "optional enum: tiktok | reels | youtube_shorts"
-        duration_seconds: "optional integer"
-        language: "optional string"
+        name: "required string"
+        creative_subject:
+          subject_type: "required enum: product | service | brand | offer | event | place | other | unknown"
+          name: "required string"
+          description: "optional string"
+          landing_url: "optional string"
+          price: "optional number"
+          currency: "optional string"
+          allowed_claims: "required string[]"
+          forbidden_claims: "required string[]"
+          unknown_fields: "required string[]"
+          source: "required enum: user_input | import | mock | unknown"
+        source_assets:
+          type: "required SourceAssetInput[]"
+          item_fields:
+            asset_type: "required enum: image | video | url"
+            source: "required enum: upload | external_url | generated | mock"
+            url: "required string"
+            metadata: "optional object"
+      body_notes:
+        - "Frontend may submit asset references or mock URLs; live binary upload storage is out of scope unless a later task adds it."
     response:
       success:
-        status: 202
+        status: 201
         body:
-          campaign_id: "string"
-          creative_brief: "CreativeBrief"
-          prompt_payload: "object"
-          video_job: "VideoJob"
+          creative_project: "CreativeProject"
+          creative_subject: "CreativeSubject"
+          source_assets: "SourceAsset[]"
           fallback_reason: "string | null"
       error:
-        status: "400 | 401 | 403 | 404 | 422 | 500"
+        status: "400 | 401 | 403 | 422 | 500"
         body:
           error: "string"
           message: "string"
-          fallback_available: "boolean"
     error_codes:
-      - INVALID_PRODUCT_ID
-      - PRODUCT_NOT_FOUND
-      - AI_OUTPUT_INVALID
-      - PROVIDER_CONFIG_MISSING
-      - PROVIDER_UNAVAILABLE
-    failure_behavior: "Do not create a live provider job when config is missing; use mock provider only when explicitly allowed."
+      - INVALID_REQUEST
+      - INVALID_TENANT
+      - UNAUTHORIZED
+      - CREATIVE_SUBJECT_INVALID
+      - SOURCE_ASSET_INVALID
+    failure_behavior: "Do not invent subject facts or asset metadata; missing optional facts must be represented as unknown fields or omitted optional fields."
 
   - method: GET
-    path: /video-jobs/{id}
-    purpose: "Return current video generation job status."
+    path: /creative-projects/{id}
+    purpose: "Return a tenant-scoped creative project bundle."
     request:
       headers:
         x-tenant-id: "required string unless demo mode supplies default"
@@ -108,12 +96,85 @@ endpoints:
       success:
         status: 200
         body:
-          id: "string"
-          status: "queued | processing | completed | failed"
-          provider: "pollo | kling | runway | mock"
-          preview_url: "string | null"
-          error: "object | null"
-          is_mock: "boolean"
+          creative_project: "CreativeProject"
+          creative_subject: "CreativeSubject"
+          source_assets: "SourceAsset[]"
+          generation_requests: "GenerationRequest[]"
+          generated_videos: "GeneratedVideo[]"
+      error:
+        status: "401 | 403 | 404 | 500"
+        body:
+          error: "string"
+          message: "string"
+    error_codes:
+      - CREATIVE_PROJECT_NOT_FOUND
+      - UNAUTHORIZED
+      - INVALID_TENANT
+    failure_behavior: "Never reveal projects outside tenant scope."
+
+  - method: POST
+    path: /generation-requests
+    purpose: "Create a generation request, compile provider prompt payload, create video job, and return generated video records when available."
+    request:
+      headers:
+        x-tenant-id: "required string unless demo mode supplies default"
+      body:
+        project_id: "required string"
+        source_asset_ids: "required string[]"
+        provider: "optional enum: pollo | kling | runway | mock"
+        objective: "required enum: awareness | traffic | conversions | engagement | app_promotion | lead_generation | unknown"
+        target_audience: "optional string"
+        platform: "required enum: meta_ads | google_ads | tiktok | reels | youtube_shorts | generic_vertical | unknown"
+        duration_seconds: "required integer"
+        aspect_ratio: "required enum: 9:16 | 1:1 | 4:5 | 16:9 | unknown"
+        language: "required string"
+        tone: "optional string"
+        style: "optional string"
+        call_to_action: "optional string"
+        user_notes: "optional string"
+    response:
+      success:
+        status: 202
+        body:
+          generation_request: "GenerationRequest"
+          prompt_payload: "PromptPayload"
+          video_job: "VideoJob"
+          provider_result: "ProviderResult | null"
+          generated_videos: "GeneratedVideo[]"
+          fallback_reason: "string | null"
+      error:
+        status: "400 | 401 | 403 | 404 | 422 | 500"
+        body:
+          error: "string"
+          message: "string"
+          fallback_available: "boolean"
+    error_codes:
+      - INVALID_REQUEST
+      - CREATIVE_PROJECT_NOT_FOUND
+      - SOURCE_ASSET_NOT_FOUND
+      - PROMPT_COMPILATION_FAILED
+      - PROVIDER_CONFIG_MISSING
+      - PROVIDER_UNAVAILABLE
+    failure_behavior: "Do not create a live provider job when config is missing; use mock provider only when explicitly allowed."
+
+  - method: GET
+    path: /video-jobs/{id}
+    purpose: "Return current video generation job status and generated video records."
+    request:
+      headers:
+        x-tenant-id: "required string unless demo mode supplies default"
+      path_params:
+        id: "required string"
+      query: {}
+      body: null
+    response:
+      success:
+        status: 200
+        body:
+          video_job: "VideoJob"
+          provider_result: "ProviderResult | null"
+          generated_videos: "GeneratedVideo[]"
+          fallback_reason: "string | null"
       error:
         status: "401 | 403 | 404 | 500"
         body:
@@ -125,9 +186,127 @@ endpoints:
       - INVALID_TENANT
     failure_behavior: "Never reveal jobs outside tenant scope."
 
+  - method: POST
+    path: /generated-videos/{id}/select
+    purpose: "Select one tenant-owned generated video for a creative project."
+    request:
+      headers:
+        x-tenant-id: "required string unless demo mode supplies default"
+      path_params:
+        id: "required string"
+      body:
+        project_id: "required string"
+    response:
+      success:
+        status: 200
+        body:
+          creative_project: "CreativeProject"
+          generated_video: "GeneratedVideo"
+      error:
+        status: "400 | 401 | 403 | 404 | 500"
+        body:
+          error: "string"
+          message: "string"
+    error_codes:
+      - GENERATED_VIDEO_NOT_FOUND
+      - CREATIVE_PROJECT_NOT_FOUND
+      - INVALID_TENANT
+      - UNAUTHORIZED
+    failure_behavior: "Only tenant-owned generated videos may be selected."
+
+  - method: POST
+    path: /ad-publications
+    purpose: "Track an explicit user request to publish a selected generated video to Meta Ads or Google Ads."
+    request:
+      headers:
+        x-tenant-id: "required string unless demo mode supplies default"
+      body:
+        project_id: "required string"
+        generated_video_id: "required string"
+        platform: "required enum: meta_ads | google_ads"
+        ad_platform_connection_id: "optional string"
+        destination_url: "optional string"
+        user_confirmed_publish: "required boolean true"
+    response:
+      success:
+        status: "201 | 202"
+        body:
+          ad_publication: "AdPublication"
+          fallback_reason: "string | null"
+      error:
+        status: "400 | 401 | 403 | 404 | 422 | 500"
+        body:
+          error: "string"
+          message: "string"
+    error_codes:
+      - INVALID_REQUEST
+      - GENERATED_VIDEO_NOT_FOUND
+      - AD_PLATFORM_CONFIG_MISSING
+      - AD_PLATFORM_CONNECTION_NOT_READY
+      - AD_PUBLICATION_FAILED
+    failure_behavior: "Do not publish unless user_confirmed_publish is true and platform readiness checks pass."
+
+  - method: POST
+    path: /ad-publications/{id}/metrics/sync
+    purpose: "Store a metrics snapshot for a published ad from mock, manual, or configured ad platform source."
+    request:
+      headers:
+        x-tenant-id: "required string unless demo mode supplies default"
+      path_params:
+        id: "required string"
+      body:
+        source: "required enum: meta_ads_api | google_ads_api | mock | manual | unknown"
+        date_start: "required date"
+        date_end: "required date"
+        metrics: "optional object with explicit metric fields"
+    response:
+      success:
+        status: 201
+        body:
+          metrics_snapshot: "AdMetricsSnapshot"
+      error:
+        status: "400 | 401 | 403 | 404 | 422 | 500"
+        body:
+          error: "string"
+          message: "string"
+    error_codes:
+      - AD_PUBLICATION_NOT_FOUND
+      - METRICS_SOURCE_UNAVAILABLE
+      - INVALID_METRICS_INPUT
+    failure_behavior: "Missing metrics remain null or absent; do not invent performance values."
+
+  - method: POST
+    path: /creative-iteration-suggestions
+    purpose: "Store an externally supplied or demo-fixture creative iteration suggestion without generating MCP or AI content in backend."
+    request:
+      headers:
+        x-tenant-id: "required string unless demo mode supplies default"
+      body:
+        project_id: "required string"
+        ad_publication_id: "optional string"
+        metrics_snapshot_id: "optional string"
+        base_generation_request_id: "optional string"
+        suggestion_payload: "required object matching CreativeIterationSuggestion fields except backend-generated ids and timestamps"
+    response:
+      success:
+        status: 201
+        body:
+          creative_iteration_suggestion: "CreativeIterationSuggestion"
+      error:
+        status: "400 | 401 | 403 | 404 | 422 | 500"
+        body:
+          error: "string"
+          message: "string"
+    error_codes:
+      - CREATIVE_PROJECT_NOT_FOUND
+      - AD_PUBLICATION_NOT_FOUND
+      - METRICS_SNAPSHOT_NOT_FOUND
+      - INVALID_ITERATION_SUGGESTION
+    failure_behavior: "Backend must not generate suggestion content; it only stores externally supplied or deterministic demo suggestion data."
+
   - method: GET
     path: /demo/fallback
-    purpose: "Return deterministic fallback data for hackathon demo mode."
+    purpose: "Return deterministic fallback replay data for hackathon demo mode."
     request:
       headers: {}
       query: {}
@@ -136,10 +315,18 @@ endpoints:
       success:
         status: 200
         body:
-          products: "Product[]"
-          sample_campaign: "Campaign"
-          sample_creative_brief: "CreativeBrief"
-          sample_video_job: "VideoJob"
+          creative_project: "CreativeProject"
+          creative_subject: "CreativeSubject"
+          source_assets: "SourceAsset[]"
+          generation_request: "GenerationRequest"
+          prompt_payload: "PromptPayload"
+          video_job: "VideoJob"
+          provider_result: "ProviderResult"
+          generated_videos: "GeneratedVideo[]"
+          selected_generated_video: "GeneratedVideo | null"
+          ad_publication: "AdPublication | null"
+          metrics_snapshot: "AdMetricsSnapshot | null"
+          creative_iteration_suggestion: "CreativeIterationSuggestion | null"
           fallback_reason: "demo_fallback"
       error:
         status: 500
@@ -163,5 +350,5 @@ failure_behavior:
   missing_configuration: "Fail closed with CONFIGURATION_MISSING unless documented demo fallback applies."
   validation_failure: "Return 400 or 422 with field-level message when possible."
   provider_failure: "Store normalized provider error and return failed or fallback job state."
-  ai_failure: "Reject invalid AI output and return fallback reason."
-
+  ad_platform_failure: "Store normalized publication error and do not pretend publication succeeded."
+  metric_failure: "Do not invent missing metrics; return explicit failure or fallback notes."

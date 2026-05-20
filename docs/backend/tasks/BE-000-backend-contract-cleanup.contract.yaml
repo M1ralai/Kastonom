@@ -1,13 +1,14 @@
 task:
-  name: "BE-000 Backend Contract Cleanup"
-  goal: "Resolve backend-blocking documentation contract gaps before implementation."
+  name: "BE-000 Backend Contract Alignment"
+  goal: "Align backend-facing documentation and task contracts with data-model.contract.yaml version 0.2.0 before implementation."
   layer: "docs"
   status: "planned"
   owner: "codex"
   allowed_files:
-    - "docs/contracts/data-model.contract.yaml"
     - "docs/contracts/api.contract.yaml"
     - "docs/layers/backend.contract.md"
+    - "docs/layers/integration-flow.md"
+    - "docs/prompts/prompt-compiler.contract.md"
     - "docs/backend/**"
   forbidden_files:
     - "backend/**"
@@ -15,11 +16,12 @@ task:
   dependencies: []
   scope:
     include:
-      - "Remove or resolve duplicate Product.description definitions."
-      - "Add or reference a concrete ProductMetric entity."
-      - "Add missing Product.category field if API and indexes require it."
-      - "Clarify metric fields required for sales velocity, stock movement, trend potential, and audience fit."
-      - "Clarify prompt payload persistence expectations if backend stores prompt artifacts."
+      - "Treat data-model.contract.yaml version 0.2.0 as the source of truth."
+      - "Remove stale backend planning references to Product, ProductMetric, AudienceSegment, Campaign, CreativeBrief, ERP product scoring, and automatic audience inference."
+      - "Replace product/campaign workflow tasks with CreativeProject, SourceAsset, GenerationRequest, PromptPayload, VideoJob, GeneratedVideo, AdPublication, AdMetricsSnapshot, and CreativeIterationSuggestion tasks."
+      - "Clarify that publication requires explicit user action and complete platform readiness."
+      - "Clarify that metrics and iteration suggestions use stored metrics or fallback notes, not invented values."
+      - "Clarify that MCP implementation is out of scope for backend and must not create backend/src/mcp/** or AI/model logic."
     exclude:
       - "Runtime implementation."
       - "Provider integration code."
@@ -27,41 +29,44 @@ task:
 
 requirements:
   - id: "REQ-BE000-001"
-    description: "Data model contract must be internally consistent for backend implementation."
+    description: "Backend task contracts must not require deprecated data model entities for new implementation."
     source_contract: "docs/contracts/data-model.contract.yaml"
     priority: "must"
   - id: "REQ-BE000-002"
-    description: "Contract changes must preserve no-fabrication and tenant-scope rules."
-    source_contract: "docs/contracts/ai-behavior.contract.yaml"
+    description: "Contract changes must preserve no-fabrication, tenant-scope, fail-closed, and explicit publication rules."
+    source_contract: "docs/contracts/data-model.contract.yaml"
     priority: "must"
 
 acceptance_criteria:
   - id: "AC-BE000-001"
-    description: "The data model contract defines every entity referenced by relationships."
+    description: "Backend planning docs name the latest creative-project workflow as the implementation path."
     verification: "review"
   - id: "AC-BE000-002"
-    description: "The Product entity has no duplicate conflicting fields."
+    description: "Backend task contracts do not instruct agents to build deprecated product recommendation or campaign/creative-brief entities."
     verification: "review"
   - id: "AC-BE000-003"
-    description: "Backend task contracts do not require fields absent from the data model contract."
-    verification: "review"
+    description: "YAML contracts touched by this cleanup parse successfully."
+    verification: "automated"
 
 failure_behavior:
   missing_input: "Document the unresolved contract gap and block backend implementation tasks that depend on it."
-  missing_config: "Not applicable for documentation cleanup."
+  missing_config: "Not applicable for documentation alignment."
   external_dependency_failure: "Not applicable."
   partial_completion: "List unresolved contract gaps, assumptions, and next safe step."
 
 test_commands:
-  - command: "ruby -e 'require \"yaml\"; YAML.load_file(\"docs/contracts/data-model.contract.yaml\"); YAML.load_file(\"docs/contracts/api.contract.yaml\")'"
-    expected_result: "Contracts parse as YAML."
+  - command: "ruby -e 'require \"yaml\"; Dir[\"docs/**/*.yaml\"].each { |path| YAML.load_file(path) }'"
+    expected_result: "All YAML docs parse."
 
 expected_output:
   changed_files:
-    - "docs/contracts/data-model.contract.yaml"
+    - "docs/backend/**"
+    - "docs/layers/backend.contract.md"
+    - "docs/layers/integration-flow.md"
     - "docs/contracts/api.contract.yaml"
+    - "docs/prompts/prompt-compiler.contract.md"
   user_visible_behavior:
-    - "Future backend agents have unambiguous model contracts."
+    - "Future backend agents have unambiguous model-aligned tasks."
   machine_readable_artifacts:
     - "Updated YAML contracts."
 
@@ -73,4 +78,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "Keep final report concise and include exact YAML validation command."
-

@@ -1,12 +1,12 @@
 task:
   name: "BE-008 Prompt Compiler Backend Integration"
-  goal: "Connect validated creative briefs to the prompt compiler and store normalized prompt payloads."
+  goal: "Connect validated creative subject, source asset, and generation request inputs to the prompt compiler and store normalized PromptPayload records."
   layer: "backend"
   status: "planned"
   owner: "codex"
   allowed_files:
     - "backend/src/prompt-compiler/**"
-    - "backend/src/campaigns/**"
+    - "backend/src/generation-requests/**"
     - "backend/src/domain/**"
     - "backend/src/repositories/**"
     - "backend/tests/**"
@@ -17,36 +17,37 @@ task:
     - "backend/src/providers/adapters/kling*"
     - "backend/src/providers/adapters/runway*"
   dependencies:
-    - "BE-007"
+    - "BE-006"
   scope:
     include:
       - "Create prompt compiler service or adapter to existing prompt compiler module."
-      - "Accept provider and creative brief input."
-      - "Return normalized prompt payload with prompt_text, negative_prompt, duration_seconds, aspect_ratio, language, metadata, is_mock, and fallback_notes."
+      - "Accept provider, CreativeSubject, SourceAsset references, and GenerationRequest settings as input."
+      - "Return normalized PromptPayload with prompt_text, negative_prompt, duration_seconds, aspect_ratio, language, source_asset_ids, provider_options, is_mock, and fallback_notes."
       - "Preserve forbidden claims and negative instructions."
-      - "Store prompt payload metadata with campaign or video job."
-      - "Add tests for mock provider, unsupported provider, and forbidden claim preservation."
+      - "Store PromptPayload with generation_request_id and tenant_id."
+      - "Add tests for mock provider, unsupported provider, source asset preservation, and forbidden claim preservation."
     exclude:
       - "Calling live video provider APIs."
       - "Frontend prompt display decisions."
-      - "MCP scoring logic."
+      - "Product recommendation or scoring logic."
+      - "MCP implementation, AI validation, model prompts, or backend/src/mcp/**."
 
 requirements:
   - id: "REQ-BE008-001"
-    description: "Prompt compiler converts structured creative brief into provider-specific video generation prompt payloads."
-    source_contract: "docs/prompts/prompt-compiler.contract.md"
+    description: "PromptPayload stores backend-compiled provider prompt data for a specific generation request."
+    source_contract: "docs/contracts/data-model.contract.yaml"
     priority: "must"
   - id: "REQ-BE008-002"
     description: "Compiler output must preserve forbidden claims and negative instructions."
-    source_contract: "docs/contracts/mvp.contract.yaml"
+    source_contract: "docs/prompts/prompt-compiler.contract.md"
     priority: "must"
 
 acceptance_criteria:
   - id: "AC-BE008-001"
-    description: "Valid creative brief produces normalized prompt payload."
+    description: "Valid creative input bundle produces normalized PromptPayload."
     verification: "automated"
   - id: "AC-BE008-002"
-    description: "Forbidden claims and fallback notes are present in compiler output."
+    description: "Forbidden claims, source asset ids, and fallback notes are present in compiler output."
     verification: "automated"
   - id: "AC-BE008-003"
     description: "Unsupported provider fails clearly or uses mock fallback only when allowed."
@@ -58,7 +59,7 @@ acceptance_criteria:
 failure_behavior:
   missing_input: "Return validation error and do not create provider job."
   missing_config: "Unsupported provider uses fallback only when fallback mode allows it."
-  external_dependency_failure: "Return prompt compiler error and leave campaign failed or recover via documented fallback."
+  external_dependency_failure: "Return prompt compiler error and leave generation request failed or recover via documented fallback."
   partial_completion: "Report supported providers and unsupported provider behavior."
 
 test_commands:
@@ -70,7 +71,7 @@ expected_output:
     - "backend/src/prompt-compiler/**"
     - "backend/tests/**"
   user_visible_behavior:
-    - "Campaign generation response includes backend-generated prompt payload."
+    - "Generation request response includes backend-generated prompt payload."
   machine_readable_artifacts:
     - "PromptPayload schema or validator."
 
@@ -82,4 +83,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "Mention any provider-specific metadata added."
-

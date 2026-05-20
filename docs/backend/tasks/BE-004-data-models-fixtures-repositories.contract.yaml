@@ -1,6 +1,6 @@
 task:
   name: "BE-004 Data Models, Fixtures, and Repository Boundary"
-  goal: "Create backend models, deterministic demo fixtures, and tenant-scoped in-memory repositories."
+  goal: "Create backend models, deterministic demo fixtures, and tenant-scoped in-memory repositories for the data-model.contract.yaml v0.2.0 entities."
   layer: "backend"
   status: "planned"
   owner: "codex"
@@ -18,20 +18,22 @@ task:
     - "BE-003"
   scope:
     include:
-      - "Define backend types for Tenant, Product, ProductMetric, AudienceSegment, Campaign, CreativeBrief, PromptPayload, VideoJob, and ProviderResult."
-      - "Create demo fixtures for tenant, products, metrics, audience segments, creative brief, and provider result."
+      - "Define backend types for Tenant, CreativeProject, CreativeSubject, SourceAsset, GenerationRequest, PromptPayload, VideoJob, ProviderResult, GeneratedVideo, AdPlatformConnection, AdPublication, AdMetricsSnapshot, and CreativeIterationSuggestion."
+      - "Create demo fixtures for a complete creative-project-to-generated-video replay path."
+      - "Include optional mock publication, metrics snapshot, and iteration suggestion fixtures when practical."
       - "Create in-memory repositories with tenant-scoped methods."
       - "Inject clock and id generation for deterministic tests."
       - "Add fixture validation tests."
     exclude:
       - "Database migrations."
       - "Live ERP integration."
-      - "Provider network calls."
+      - "Live provider network calls."
+      - "Live ad platform publication calls."
 
 requirements:
   - id: "REQ-BE004-001"
-    description: "Persistence approach must support products, metrics, campaigns, briefs, video jobs, and provider results."
-    source_contract: "docs/architecture.md"
+    description: "Persistence approach must support the entities defined by the latest data model contract."
+    source_contract: "docs/contracts/data-model.contract.yaml"
     priority: "must"
   - id: "REQ-BE004-002"
     description: "All tenant-scoped entities require tenant_id unless explicitly global."
@@ -40,7 +42,7 @@ requirements:
 
 acceptance_criteria:
   - id: "AC-BE004-001"
-    description: "Demo fixtures load deterministically and are clearly marked as mock data."
+    description: "Demo fixtures load deterministically and are clearly marked as mock data where applicable."
     verification: "automated"
   - id: "AC-BE004-002"
     description: "Repository lookup by id also requires tenant_id for tenant-scoped entities."
@@ -49,7 +51,7 @@ acceptance_criteria:
     description: "Cross-tenant repository tests prove data isolation."
     verification: "automated"
   - id: "AC-BE004-004"
-    description: "Missing facts are represented as null, unknown, not_available, or fallback notes."
+    description: "Missing facts and missing metrics are represented as null, unknown, absent optional fields, or fallback notes."
     verification: "review"
 
 failure_behavior:
@@ -69,7 +71,7 @@ expected_output:
     - "backend/fixtures/**"
     - "backend/tests/**"
   user_visible_behavior:
-    - "Backend has deterministic product and campaign data foundations."
+    - "Backend has deterministic creative project, generation, publication, metrics, and iteration data foundations."
   machine_readable_artifacts:
     - "JSON fixtures."
     - "Typed model definitions or runtime schemas."
@@ -82,4 +84,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "List any fixture fields intentionally marked unknown."
-

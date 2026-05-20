@@ -1,12 +1,14 @@
 task:
   name: "BE-010 Video Job Lifecycle and Polling"
-  goal: "Implement video job persistence, status transitions, provider result storage, and GET /video-jobs/{id}."
+  goal: "Implement video job persistence, status transitions, provider result storage, generated video exposure, and GET /video-jobs/{id}."
   layer: "backend"
   status: "planned"
   owner: "codex"
   allowed_files:
     - "backend/src/video-jobs/**"
+    - "backend/src/generated-videos/**"
     - "backend/src/http/routes/video-jobs*"
+    - "backend/src/http/routes/generated-videos*"
     - "backend/src/providers/**"
     - "backend/src/repositories/**"
     - "backend/tests/**"
@@ -18,20 +20,22 @@ task:
   scope:
     include:
       - "Create video job service."
-      - "Persist VideoJob and ProviderResult records by tenant."
-      - "Implement allowed status transitions: queued, processing, completed, failed."
+      - "Persist VideoJob, ProviderResult, and GeneratedVideo records by tenant."
+      - "Implement allowed status transitions: queued, submitted, processing, completed, failed, canceled."
       - "Implement GET /video-jobs/{id}."
-      - "Return preview_url, provider, status, error, and is_mock."
-      - "Add tests for successful polling, not found, cross-tenant access, and failed job response."
+      - "Implement POST /generated-videos/{id}/select."
+      - "Return provider, status, error, is_mock, provider_result, and generated_videos."
+      - "Add tests for successful polling, not found, cross-tenant access, failed job response, and generated video selection."
     exclude:
       - "Provider webhooks."
       - "Long-running background workers."
       - "Frontend polling implementation."
+      - "Ad publication."
 
 requirements:
   - id: "REQ-BE010-001"
-    description: "Video job must have id, status, provider, campaign id, timestamps, and result or error."
-    source_contract: "docs/contracts/mvp.contract.yaml"
+    description: "VideoJob must track provider, status, prompt payload, timestamps, attempts, fallback reason, and normalized errors."
+    source_contract: "docs/contracts/data-model.contract.yaml"
     priority: "must"
   - id: "REQ-BE010-002"
     description: "Frontend can poll job status by id."
@@ -46,14 +50,17 @@ acceptance_criteria:
     description: "Cross-tenant job lookup does not reveal the job."
     verification: "automated"
   - id: "AC-BE010-003"
-    description: "Failed provider result is normalized into the video job error object."
+    description: "Failed provider result is normalized into the video job error fields."
     verification: "automated"
   - id: "AC-BE010-004"
-    description: "Mock completed job includes is_mock=true and preview_url when available."
+    description: "Mock completed job includes is_mock=true and generated video URL when available."
+    verification: "automated"
+  - id: "AC-BE010-005"
+    description: "Selecting a generated video updates CreativeProject.selected_generated_video_id."
     verification: "automated"
 
 failure_behavior:
-  missing_input: "Return VIDEO_JOB_NOT_FOUND for unknown id without leaking tenant data."
+  missing_input: "Return VIDEO_JOB_NOT_FOUND or GENERATED_VIDEO_NOT_FOUND for unknown ids without leaking tenant data."
   missing_config: "Not applicable unless job status depends on provider config."
   external_dependency_failure: "Use stored normalized provider result rather than live polling when provider is unavailable."
   partial_completion: "Report implemented transitions and pending worker/webhook behavior."
@@ -65,12 +72,15 @@ test_commands:
 expected_output:
   changed_files:
     - "backend/src/video-jobs/**"
+    - "backend/src/generated-videos/**"
     - "backend/src/http/routes/video-jobs*"
+    - "backend/src/http/routes/generated-videos*"
     - "backend/tests/**"
   user_visible_behavior:
-    - "Frontend can poll video job status."
+    - "Frontend can poll video job status and select a generated video."
   machine_readable_artifacts:
     - "GET /video-jobs/{id} JSON response."
+    - "POST /generated-videos/{id}/select JSON response."
 
 reporting_format:
   required_sections:
@@ -80,4 +90,3 @@ reporting_format:
     - "risks"
     - "next_safe_step"
   notes: "State whether mock jobs complete immediately or progress across polls."
-
