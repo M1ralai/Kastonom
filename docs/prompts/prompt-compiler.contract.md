@@ -75,6 +75,7 @@ Provider-specific adapters may add provider fields under `provider_options`.
 
 - Converts normalized creative input to Pollo-compatible prompt payload.
 - Must fail closed if required Pollo-specific configuration is missing.
+- When live submission is enabled, the resulting PromptPayload is handed to the MCP network execution layer for HTTP delivery.
 
 ### KlingPromptAdapter
 
@@ -99,8 +100,7 @@ Provider-specific adapters may add provider fields under `provider_options`.
 - Do not add discounts, guarantees, stock claims, shipping promises, or performance claims unless explicitly present.
 - Do not infer audience demographics.
 - Do not remove negative instructions.
-- Do not call provider APIs.
-- Do not call ad platform APIs.
+- Do not execute provider HTTP requests directly; hand off live submission to the MCP network execution layer.
 - Do not expose secrets.
 - Do not silently change language, platform, duration, or aspect ratio.
 

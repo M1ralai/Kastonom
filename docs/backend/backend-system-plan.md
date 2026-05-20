@@ -367,7 +367,7 @@ sequenceDiagram
   participant Project as Creative Project Service
   participant Gen as Generation Request Service
   participant Compiler as Prompt Compiler
-  participant Provider as Provider Orchestrator
+  participant MCP as MCP Network Execution
   participant Repo as Repositories
 
   FE->>API: POST /generation-requests
@@ -380,8 +380,10 @@ sequenceDiagram
   Gen->>Compiler: Compile prompt payload
   Compiler-->>Gen: PromptPayload
   Gen->>Repo: store PromptPayload
-  Gen->>Provider: createVideoJob(prompt payload)
-  Provider-->>Gen: VideoJob + ProviderResult
+  Gen->>MCP: submitPrompt(prompt payload)
+  MCP->>Provider: HTTP POST / generate video
+  Provider-->>MCP: ProviderResult + JobID / Video_URL
+  MCP-->>Gen: normalized ProviderResult
   Gen->>Repo: store GeneratedVideo[] when result URLs are available
   Gen-->>API: Generation response
   API-->>FE: 202 generation_request, prompt_payload, video_job, generated_videos
@@ -397,7 +399,7 @@ Endpoint rules:
 6. Create `GenerationRequest` with deterministic status transitions.
 7. Compile `PromptPayload` from subject, assets, and request settings.
 8. Store prompt payload.
-9. Ask provider orchestrator to create video job.
+9. Ask MCP network execution to create video job.
 10. Store video job, provider result, generated videos, errors, and fallback state.
 13. Return 202 with generated artifacts.
 
@@ -416,7 +418,7 @@ Rules:
 
 ## Provider Orchestration
 
-Provider orchestrator responsibilities:
+MCP network execution responsibilities:
 
 - Accept `PromptPayload`.
 - Check selected provider support.
@@ -607,7 +609,7 @@ Unit tests:
 - Creative project service validation.
 - Generation request validation.
 - Prompt compiler preservation rules.
-- Provider orchestrator fallback rules.
+- MCP network execution fallback rules.
 - Video job transitions.
 - Generated video selection.
 - Publication guardrails.
@@ -646,7 +648,7 @@ Add data model types, fixtures, repositories, creative project service, and proj
 
 ### Phase 3: Video generation
 
-Add generation request service, prompt compiler integration, mock provider, video job service, generated video records, and polling.
+Add generation request service, prompt compiler integration, MCP network execution, mock provider fallback, video job service, generated video records, and polling.
 
 ### Phase 4: Selection and demo replay
 
@@ -663,7 +665,7 @@ Backend MVP is done when:
 - It starts in mock mode.
 - `/health` is safe.
 - A tenant-scoped creative project can be created and read.
-- A generation request creates a backend-compiled prompt payload, mock video job, provider result, and generated video variant.
+  - A generation request creates a prompt payload, MCP-submitted provider result, backend-persisted video job, and generated video variant.
 - Video job polling works.
 - A generated video can be selected.
 - Publication fails closed unless explicit user action and readiness checks pass.

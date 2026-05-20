@@ -1,6 +1,6 @@
 task:
   name: "BE-008 Prompt Compiler Backend Integration"
-  goal: "Connect validated creative subject, source asset, and generation request inputs to the prompt compiler and store normalized PromptPayload records."
+  goal: "Connect validated creative subject, source asset, and generation request inputs to the MCP prompt compiler boundary and store normalized PromptPayload records for downstream MCP network execution."
   layer: "backend"
   status: "planned"
   owner: "codex"
@@ -24,17 +24,17 @@ task:
       - "Accept provider, CreativeSubject, SourceAsset references, and GenerationRequest settings as input."
       - "Return normalized PromptPayload with prompt_text, negative_prompt, duration_seconds, aspect_ratio, language, source_asset_ids, provider_options, is_mock, and fallback_notes."
       - "Preserve forbidden claims and negative instructions."
-      - "Store PromptPayload with generation_request_id and tenant_id."
+      - "Store PromptPayload with generation_request_id and tenant_id, then hand off the payload to MCP network execution when live submission is requested."
       - "Add tests for mock provider, unsupported provider, source asset preservation, and forbidden claim preservation."
     exclude:
-      - "Calling live video provider APIs."
+      - "Calling live video provider APIs directly."
       - "Frontend prompt display decisions."
       - "Product recommendation or scoring logic."
-      - "MCP implementation, AI validation, model prompts, or backend/src/mcp/**."
+      - "MCP network execution implementation, AI validation, model prompts, or backend/src/mcp/**."
 
 requirements:
   - id: "REQ-BE008-001"
-    description: "PromptPayload stores backend-compiled provider prompt data for a specific generation request."
+    description: "PromptPayload stores validated prompt data for a specific generation request and can be forwarded to MCP network execution."
     source_contract: "docs/contracts/data-model.contract.yaml"
     priority: "must"
   - id: "REQ-BE008-002"
@@ -53,7 +53,7 @@ acceptance_criteria:
     description: "Unsupported provider fails clearly or uses mock fallback only when allowed."
     verification: "automated"
   - id: "AC-BE008-004"
-    description: "Prompt compiler service does not perform provider network calls."
+    description: "Prompt compiler service does not perform provider network calls itself and instead hands off to MCP network execution."
     verification: "review"
 
 failure_behavior:

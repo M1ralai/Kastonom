@@ -40,8 +40,9 @@ Kastonom turns commerce data into a ready-to-run AI video ad workflow:
 2. Explain why it should be promoted now.
 3. Generate an audience summary and creative brief.
 4. Compile a provider-ready video prompt.
-5. Create or mock a video generation job.
-6. Show the result in a demo-ready creative console.
+5. Send the prompt to a live provider or mock execution path through MCP network execution.
+6. Create or mock a video generation job from the normalized provider result.
+7. Show the result in a demo-ready creative console.
 
 The user should not need to write prompts.
 
@@ -69,7 +70,8 @@ Included in MVP:
 - Audience summary generation
 - Structured creative brief generation
 - Prompt compiler
-- Backend video job creation
+- MCP network execution to live or mock providers
+- Backend video job creation from normalized results
 - Mock video provider fallback
 - Frontend demo flow from product selection to ad preview
 

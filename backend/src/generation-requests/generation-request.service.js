@@ -16,8 +16,7 @@ export function createGenerationRequestService({
   clock,
   config,
   creativeProjects,
-  promptCompiler,
-  providerOrchestrator
+  promptCompiler
 }) {
   function fallbackNotesFor(subject, input) {
     const notes = [];
@@ -37,6 +36,79 @@ export function createGenerationRequestService({
       notes.push("call_to_action_not_provided");
     }
     return Array.from(new Set(notes));
+  }
+
+  function createMockVideoJobResult(context, { project, generationRequest, promptPayload, requestedProvider }) {
+    const now = clock.now();
+    const providerJobId = `mock-job-${generationRequest.id}`;
+
+    const videoJob = {
+      id: ids.next("video-job"),
+      tenant_id: context.tenant_id,
+      project_id: project.id,
+      generation_request_id: generationRequest.id,
+      prompt_payload_id: promptPayload.id,
+      provider: "mock",
+      status: "completed",
+      provider_job_id: providerJobId,
+      is_mock: true,
+      fallback_reason: requestedProvider === "mock" ? null : "provider_fallback_to_mock",
+      error_code: null,
+      error_message: null,
+      attempt_count: 1,
+      created_at: now,
+      submitted_at: now,
+      completed_at: now,
+      updated_at: now
+    };
+
+    const providerResult = {
+      id: ids.next("provider-result"),
+      tenant_id: context.tenant_id,
+      video_job_id: videoJob.id,
+      provider: "mock",
+      provider_job_id: providerJobId,
+      raw_status: "mock_completed",
+      normalized_status: "completed",
+      result_urls: [config.mockPreviewUrl],
+      error_code: null,
+      error_message: null,
+      redacted_metadata: {
+        adapter: "mock",
+        requested_provider: requestedProvider,
+        is_mock: true
+      },
+      received_at: now
+    };
+
+    const generatedVideo = {
+      id: ids.next("generated-video"),
+      tenant_id: context.tenant_id,
+      project_id: project.id,
+      generation_request_id: generationRequest.id,
+      video_job_id: videoJob.id,
+      provider_result_id: providerResult.id,
+      url: config.mockPreviewUrl,
+      thumbnail_url: null,
+      duration_seconds: generationRequest.duration_seconds,
+      aspect_ratio: generationRequest.aspect_ratio,
+      status: "generated",
+      is_selected: false,
+      is_mock: true,
+      created_at: now,
+      selected_at: null
+    };
+
+    store.insert("videoJobs", videoJob);
+    store.insert("providerResults", providerResult);
+    store.insert("generatedVideos", generatedVideo);
+
+    return {
+      video_job: videoJob,
+      provider_result: providerResult,
+      generated_videos: [generatedVideo],
+      fallback_reason: videoJob.fallback_reason
+    };
   }
 
   return {
@@ -117,7 +189,10 @@ export function createGenerationRequestService({
           })
         );
 
-        const providerOutput = providerOrchestrator.createVideoJob(context, {
+        // TODO: MCP-007 implementation will replace this mock provider call
+        // For now, use mock provider for demo purposes
+        // When MCP is implemented, this will call MCP-006 facade
+        const providerOutput = createMockVideoJobResult(context, {
           project,
           generationRequest: promptCompiledRequest,
           promptPayload,

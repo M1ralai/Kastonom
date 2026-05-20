@@ -1,86 +1,95 @@
 task:
-  name: "BE-009 Provider Adapter Boundary and Mock Provider"
-  goal: "Implement video provider adapter interface, provider selection, config checks, and deterministic mock provider."
+  name: "BE-009 MCP Network Execution Receiver and Persistence"
+  goal: "Receive provider execution results produced by the MCP network layer, validate normalized ProviderResult and JobID data, and persist them to the database."
   layer: "backend"
   status: "planned"
   owner: "codex"
   allowed_files:
-    - "backend/src/providers/**"
-    - "backend/src/config/**"
     - "backend/src/video-jobs/**"
     - "backend/src/generated-videos/**"
     - "backend/src/repositories/**"
+    - "backend/src/services/**"
+    - "backend/src/config/**"
     - "backend/fixtures/**"
     - "backend/tests/**"
     - "docs/backend/**"
   forbidden_files:
     - "frontend/**"
+    - "backend/src/providers/**"
+    - "backend/src/network/**"
   dependencies:
     - "BE-008"
+    - "MCP-007"
   scope:
     include:
-      - "Create video provider adapter interface."
-      - "Implement provider orchestrator that selects mock, pollo, kling, or runway."
-      - "Implement MockProviderAdapter with deterministic result URLs and mock label."
-      - "Create live provider adapter skeletons that fail closed when config is missing."
-      - "Normalize provider errors into ProviderResult and VideoJob fields."
-      - "Create GeneratedVideo records from provider result URLs when available."
-      - "Add tests for mock success, missing live config, unsupported provider, and fallback enabled behavior."
+      - "Accept normalized ProviderResult, JobID, Video_URL, and is_mock data produced by the MCP network layer."
+      - "Validate that returned payloads match the backend persistence contract before writing VideoJob and ProviderResult records."
+      - "Persist MCP-returned provider execution outcomes into VideoJob and ProviderResult tables."
+      - "Create GeneratedVideo records only from validated provider outputs when a Video_URL or equivalent finalized result is available."
+      - "Handle mock and live outcomes through the same persistence flow with explicit is_mock labeling."
+      - "Reject malformed or unnormalized provider payloads without attempting provider network requests."
     exclude:
-      - "Real live provider network submissions unless a later task explicitly allows them."
-      - "Provider webhooks."
-      - "Advanced provider render controls."
-      - "Ad platform publication."
-
-requirements:
-  - id: "REQ-BE009-001"
-    description: "Backend must call external AI video providers only through provider adapters."
-    source_contract: "docs/layers/backend.contract.md"
-    priority: "must"
-  - id: "REQ-BE009-002"
-    description: "Mock video provider fallback must allow demo without external credentials."
-    source_contract: "docs/contracts/mvp.contract.yaml"
-    priority: "must"
-
-acceptance_criteria:
-  - id: "AC-BE009-001"
-    description: "Mock provider returns deterministic normalized ProviderResult and GeneratedVideo records with is_mock=true."
-    verification: "automated"
-  - id: "AC-BE009-002"
-    description: "Live provider selected without credentials returns PROVIDER_CONFIG_MISSING."
-    verification: "automated"
-  - id: "AC-BE009-003"
-    description: "Fallback from live provider to mock happens only when fallback is enabled and is labeled."
-    verification: "automated"
-  - id: "AC-BE009-004"
-    description: "Provider-specific fields do not leak into frontend response except under allowed metadata."
-    verification: "review"
-
-failure_behavior:
-  missing_input: "Return INVALID_REQUEST for missing prompt payload or provider value."
-  missing_config: "Fail closed with PROVIDER_CONFIG_MISSING unless fallback policy allows mock."
-  external_dependency_failure: "Store normalized provider error or fallback to mock only when allowed."
-  partial_completion: "Report which provider adapters are skeletons and which are functional."
-
-test_commands:
-  - command: "TBD backend test command for provider adapters"
-    expected_result: "Provider adapter tests pass."
-
-expected_output:
-  changed_files:
-    - "backend/src/providers/**"
-    - "backend/tests/**"
-  user_visible_behavior:
-    - "Backend can create deterministic mock generated video results."
-  machine_readable_artifacts:
-    - "ProviderResult schema or validator."
-    - "GeneratedVideo creation path."
-
-reporting_format:
-  required_sections:
-    - "changed_files"
-    - "tests_run"
-    - "assumptions"
-    - "risks"
-    - "next_safe_step"
-  notes: "Explicitly state that live provider calls were not made unless allowed by task."
+      - "Using fetch, axios, or any other HTTP client to call Kling, Runway, or Pollo directly."
+      - "Provider adapter network execution logic."
+      - "Live provider API authentication or header construction."
+      - "Frontend response shaping."
+  requirements:
+    - id: "REQ-BE009-001"
+      description: "Backend must not initiate direct provider HTTP requests; it must only receive and persist results emitted by the MCP network layer."
+      source_contract: "docs/tasks/mcp/MCP-007-provider-network-execution.contract.yaml"
+      priority: "must"
+    - id: "REQ-BE009-002"
+      description: "ProviderResult, JobID, Video_URL, and is_mock fields must be validated before persistence."
+      source_contract: "docs/contracts/data-model.contract.yaml"
+      priority: "must"
+    - id: "REQ-BE009-003"
+      description: "VideoJob and ProviderResult records must be written from the normalized MCP payload without leaking provider-specific transport details."
+      source_contract: "docs/contracts/data-model.contract.yaml"
+      priority: "must"
+    - id: "REQ-BE009-004"
+      description: "Mock and live provider outcomes must follow the same backend persistence path once normalized by MCP."
+      source_contract: "docs/contracts/mvp.contract.yaml"
+      priority: "must"
+  acceptance_criteria:
+    - id: "AC-BE009-001"
+      description: "Backend accepts normalized MCP provider results and persists VideoJob and ProviderResult records without making outbound provider requests."
+      verification: "automated"
+    - id: "AC-BE009-002"
+      description: "JobID, Video_URL, and is_mock values from MCP are validated and stored correctly."
+      verification: "automated"
+    - id: "AC-BE009-003"
+      description: "Mock and live results both flow through the same persistence path and remain distinguishable by is_mock."
+      verification: "automated"
+    - id: "AC-BE009-004"
+      description: "Malformed or unnormalized payloads are rejected before database writes occur."
+      verification: "review"
+  failure_behavior:
+    missing_input: "Return INVALID_REQUEST when the MCP result payload, JobID, or provider result envelope is missing."
+    missing_config: "Fail closed if persistence configuration is missing or invalid."
+    external_dependency_failure: "If the database write fails, return a structured persistence error and do not re-attempt provider execution."
+    partial_completion: "Persist any validated records that can safely be saved and report which fields were rejected."
+  test_commands:
+    - command: "npm test -- backend/tests --testNamePattern='mcp network result persistence' --verbose"
+      expected_result: "Persistence tests confirm MCP results are stored into VideoJob and ProviderResult tables."
+    - command: "npm test -- backend/tests --testNamePattern='reject malformed provider payload' --verbose"
+      expected_result: "Validation tests confirm malformed or unnormalized payloads are rejected."
+  expected_output:
+    changed_files:
+      - "backend/src/video-jobs/**"
+      - "backend/src/generated-videos/**"
+      - "backend/src/repositories/**"
+      - "backend/tests/**"
+    user_visible_behavior:
+      - "Backend stores MCP-produced provider execution results without calling external provider APIs itself."
+      - "Mock and live video results are persisted through a single normalized path."
+    machine_readable_artifacts:
+      - "Validated ProviderResult persistence schema or validator."
+      - "VideoJob update and GeneratedVideo creation path for MCP-delivered results."
+  reporting_format:
+    required_sections:
+      - "changed_files"
+      - "tests_run"
+      - "assumptions"
+      - "risks"
+      - "next_safe_step"
+    notes: "State explicitly that backend no longer sends outbound provider HTTP requests."

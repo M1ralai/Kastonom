@@ -7,7 +7,6 @@ import { createMemoryStore } from "./repositories/memory-store.js";
 import { createCreativeProjectService } from "./creative-projects/creative-project.service.js";
 import { createGenerationRequestService } from "./generation-requests/generation-request.service.js";
 import { createPromptCompilerService } from "./prompt-compiler/prompt-compiler.service.js";
-import { createProviderOrchestratorService } from "./providers/provider-orchestrator.service.js";
 import { createVideoJobService } from "./video-jobs/video-job.service.js";
 import { createGeneratedVideoService } from "./generated-videos/generated-video.service.js";
 import { createAdPublicationService } from "./ad-publications/ad-publication.service.js";
@@ -101,15 +100,13 @@ export function createApp(options = {}) {
 
   const creativeProjects = createCreativeProjectService({ store, ids, clock });
   const promptCompiler = createPromptCompilerService({ store, ids, clock, config });
-  const providerOrchestrator = createProviderOrchestratorService({ store, ids, clock, config });
   const generationRequests = createGenerationRequestService({
     store,
     ids,
     clock,
     config,
     creativeProjects,
-    promptCompiler,
-    providerOrchestrator
+    promptCompiler
   });
   const videoJobs = createVideoJobService({ store });
   const generatedVideos = createGeneratedVideoService({ store, clock });

@@ -1,0 +1,118 @@
+task:
+  name: "MCP-001 Core Types, Tenant Context, and Data Transfer Objects"
+  goal: "Establish strict TypeScript types and interfaces for core MCP/AI layer entities: TenantContext, CreativeSubject, AIBehaviorOutput, and mode/status enums with zero 'any' typing."
+  layer: "mcp_ai"
+  status: "planned"
+  owner: "codex"
+  allowed_files:
+    - "mcp/**"
+    - "backend/src/domain/**"
+    - "docs/tasks/mcp/**"
+    - "docs/contracts/**"
+  forbidden_files:
+    - "frontend/**"
+    - "backend/src/api/**"
+    - "backend/src/providers/**"
+  dependencies: []
+  scope:
+    include:
+      - "Define TenantMode enum (demo, live) with strict type safety."
+      - "Define TenantStatus enum (active, disabled) with documentation for each state."
+      - "Create TenantContext interface including tenant_id, mode, status, created_at, updated_at."
+      - "Define CreativeSubject interface from data-model.contract and map all required fields."
+      - "Create AIBehaviorOutput interface with all fields specified in docs/layers/mcp-layer.contract.md."
+      - "Define ProductMetrics interface with sales_velocity, stock_movement, trend_signals fields."
+      - "Create FallbackNote interface for tracking data gaps (field_name, reason, default_value_used)."
+      - "Add TypeScript type guards for TenantContext validation."
+      - "Add JSDoc documentation for each type emphasizing data isolation and immutability."
+      - "Create index.ts for clean module exports."
+      - "Add unit tests validating type compatibility with JSON serialization."
+    exclude:
+      - "Database persistence."
+      - "External API integrations."
+      - "Frontend rendering logic."
+      - "Video generation provider adapters."
+      - "Actual scoring calculations (defer to MCP-002)."
+
+requirements:
+  - id: "REQ-MCP001-001"
+    description: "TenantMode and TenantStatus must be TypeScript enums or string unions with explicit type guards."
+    source_contract: "docs/contracts/data-model.contract.yaml"
+    priority: "must"
+  - id: "REQ-MCP001-002"
+    description: "All MCP inputs and outputs must strictly conform to AIBehaviorOutput shape from mcp-layer.contract.md."
+    source_contract: "docs/layers/mcp-layer.contract.md"
+    priority: "must"
+  - id: "REQ-MCP001-003"
+    description: "TenantContext must enforce isolation: every MCP operation reads tenant_id from context, never global state."
+    source_contract: "docs/layers/mcp-layer.contract.md"
+    priority: "must"
+  - id: "REQ-MCP001-004"
+    description: "No 'any' typing allowed; untyped external inputs must have explicit type coercion or narrowing."
+    source_contract: "docs/contracts/ai-behavior.contract.yaml"
+    priority: "must"
+  - id: "REQ-MCP001-005"
+    description: "FallbackNote structure must track missing data and document why defaults were chosen."
+    source_contract: "docs/layers/mcp-layer.contract.md"
+    priority: "should"
+
+acceptance_criteria:
+  - id: "AC-MCP001-001"
+    description: "TenantMode enum has values [demo, live] and each can be instantiated without TypeScript error."
+    verification: "automated"
+  - id: "AC-MCP001-002"
+    description: "TenantStatus enum has values [active, disabled] with runtime discriminant checking."
+    verification: "automated"
+  - id: "AC-MCP001-003"
+    description: "CreativeSubject interface includes all fields from data-model.contract.yaml (advertised_product, angle, tone, etc)."
+    verification: "review"
+  - id: "AC-MCP001-004"
+    description: "AIBehaviorOutput interface has all required output fields: product_id, recommendation_selected, hype_score, trend_potential_score, audience_summary, creative_angle, fallback_notes[]."
+    verification: "review"
+  - id: "AC-MCP001-005"
+    description: "TypeScript compiler passes with --strict and --noImplicitAny flags; zero 'any' tokens in types."
+    verification: "automated"
+  - id: "AC-MCP001-006"
+    description: "Type guards validate TenantContext shape and reject invalid tenant_id, mode, or status values."
+    verification: "automated"
+  - id: "AC-MCP001-007"
+    description: "JSON.stringify and JSON.parse roundtrip preserves type information for all exported interfaces."
+    verification: "automated"
+  - id: "AC-MCP001-008"
+    description: "FallbackNote captures: field_name (string), reason (string), default_value_used (string | null)."
+    verification: "review"
+
+failure_behavior:
+  missing_input: "Do not proceed with type definition until all source contracts are reviewed; halt and report blockers."
+  missing_config: "Use documented enum values only; do not invent mode or status variants."
+  external_dependency_failure: "Types must not depend on external service availability; only TypeScript and Node.js stdlib."
+  partial_completion: "Report which types are defined, which remain incomplete, and any circular dependency issues."
+
+test_commands:
+  - command: "npm run build -- --strict --noImplicitAny"
+    expected_result: "TypeScript compilation succeeds with zero type errors."
+  - command: "npm test -- mcp/types --coverage"
+    expected_result: "Type validation and JSON serialization tests pass with >90% coverage."
+
+expected_output:
+  changed_files:
+    - "mcp/src/types/index.ts"
+    - "mcp/src/types/tenant.ts"
+    - "mcp/src/types/ai-behavior.ts"
+    - "mcp/src/types/fallback.ts"
+    - "mcp/tests/types.test.ts"
+  user_visible_behavior:
+    - "Developers can import strict types and intellisense shows all required fields."
+    - "TypeScript compiler enforces 100% type safety across MCP module."
+  machine_readable_artifacts:
+    - "Type definitions in mcp/src/types/."
+    - "Type test output confirming enum and interface structure."
+
+reporting_format:
+  required_sections:
+    - "changed_files"
+    - "tests_run"
+    - "assumptions"
+    - "type_coverage_report"
+    - "next_safe_step"
+  notes: "Report exact TypeScript version and compiler flags used. Highlight any type conflicts with backend domain models that need reconciliation."

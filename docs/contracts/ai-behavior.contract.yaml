@@ -1,8 +1,8 @@
-version: "0.1.0"
+version: "0.2.0"
 
 model_purpose:
   name: "Kastonom MCP / AI commerce intelligence"
-  summary: "Convert commerce data into deterministic product recommendation, audience summary, creative brief, and prompt-compiler input."
+  summary: "Convert commerce data into deterministic product recommendation, audience summary, creative brief, and prompt-compiler input using LLM-enhanced processing with rule-based fallback."
   non_purpose: "The AI is not a legal reviewer, media buyer, or source of invented product facts."
 
 inputs:
@@ -28,6 +28,7 @@ outputs:
     - audience_summary
     - creative_brief
     - fallback_notes
+    - metadata
   fields:
     product_id: string
     recommendation:
@@ -51,6 +52,15 @@ outputs:
     fallback_notes:
       type: array
       item_type: string
+    metadata:
+      type: object
+      required_fields: [llm_used, llm_available, generation_method]
+      fields:
+        llm_used: boolean
+        llm_available: boolean
+        generation_method: "llm | rule_based | hybrid"
+        model_used: "string | null"
+        confidence: "high | medium | low"
 
 forbidden_outputs:
   - "Invented product claims."
@@ -63,19 +73,37 @@ forbidden_outputs:
   - "Sensitive demographic inference without explicit source data."
   - "Medical, legal, financial, or safety claims not present in product data."
   - "Provider API calls or provider credentials."
+  - "LLM API keys or internal configuration."
+
+llm_integration:
+  description: "LLM is used for creative content generation, trend analysis, and recommendation reasoning where appropriate, with rule-based fallback for deterministic output."
+  providers:
+    - codex/openai
+  supported_operations:
+    - trend_potential_analysis
+    - recommendation_reason_generation
+    - creative_content_generation
+    - audience_fit_interpretation
+    - prompt_optimization
+  fallback_policy: "rule_based"
+  validation_required: true
 
 deterministic_rules:
-  - "For identical inputs, return identical scores and structured outputs."
+  - "For identical inputs, return identical scores and structured outputs when using rule-based generation."
   - "Use bounded numeric scores from 0 to 100 unless a later contract changes the range."
   - "Use explicit tie-breakers for product recommendation."
   - "Prefer rule-based scoring before LLM-generated narrative."
+  - "LLM-generated content must be validated before acceptance."
   - "Do not use randomness unless a task contract explicitly allows it."
   - "Return stable JSON field names."
-  - "Keep temperature low or equivalent deterministic settings for LLM calls."
+  - "Keep temperature low for LLM calls to maintain consistency."
 
 fallback_behavior:
   missing_product_data: "Return unknown fields and fallback_notes; do not generate unsupported claims."
   missing_metrics: "Set affected scores to null or documented default and include fallback_notes."
+  llm_unavailable: "Use rule-based fallback; set llm_used=false in metadata."
+  llm_timeout: "Trigger rule-based fallback; log 'llm_timeout' in fallback_notes; set llm_used=false."
+  llm_error: "Catch LLM errors, retry up to retry_attempts, then fallback to rule-based; log error_code."
   invalid_json: "Reject output and request one repair attempt if implementation supports it; otherwise fail closed."
   unsafe_claim_detected: "Remove claim, add it to forbidden_claims, and include fallback_notes."
   model_unavailable: "Return deterministic mock intelligence only if demo fallback mode is enabled."
@@ -87,21 +115,27 @@ safety_rules:
   - "Never override tenant boundaries."
   - "Never hide uncertainty from the frontend or demo operator."
   - "Use clear fallback reasons for missing or low-confidence data."
+  - "Always include llm_used flag in metadata to indicate generation method."
 
 evaluation_criteria:
   - id: EVAL-001
     name: "JSON validity"
-    pass_condition: "Output parses as JSON and contains all required fields."
+    pass_condition: "Output parses as JSON and contains all required fields including metadata."
   - id: EVAL-002
     name: "No fabrication"
     pass_condition: "Every factual product claim is traceable to input data or marked unknown."
   - id: EVAL-003
     name: "Deterministic scoring"
-    pass_condition: "Same input produces same scoring output."
+    pass_condition: "Same rule-based input produces same scoring output."
   - id: EVAL-004
     name: "Creative usefulness"
     pass_condition: "Brief contains a clear angle, hook, CTA, tone, and visual style."
   - id: EVAL-005
     name: "Fallback transparency"
-    pass_condition: "Missing data and provider fallback are visible in fallback_notes."
-
+    pass_condition: "Missing data and provider fallback are visible in fallback_notes; llm_used flag reflects actual generation method."
+  - id: EVAL-006
+    name: "LLM integration"
+    pass_condition: "LLM is used when available for supported operations; fallback triggers correctly when LLM unavailable."
+  - id: EVAL-007
+    name: "Metadata completeness"
+    pass_condition: "Response metadata includes llm_used, llm_available, generation_method, and confidence."

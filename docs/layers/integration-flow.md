@@ -144,14 +144,14 @@ The prompt compiler converts the backend-owned input bundle into a provider-spec
 
 ## Backend To Video Provider Call
 
-The backend calls video providers only through adapters:
+The MCP network execution layer submits prompt payloads to providers directly:
 
 - Pollo
 - Kling
 - Runway
 - Mock
 
-The backend must validate configuration before live provider calls. Missing live configuration fails closed unless mock fallback mode is explicitly enabled.
+The backend validates and persists normalized provider results returned by MCP. Missing live configuration fails closed at the MCP execution boundary unless mock fallback mode is explicitly enabled.
 
 ## Frontend Polling Behavior
 
@@ -180,13 +180,14 @@ The backend must not publish ads without explicit user action.
 
 ```text
 Provider config missing or provider call fails
-  -> Backend checks fallback mode
+  -> MCP checks fallback mode
   -> If fallback enabled: use mock provider
-  -> Store fallback reason
-  -> Return mock video job and generated video with is_mock=true
+  -> MCP returns normalized mock ProviderResult
+  -> Backend stores fallback reason and video job state
   -> Frontend displays fallback label and preview
 
 Provider config missing and fallback disabled
-  -> Backend fails closed
+  -> MCP fails closed
+  -> Backend records the failure state
   -> Frontend displays actionable error
 ```
