@@ -16,6 +16,10 @@ import {
   stringArray
 } from "../domain/validation.js";
 import { notFound, validationError } from "../http/errors/api-error.js";
+import { createLogger } from "../logger/index.js";
+import * as pgStore from "../db/pg-store.js";
+
+const log = createLogger("creative-project");
 
 export function createCreativeProjectService({ store, ids, clock }) {
   function buildBundle(context, project) {
@@ -57,6 +61,8 @@ export function createCreativeProjectService({ store, ids, clock }) {
         minLength: 1
       });
       const now = clock.now();
+
+      log.info("Creating creative project", { tenant_id: context.tenant_id, name: input.name });
 
       const project = {
         id: ids.next("creative-project"),
@@ -139,10 +145,38 @@ export function createCreativeProjectService({ store, ids, clock }) {
         };
       });
 
+      // Insert into memory store
       store.insert("creativeProjects", project);
       store.insert("creativeSubjects", creativeSubject);
       for (const asset of sourceAssets) {
         store.insert("sourceAssets", asset);
+      }
+
+      // Save to PostgreSQL
+      try {
+        pgStore.createProject(project);
+        pgStore.createSubject(creativeSubject);
+        for (const asset of sourceAssets) {
+          pgStore.createAsset(asset);
+        }
+
+        // Audit log
+        pgStore.createAuditLog({
+          userId: context.user_id,
+          tenantId: context.tenant_id,
+          action: "creative_project.create",
+          entity: "creative_projects",
+          entityId: project.id,
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          afterData: { name: project.name },
+        });
+
+        log.info("Creative project saved to PostgreSQL", { projectId: project.id });
+      } catch (err) {
+        log.error("Failed to save creative project to PostgreSQL", { error: err.message, projectId: project.id });
+        // Continue with memory store fallback
       }
 
       return {
@@ -154,6 +188,29 @@ export function createCreativeProjectService({ store, ids, clock }) {
     },
 
     getBundle(context, projectId) {
+      // Try PostgreSQL first
+      try {
+        const pgProject = pgStore.getProjectById(projectId, context.tenant_id);
+        if (pgProject) {
+          // Build bundle from PG data
+          const pgSubject = pgStore.getSubjectById(projectId, context.tenant_id);
+          const pgAssets = pgStore.listAssets(context.tenant_id, projectId);
+          const pgRequests = pgStore.listGenerationRequests(context.tenant_id, projectId);
+          const pgVideos = pgStore.listGeneratedVideos(context.tenant_id, projectId);
+
+          return {
+            creative_project: pgProject,
+            creative_subject: pgSubject,
+            source_assets: pgAssets,
+            generation_requests: pgRequests,
+            generated_videos: pgVideos
+          };
+        }
+      } catch (err) {
+        log.warn("PG getBundle failed, fallback to memory", { error: err.message });
+      }
+
+      // Fallback to memory store
       const project = store.getByTenant("creativeProjects", context.tenant_id, projectId);
       if (!project) {
         throw notFound("CREATIVE_PROJECT_NOT_FOUND", "Creative project was not found.");
@@ -162,6 +219,15 @@ export function createCreativeProjectService({ store, ids, clock }) {
     },
 
     getProject(context, projectId) {
+      // Try PostgreSQL first
+      try {
+        const project = pgStore.getProjectById(projectId, context.tenant_id);
+        if (project) return project;
+      } catch (err) {
+        log.warn("PG getProject failed, fallback to memory", { error: err.message });
+      }
+
+      // Fallback to memory store
       const project = store.getByTenant("creativeProjects", context.tenant_id, projectId);
       if (!project) {
         throw notFound("CREATIVE_PROJECT_NOT_FOUND", "Creative project was not found.");
@@ -170,6 +236,15 @@ export function createCreativeProjectService({ store, ids, clock }) {
     },
 
     getSubjectForProject(context, projectId) {
+      // Try PostgreSQL first
+      try {
+        const subjects = pgStore.listSubjects(context.tenant_id, projectId);
+        if (subjects.length > 0) return subjects[0];
+      } catch (err) {
+        log.warn("PG getSubjectForProject failed, fallback to memory", { error: err.message });
+      }
+
+      // Fallback to memory store
       const subject = store.findByTenant(
         "creativeSubjects",
         context.tenant_id,

@@ -7,6 +7,10 @@ import {
   requireObject
 } from "../domain/validation.js";
 import { configurationMissing, notFound } from "../http/errors/api-error.js";
+import { createLogger } from "../logger/index.js";
+import * as pgStore from "../db/pg-store.js";
+
+const log = createLogger("metrics");
 
 const NUMERIC_METRIC_FIELDS = [
   "impressions",
@@ -72,6 +76,29 @@ export function createMetricsService({ store, ids, clock, config }) {
       };
 
       store.insert("adMetricsSnapshots", snapshot);
+
+      // Save to PostgreSQL
+      try {
+        pgStore.createMetricsSnapshot(snapshot);
+
+        // Audit log
+        pgStore.createAuditLog({
+          userId: context.user_id,
+          tenantId: context.tenant_id,
+          action: "metrics.sync",
+          entity: "ad_metrics_snapshots",
+          entityId: snapshot.id,
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          afterData: { adPublicationId, source },
+        });
+
+        log.info("Metrics snapshot saved to PostgreSQL", { snapshotId: snapshot.id });
+      } catch (err) {
+        log.error("Failed to save metrics to PostgreSQL", { error: err.message });
+      }
+
       return {
         metrics_snapshot: snapshot
       };

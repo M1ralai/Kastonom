@@ -35,9 +35,9 @@ export function createERPConnectorService({ store, ids, clock, config }) {
         username: process.env.NETSIS_USERNAME
       },
       mock: {
-        apiKey: "mock-key",
-        baseUrl: "http://localhost:3001/mock-erp",
-        dbName: "mock-db"
+        apiKey: process.env.MOCK_ERP_API_KEY || undefined,
+        baseUrl: process.env.MOCK_ERP_BASE_URL || undefined,
+        dbName: process.env.MOCK_ERP_DB_NAME || undefined
       }
     };
 

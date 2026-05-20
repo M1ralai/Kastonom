@@ -8,6 +8,10 @@ import {
   requireString
 } from "../domain/validation.js";
 import { configurationMissing, notFound, validationError } from "../http/errors/api-error.js";
+import { createLogger } from "../logger/index.js";
+import * as pgStore from "../db/pg-store.js";
+
+const log = createLogger("ad-publication");
 
 export function createAdPublicationService({ store, ids, clock, config }) {
   function createFailedPublication(context, input, generatedVideo, code, message) {
@@ -55,6 +59,8 @@ export function createAdPublicationService({ store, ids, clock, config }) {
           error: "INVALID_REQUEST"
         });
       }
+
+      log.info("Creating ad publication", { tenant_id: context.tenant_id, platform: input.platform });
 
       const project = store.getByTenant("creativeProjects", context.tenant_id, input.project_id);
       if (!project) {
@@ -134,6 +140,30 @@ export function createAdPublicationService({ store, ids, clock, config }) {
         ...current,
         status: "published"
       }));
+
+      // Save to PostgreSQL
+      try {
+        pgStore.createAdPublication(publication);
+        pgStore.updateProject(project.id, context.tenant_id, { status: "published" });
+        pgStore.updateGeneratedVideo(generatedVideo.id, context.tenant_id, { status: "published" });
+
+        // Audit log
+        pgStore.createAuditLog({
+          userId: context.user_id,
+          tenantId: context.tenant_id,
+          action: "ad_publication.create",
+          entity: "ad_publications",
+          entityId: publication.id,
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          afterData: { platform: input.platform, projectId: project.id },
+        });
+
+        log.info("Ad publication saved to PostgreSQL", { publicationId: publication.id });
+      } catch (err) {
+        log.error("Failed to save ad publication to PostgreSQL", { error: err.message });
+      }
 
       return {
         ad_publication: publication,

@@ -6,6 +6,9 @@ import { isAuthenticated } from "@/shared/api/kastonomApi";
 // Pages
 import { LoginPage } from "@/pages/LoginPage";
 import { HomePage } from "@/pages/HomePage";
+import { AboutPage } from "@/pages/AboutPage";
+import { PricingPage } from "@/pages/PricingPage";
+import { FaqPage } from "@/pages/FaqPage";
 
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,6 +48,9 @@ export default function App() {
               <div style={{ paddingBottom: "64px" }}>
                 <Routes>
                   <Route path="/" element={<HomePage />} />
+                  <Route path="/about" element={<AboutPage />} />
+                  <Route path="/pricing" element={<PricingPage />} />
+                  <Route path="/faq" element={<FaqPage />} />
                   <Route path="*" element={<HomePage />} />
                 </Routes>
               </div>

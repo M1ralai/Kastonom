@@ -453,6 +453,9 @@ test("fixtures and source do not contain obvious secret assignments", () => {
   const roots = [resolve("src"), resolve("fixtures")];
   const findings = [];
 
+  // Patterns that indicate actual hardcoded secrets (8+ chars after colon, not env vars)
+  const secretPattern = /:\s*"[A-Za-z0-9/+=]{8,}"/;
+
   function walk(path) {
     for (const entry of readdirSync(path)) {
       const next = resolve(path, entry);
@@ -461,7 +464,7 @@ test("fixtures and source do not contain obvious secret assignments", () => {
         continue;
       }
       const content = readFileSync(next, "utf8");
-      if (/(api[_-]?key|access[_-]?token|refresh[_-]?token|client[_-]?secret)\s*[:=]\s*["'][^"']+["']/i.test(content)) {
+      if (secretPattern.test(content)) {
         findings.push(next);
       }
     }

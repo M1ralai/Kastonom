@@ -10,6 +10,10 @@ import {
 } from "../domain/validation.js";
 import { notFound, validationError } from "../http/errors/api-error.js";
 import { createProviderOrchestratorService } from "../providers/provider-orchestrator.service.js";
+import { createLogger } from "../logger/index.js";
+import * as pgStore from "../db/pg-store.js";
+
+const log = createLogger("generation-request");
 
 export function createGenerationRequestService({
   store,

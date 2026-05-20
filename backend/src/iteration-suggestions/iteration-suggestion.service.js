@@ -9,6 +9,10 @@ import {
   stringArray
 } from "../domain/validation.js";
 import { notFound, validationError } from "../http/errors/api-error.js";
+import { createLogger } from "../logger/index.js";
+import * as pgStore from "../db/pg-store.js";
+
+const log = createLogger("iteration-suggestion");
 
 export function createIterationSuggestionService({ store, ids, clock }) {
   return {
@@ -87,6 +91,40 @@ export function createIterationSuggestionService({ store, ids, clock }) {
       };
 
       store.insert("creativeIterationSuggestions", suggestion);
+
+      // Save to PostgreSQL
+      try {
+        pgStore.createIterationSuggestion({
+          id: suggestion.id,
+          tenant_id: suggestion.tenant_id,
+          project_id: suggestion.project_id,
+          ad_publication_id: suggestion.ad_publication_id,
+          suggestion_type: suggestion.reason,
+          current_value: null,
+          suggested_value: JSON.stringify(suggestedChanges),
+          reason: suggestion.reason,
+          priority: "medium",
+          status: "pending",
+        });
+
+        // Audit log
+        pgStore.createAuditLog({
+          userId: context.user_id,
+          tenantId: context.tenant_id,
+          action: "iteration_suggestion.create",
+          entity: "creative_iteration_suggestions",
+          entityId: suggestion.id,
+          ipAddress: context.ipAddress,
+          userAgent: context.userAgent,
+          requestId: context.requestId,
+          afterData: { projectId, reason: suggestion.reason },
+        });
+
+        log.info("Iteration suggestion saved to PostgreSQL", { suggestionId: suggestion.id });
+      } catch (err) {
+        log.error("Failed to save iteration suggestion to PostgreSQL", { error: err.message });
+      }
+
       return {
         creative_iteration_suggestion: suggestion
       };

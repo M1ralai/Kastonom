@@ -1,10 +1,15 @@
 /**
  * Auth Service - User authentication and JWT token management
+ * PostgreSQL tabanlı - tüm veri DB'de saklanır
  * @module backend/auth
  */
 
 import { randomUUID } from "node:crypto";
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { createLogger } from "../logger/index.js";
+import * as pgStore from "../db/pg-store.js";
+
+const log = createLogger("auth");
 
 /**
  * Create SHA-256 hash of password
@@ -20,7 +25,6 @@ function hashPassword(password, salt) {
  */
 export function createAuthService({ store, ids, clock, config }) {
   const jwtSecret = config.jwtSecret || process.env.JWT_SECRET || "dev-secret-change-in-production";
-  const jwtExpiresIn = config.jwtExpiresIn || "24h";
 
   /**
    * Create JWT token
@@ -75,14 +79,17 @@ export function createAuthService({ store, ids, clock, config }) {
     /**
      * Register new user
      */
-    register({ email, password, name, company_name }) {
+    register({ email, password, name, company_name }, requestContext = {}) {
       if (!email || !password) {
         throw { status: 400, body: { error: "INVALID_REQUEST", message: "Email and password required" } };
       }
 
+      log.info("Register attempt", { email, name });
+
       // Check if email already exists
       const existing = store.query("users", (u) => u.email === email.toLowerCase());
       if (existing.length > 0) {
+        log.warn("Registration failed - email exists", { email });
         throw { status: 409, body: { error: "EMAIL_EXISTS", message: "Email already registered" } };
       }
 
@@ -115,7 +122,48 @@ export function createAuthService({ store, ids, clock, config }) {
       store.insert("tenants", tenant);
       store.insert("users", user);
 
+      // PostgreSQL'e de kaydet
+      try {
+        const pgTenantId = randomUUID();
+        const pgUserId = randomUUID();
+
+        pgStore.createTenant({
+          id: pgTenantId,
+          name: tenant.name,
+          mode: tenant.mode,
+          status: tenant.status,
+        });
+        pgStore.createUser({
+          id: pgUserId,
+          tenant_id: pgTenantId,
+          email: user.email,
+          password_hash: user.password_hash,
+          name: user.name,
+          status: user.status,
+        });
+
+        // Audit log
+        pgStore.createAuditLog({
+          userId: pgUserId,
+          tenantId: pgTenantId,
+          action: "user.register",
+          entity: "users",
+          entityId: pgUserId,
+          ipAddress: requestContext.ipAddress,
+          userAgent: requestContext.userAgent,
+          requestId: requestContext.requestId,
+          afterData: { email: user.email, name: user.name },
+        });
+
+        log.info("User registered in PostgreSQL", { pgUserId, pgTenantId });
+      } catch (err) {
+        log.error("Failed to save to PostgreSQL", { error: err.message, userId: user.id });
+        // Continue with memory store fallback - don't fail the registration
+      }
+
       const token = createToken(user);
+
+      log.info("Registration successful", { userId: user.id, tenantId });
 
       return {
         user: {
@@ -135,15 +183,29 @@ export function createAuthService({ store, ids, clock, config }) {
     /**
      * Login user
      */
-    login({ email, password }) {
+    login({ email, password }, requestContext = {}) {
       if (!email || !password) {
         throw { status: 400, body: { error: "INVALID_REQUEST", message: "Email and password required" } };
       }
 
-      const users = store.query("users", (u) => u.email === email.toLowerCase());
-      const user = users[0];
+      log.info("Login attempt", { email });
+
+      // First try PostgreSQL
+      let user = null;
+      try {
+        user = pgStore.getUserByEmail(email);
+      } catch (err) {
+        log.warn("PostgreSQL login failed, falling back to memory", { error: err.message });
+      }
+
+      // Fallback to memory store if not found in PG
+      if (!user) {
+        const users = store.query("users", (u) => u.email === email.toLowerCase());
+        user = users[0];
+      }
 
       if (!user || user.status !== "active") {
+        log.warn("Login failed - invalid credentials", { email });
         throw { status: 401, body: { error: "INVALID_CREDENTIALS", message: "Invalid email or password" } };
       }
 
@@ -155,10 +217,29 @@ export function createAuthService({ store, ids, clock, config }) {
       const inputBuf = Buffer.from(inputHash, "hex");
 
       if (storedBuf.length !== inputBuf.length || !timingSafeEqual(storedBuf, inputBuf)) {
+        log.warn("Login failed - password mismatch", { email });
         throw { status: 401, body: { error: "INVALID_CREDENTIALS", message: "Invalid email or password" } };
       }
 
+      // Audit log
+      try {
+        pgStore.createAuditLog({
+          userId: user.id,
+          tenantId: user.tenant_id,
+          action: "user.login",
+          entity: "users",
+          entityId: user.id,
+          ipAddress: requestContext.ipAddress,
+          userAgent: requestContext.userAgent,
+          requestId: requestContext.requestId,
+        });
+      } catch (err) {
+        log.warn("Failed to log audit", { error: err.message });
+      }
+
       const token = createToken(user);
+
+      log.info("Login successful", { userId: user.id });
 
       return {
         user: {
@@ -180,6 +261,15 @@ export function createAuthService({ store, ids, clock, config }) {
      * Get user by ID
      */
     getUserById(userId) {
+      // Try PostgreSQL first
+      try {
+        const user = pgStore.getUserById(userId);
+        if (user) return user;
+      } catch (err) {
+        log.warn("PG getUserById failed, fallback to memory", { error: err.message });
+      }
+
+      // Fallback to memory
       const users = store.query("users", (u) => u.id === userId);
       const user = users[0];
 
