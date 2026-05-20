@@ -23,20 +23,142 @@ import type {
   AdPlatform,
   AspectRatio,
   GenerationObjective,
-} from "../types/api";
+} from "@/shared/types/api";
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
 const DEMO_TENANT_ID = "demo-tenant";
 
+// Auth token storage key
+const AUTH_TOKEN_KEY = "kastonom_auth_token";
+const AUTH_USER_KEY = "kastonom_auth_user";
+
+// Auth types
+export interface AuthUser {
+  id: string;
+  email: string;
+  name: string;
+  tenant_id: string;
+}
+
+export interface AuthResponse {
+  user: AuthUser;
+  token: string;
+  tenant?: {
+    id: string;
+    name: string;
+  };
+}
+
+// Token management
+export function getAuthToken(): string | null {
+  return localStorage.getItem(AUTH_TOKEN_KEY);
+}
+
+export function setAuthToken(token: string): void {
+  localStorage.setItem(AUTH_TOKEN_KEY, token);
+}
+
+export function clearAuthToken(): void {
+  localStorage.removeItem(AUTH_TOKEN_KEY);
+  localStorage.removeItem(AUTH_USER_KEY);
+}
+
+export function getAuthUser(): AuthUser | null {
+  const userStr = localStorage.getItem(AUTH_USER_KEY);
+  if (!userStr) return null;
+  try {
+    return JSON.parse(userStr) as AuthUser;
+  } catch {
+    return null;
+  }
+}
+
+export function setAuthUser(user: AuthUser): void {
+  localStorage.setItem(AUTH_USER_KEY, JSON.stringify(user));
+}
+
+export function isAuthenticated(): boolean {
+  return !!getAuthToken();
+}
+
+// ─── Auth API ────────────────────────────────────────────────
+
+export async function login(email: string, password: string): Promise<AuthResponse> {
+  const url = `${API_BASE_URL}/auth/login`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Login failed" }));
+    throw new Error(error.message || "Login failed");
+  }
+
+  const result = await response.json();
+
+  // Store token and user
+  setAuthToken(result.token);
+  setAuthUser(result.user);
+
+  return result;
+}
+
+export async function register(email: string, password: string, name: string, companyName?: string): Promise<AuthResponse> {
+  const url = `${API_BASE_URL}/auth/register`;
+
+  const response = await fetch(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      email,
+      password,
+      name,
+      company_name: companyName
+    }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Registration failed" }));
+    throw new Error(error.message || "Registration failed");
+  }
+
+  const result = await response.json();
+
+  // Store token and user
+  setAuthToken(result.token);
+  if (result.tenant) {
+    setAuthUser({ ...result.user, tenant_id: result.tenant.id });
+  }
+
+  return result;
+}
+
+export function logout(): void {
+  clearAuthToken();
+}
+
 /**
- * Get headers for API requests
+ * Get headers for API requests (with auth token)
  */
 function getHeaders(): HeadersInit {
-  return {
+  const token = getAuthToken();
+  const headers: HeadersInit = {
     "Content-Type": "application/json",
-    "x-tenant-id": DEMO_TENANT_ID,
   };
+
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  return headers;
 }
 
 /**
@@ -433,7 +555,7 @@ export const initialAppState: AppState = {
   error: null,
 };
 
-// ─── Polling Helper ────────────────────────────────────────────
+// ─── Polling Helper ───────────────────────────────────────────
 
 export interface PollVideoJobOptions {
   jobId: string;

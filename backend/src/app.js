@@ -22,6 +22,9 @@ import {
 } from "./http/middleware/request-context.js";
 import { invalidRequest, notFound } from "./http/errors/api-error.js";
 import { createOpenApiSpec, createSwaggerHtml } from "./http/openapi.js";
+import { createLogger } from "./logger/index.js";
+
+const log = createLogger("request");
 
 function sendJson(response, status, body) {
   response.statusCode = status;
@@ -235,11 +238,15 @@ export function createApp(options = {}) {
   }
 
   async function handler(request, response) {
+    const requestId = resolveRequestId(request.headers, `req-${randomUUID()}`);
+    const startTime = Date.now();
+
     try {
       if (request.method === "OPTIONS") {
         sendJson(response, 204, null);
         return;
       }
+
       const body = await readRequestBody(request);
       const result = await dispatch({
         method: request.method,
@@ -247,9 +254,27 @@ export function createApp(options = {}) {
         headers: request.headers,
         body
       });
+
+      const duration = Date.now() - startTime;
+      const method = request.method;
+      const url = request.url;
+
+      log.info(`${method} ${url}`, {
+        request_id: requestId,
+        status: result.status,
+        duration_ms: duration,
+        ip: request.headers["x-forwarded-for"] || request.socket.remoteAddress,
+      });
+
       sendResult(response, result);
     } catch (error) {
-      const requestId = resolveRequestId(request.headers, `req-${randomUUID()}`);
+      const duration = Date.now() - startTime;
+      log.error(`${request.method} ${request.url} failed`, {
+        request_id: requestId,
+        duration_ms: duration,
+        error: error.message,
+      });
+
       const result = mapError(error, requestId);
       sendJson(response, result.status, result.body);
     }
