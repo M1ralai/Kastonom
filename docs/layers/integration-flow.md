@@ -2,115 +2,144 @@
 
 ## Main Demo Flow
 
-ERP/product data -> MCP commerce intelligence -> product recommendation -> audience summary -> creative brief -> prompt compiler -> backend video job -> external or mock video provider -> frontend ad preview
+User-provided creative subject + source asset -> backend generation request -> prompt compiler -> backend video job -> external or mock video provider -> generated video variants -> user selects a video -> optional ad publication -> optional metrics snapshot -> optional creative iteration suggestion
 
 ## Sequence Diagram In Text Form
 
 ```text
 User
-  -> Frontend: Open dashboard
+  -> Frontend: Create creative project
 Frontend
-  -> Backend: GET /products
+  -> Backend: POST /creative-projects
 Backend
-  -> Product Source: Load tenant products or mock products
-Product Source
-  -> Backend: Product[]
+  -> Repository: Store CreativeProject, CreativeSubject, SourceAsset[]
+Repository
+  -> Backend: Stored project bundle
 Backend
-  -> Frontend: Product[]
+  -> Frontend: CreativeProject + CreativeSubject + SourceAsset[]
 
 User
-  -> Frontend: Generate campaign for selected product
+  -> Frontend: Generate video variants
 Frontend
-  -> Backend: POST /campaigns/generate
+  -> Backend: POST /generation-requests
 Backend
-  -> MCP / AI Layer: Analyze product, metrics, audience, preferences
-MCP / AI Layer
-  -> Backend: Recommendation + audience summary + creative brief
+  -> Repository: Load project, subject, and selected source assets by tenant
 Backend
-  -> Prompt Compiler: Compile creative brief for provider
+  -> Prompt Compiler: Compile PromptPayload from subject, assets, and generation settings
 Prompt Compiler
-  -> Backend: Provider prompt payload
+  -> Backend: PromptPayload
 Backend
   -> Video Provider Adapter: Create video job
 Video Provider Adapter
-  -> Backend: Normalized provider result
+  -> Backend: Normalized ProviderResult
 Backend
-  -> Frontend: Campaign + creative brief + video job
+  -> Repository: Store VideoJob, ProviderResult, GeneratedVideo[]
+Backend
+  -> Frontend: GenerationRequest + PromptPayload + VideoJob + GeneratedVideo[]
 
 Frontend
   -> Backend: GET /video-jobs/{id}
 Backend
-  -> Frontend: Job status and preview result
+  -> Frontend: Job status and generated video result
+
+User
+  -> Frontend: Select generated video
 Frontend
-  -> User: Final ad preview
+  -> Backend: POST /generated-videos/{id}/select
+Backend
+  -> Repository: Mark selected video and project selected_generated_video_id
+Backend
+  -> Frontend: Selected GeneratedVideo + CreativeProject
+
+User
+  -> Frontend: Publish selected video
+Frontend
+  -> Backend: POST /ad-publications
+Backend
+  -> Ad Platform Adapter: Publish only if connection, config, and scopes are ready
+Ad Platform Adapter
+  -> Backend: Normalized publication result
+Backend
+  -> Frontend: AdPublication
+
+User
+  -> Frontend: View or accept externally supplied iteration suggestion
+Frontend
+  -> Backend: POST /creative-iteration-suggestions
+Backend
+  -> Repository: Store suggestion payload supplied by external owner or demo fixture
+Backend
+  -> Frontend: CreativeIterationSuggestion
 ```
 
 ## Data Handoff Between Layers
 
 Frontend to backend:
 
-- Product id
+- Creative project name
+- Creative subject facts entered by the user or imported explicitly
+- Source asset references
 - Provider preference
 - Platform preference
 - Duration
+- Aspect ratio
 - Language
-
-Backend to MCP / AI layer:
-
-- Tenant context
-- Product facts
-- Product metrics
-- Audience segments
-- Campaign preferences
-- Brand constraints when available
-
-MCP / AI layer to backend:
-
-- Scores
-- Recommendation reason
-- Audience summary
-- Structured creative brief
-- Fallback notes
+- Tone, style, CTA, target audience, and user notes
+- Explicit generated video selection
+- Explicit ad publication request
 
 Backend to prompt compiler:
 
-- Creative brief
+- Creative subject
+- Source asset references
+- Generation request settings
 - Provider target
 - Platform target
 - Duration
+- Aspect ratio
 - Language
-- Negative instructions
+- Negative instructions and forbidden claims
+- Fallback notes
 
 Backend to video provider adapter:
 
-- Provider prompt payload
+- `PromptPayload`
 - Normalized job metadata
 - Provider configuration from environment
 
 Backend to frontend:
 
-- Campaign id
-- Creative brief
+- Creative project state
+- Source asset state
+- Generation request state
+- Prompt payload artifact when allowed by API contract
 - Video job status
+- Generated video variants
 - Provider name
 - Mock/live label
-- Preview URL or fallback result
+- Preview URL or explicit fallback result
+- Publication status
+- Metrics snapshots and iteration suggestions when requested
 
-## Backend To MCP Call
+## MCP Ownership Boundary
 
-The backend must send structured data only. It must not ask the MCP / AI layer open-ended questions like "make an ad." The MCP / AI call must request specific output fields defined in `docs/contracts/ai-behavior.contract.yaml`.
+MCP is not part of the backend workstream. Backend tasks must not implement MCP services, MCP mocks, AI validators, model prompts, product scoring, audience inference, or metric-informed suggestion generation.
 
-## MCP To Prompt Compiler Handoff
+Backend may only store or consume externally supplied MCP outputs after a separate explicit integration contract is provided by the MCP owner.
 
-The MCP / AI layer returns a structured creative brief. The prompt compiler converts that brief into a provider-specific prompt. The compiler must preserve:
+## Prompt Compiler Handoff
 
-- Product facts
+The prompt compiler converts the backend-owned input bundle into a provider-specific prompt payload. The compiler must preserve:
+
+- Creative subject facts
+- Source asset references
 - Forbidden claims
-- Required words
+- Required words or negative instructions
 - Language
 - Tone
-- Visual style
+- Style
 - CTA
+- Duration and aspect ratio
 - Fallback notes
 
 ## Backend To Video Provider Call
@@ -130,9 +159,22 @@ The frontend should poll `GET /video-jobs/{id}` until:
 
 - `completed`
 - `failed`
+- `canceled`
 - timeout defined by implementation contract
 
 The frontend must show status changes and must not fabricate progress. If the backend returns mock status, show it as mock.
+
+## Publication Flow
+
+```text
+User selects generated video
+  -> Backend validates tenant ownership
+  -> Backend checks ad platform connection and required configuration
+  -> If ready: create AdPublication and call backend ad platform adapter
+  -> If not ready: fail closed with configuration or connection error
+```
+
+The backend must not publish ads without explicit user action.
 
 ## Fallback Flow
 
@@ -149,4 +191,3 @@ Provider config missing and fallback disabled
   -> Backend records the failure state
   -> Frontend displays actionable error
 ```
-

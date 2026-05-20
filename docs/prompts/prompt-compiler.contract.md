@@ -2,42 +2,46 @@
 
 ## Purpose
 
-The prompt compiler converts a structured creative brief into provider-specific video generation prompt payloads. It is not responsible for product recommendation, audience inference, or provider network calls.
+The prompt compiler converts backend-owned creative input records into provider-specific video generation prompt payloads. It is not responsible for product recommendation, audience inference, provider network calls, ad platform publication, or metric-informed iteration.
 
 ## Input Schema
 
 Input must include:
 
 - `provider`: `pollo | kling | runway | mock`
-- `product.id`
-- `product.name`
-- `product.category`
-- `product.is_new`
-- `audience.primary_segment`
-- `audience.age_range`
-- `audience.buying_motivation`
-- `insight.hype_score`
-- `insight.trend_potential_score`
-- `insight.reason`
-- `campaign.goal`
-- `campaign.platform`
-- `campaign.duration`
-- `campaign.creative_angle`
-- `campaign.tone`
-- `campaign.visual_style`
-- `message.hook`
-- `message.main_claim`
-- `message.call_to_action`
-- `constraints.forbidden_claims`
-- `constraints.required_words`
-- `constraints.language`
-- `fallback_notes`
+- `creative_subject.id`
+- `creative_subject.subject_type`
+- `creative_subject.name`
+- `creative_subject.description`
+- `creative_subject.landing_url`
+- `creative_subject.price`
+- `creative_subject.currency`
+- `creative_subject.allowed_claims`
+- `creative_subject.forbidden_claims`
+- `creative_subject.unknown_fields`
+- `creative_subject.source`
+- `source_assets[].id`
+- `source_assets[].asset_type`
+- `source_assets[].source`
+- `source_assets[].url`
+- `generation_request.id`
+- `generation_request.objective`
+- `generation_request.target_audience`
+- `generation_request.platform`
+- `generation_request.language`
+- `generation_request.tone`
+- `generation_request.style`
+- `generation_request.call_to_action`
+- `generation_request.duration_seconds`
+- `generation_request.aspect_ratio`
+- `generation_request.user_notes`
+- `generation_request.fallback_notes`
 
-The preferred source template is `docs/prompts/creative-brief.template.yaml`.
+The input source is the stored `CreativeSubject`, selected `SourceAsset` records, and `GenerationRequest` from `docs/contracts/data-model.contract.yaml`.
 
 ## Output Schema
 
-Output must include:
+Output must map to `PromptPayload` and include:
 
 - `provider`
 - `prompt_text`
@@ -45,21 +49,23 @@ Output must include:
 - `duration_seconds`
 - `aspect_ratio`
 - `language`
-- `metadata`
+- `source_asset_ids`
+- `provider_options`
 - `is_mock`
 - `fallback_notes`
 
-Provider-specific adapters may add provider fields under `metadata.provider_options`.
+Provider-specific adapters may add provider fields under `provider_options`.
 
 ## Rules
 
-- Use only facts present in the creative brief.
+- Use only facts present in the creative subject, source assets, generation request, and fallback notes.
 - Preserve forbidden claims.
+- Preserve source asset references.
 - Preserve fallback notes.
-- Keep output suitable for ecommerce advertising.
+- Keep output suitable for ecommerce advertising when the subject is a product or offer.
 - Default to vertical video for TikTok/Reels unless contract says otherwise.
-- Use short Turkish text overlays only if needed.
-- Prioritize product visibility.
+- Use short Turkish text overlays only when the language and request settings allow them.
+- Prioritize visibility of the advertised subject.
 - Keep prompts concise enough for provider APIs.
 - Return deterministic output for the same input.
 
@@ -67,42 +73,42 @@ Provider-specific adapters may add provider fields under `metadata.provider_opti
 
 ### PolloPromptAdapter
 
-- Converts normalized creative brief to Pollo-compatible prompt payload.
+- Converts normalized creative input to Pollo-compatible prompt payload.
 - Must fail closed if required Pollo-specific configuration is missing.
 - When live submission is enabled, the resulting PromptPayload is handed to the MCP network execution layer for HTTP delivery.
 
 ### KlingPromptAdapter
 
-- Converts normalized creative brief to Kling-compatible prompt payload.
+- Converts normalized creative input to Kling-compatible prompt payload.
 - Must preserve negative instructions.
 
 ### RunwayPromptAdapter
 
-- Converts normalized creative brief to Runway-compatible prompt payload.
-- Must keep provider-specific options under metadata.
+- Converts normalized creative input to Runway-compatible prompt payload.
+- Must keep provider-specific options under `provider_options`.
 
 ### MockPromptAdapter
 
-- Converts normalized creative brief to deterministic mock prompt payload.
+- Converts normalized creative input to deterministic mock prompt payload.
 - Must mark output as mock.
 - Must not require external credentials.
 
 ## Forbidden Behavior
 
-- Do not invent product claims.
+- Do not invent subject claims.
 - Do not invent unavailable features.
-- Do not add discounts, guarantees, or shipping promises unless explicitly present.
+- Do not add discounts, guarantees, stock claims, shipping promises, or performance claims unless explicitly present.
+- Do not infer audience demographics.
 - Do not remove negative instructions.
 - Do not execute provider HTTP requests directly; hand off live submission to the MCP network execution layer.
 - Do not expose secrets.
-- Do not silently change language, platform, or duration.
+- Do not silently change language, platform, duration, or aspect ratio.
 
 ## Acceptance Criteria
 
-- Valid creative brief input produces provider prompt payload.
+- Valid creative input produces provider prompt payload.
 - Unsupported provider returns clear error or mock fallback only when allowed.
 - Same input produces same prompt output.
 - Negative instructions are included.
 - Mock output is clearly marked.
-- Prompt output can be stored with a campaign or video job.
-
+- Prompt output can be stored as `PromptPayload` for a generation request.
