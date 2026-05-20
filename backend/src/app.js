@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { loadConfig } from "./config/env.js";
 import { createClock } from "./domain/clock.js";
 import { createIdFactory } from "./domain/ids.js";
-import { createMemoryStore } from "./repositories/memory-store.js";
+import { initDatabase } from "./db/index.js";
 import { createCreativeProjectService } from "./creative-projects/creative-project.service.js";
 import { createGenerationRequestService } from "./generation-requests/generation-request.service.js";
 import { createPromptCompilerService } from "./prompt-compiler/prompt-compiler.service.js";
@@ -12,9 +12,7 @@ import { createGeneratedVideoService } from "./generated-videos/generated-video.
 import { createAdPublicationService } from "./ad-publications/ad-publication.service.js";
 import { createMetricsService } from "./metrics/metrics.service.js";
 import { createIterationSuggestionService } from "./iteration-suggestions/iteration-suggestion.service.js";
-import { createDemoReplayService } from "./demo/demo-replay.service.js";
 import { createAuthService } from "./auth/auth.service.js";
-import { cloneDemoFixture, defaultDemoFixturePath } from "./demo/demo-fixture.loader.js";
 import { mapError } from "./http/errors/error-mapper.js";
 import {
   resolveRequestContext,
@@ -31,7 +29,7 @@ function sendJson(response, status, body) {
   response.setHeader("content-type", "application/json; charset=utf-8");
   response.setHeader("access-control-allow-origin", "*");
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
-  response.setHeader("access-control-allow-headers", "content-type,x-tenant-id,x-request-id");
+      response.setHeader("access-control-allow-headers", "content-type,x-tenant-id,x-request-id,authorization");
   response.end(JSON.stringify(body));
 }
 
@@ -40,7 +38,7 @@ function sendText(response, status, body, contentType) {
   response.setHeader("content-type", contentType);
   response.setHeader("access-control-allow-origin", "*");
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
-  response.setHeader("access-control-allow-headers", "content-type,x-tenant-id,x-request-id");
+      response.setHeader("access-control-allow-headers", "content-type,x-tenant-id,x-request-id,authorization");
   response.end(body);
 }
 
@@ -98,35 +96,32 @@ export function createApp(options = {}) {
   const config = loadConfig(options.env ?? process.env);
   const clock = options.clock ?? createClock();
   const ids = options.ids ?? createIdFactory();
-  const fixturePath = options.demoFixturePath ?? defaultDemoFixturePath;
-  const fixture = options.fixture ?? cloneDemoFixture(fixturePath);
-  const store = options.store ?? createMemoryStore({ fixture, config, clock });
 
-  const creativeProjects = createCreativeProjectService({ store, ids, clock });
-  const promptCompiler = createPromptCompilerService({ store, ids, clock, config });
+  // Initialize database connection
+  initDatabase();
+
+  const creativeProjects = createCreativeProjectService({ ids, clock });
+  const promptCompiler = createPromptCompilerService({ ids, clock, config });
   const generationRequests = createGenerationRequestService({
-    store,
     ids,
     clock,
     config,
     creativeProjects,
     promptCompiler
   });
-  const videoJobs = createVideoJobService({ store });
-  const generatedVideos = createGeneratedVideoService({ store, clock });
-  const adPublications = createAdPublicationService({ store, ids, clock, config });
-  const metrics = createMetricsService({ store, ids, clock, config });
-  const iterationSuggestions = createIterationSuggestionService({ store, ids, clock });
-  const demoReplay = createDemoReplayService({ fixturePath });
-  const auth = createAuthService({ store, ids, clock, config });
+  const videoJobs = createVideoJobService({});
+  const generatedVideos = createGeneratedVideoService({ clock });
+  const adPublications = createAdPublicationService({ ids, clock, config });
+  const metrics = createMetricsService({ ids, clock, config });
+  const iterationSuggestions = createIterationSuggestionService({ ids, clock });
+  const auth = createAuthService({ ids, clock, config });
   const openApiSpec = createOpenApiSpec(config);
   const swaggerHtml = createSwaggerHtml();
 
-  function context(headers, requestId) {
+  async function context(headers, requestId) {
     return resolveRequestContext({
       headers,
       config,
-      store,
       requestId,
       tenantRequired: true
     });
@@ -158,23 +153,26 @@ export function createApp(options = {}) {
         return { status: 200, body: healthBody(config) };
       }
 
-      if (method === "GET" && pathname === "/demo/fallback") {
-        return { status: 200, body: demoReplay.getFallbackReplay() };
-      }
-
       // Auth endpoints (no tenant required)
       if (method === "POST" && pathname === "/auth/register") {
-        return { status: 201, body: auth.register(body) };
+        return { status: 201, body: await auth.register(body) };
       }
 
       if (method === "POST" && pathname === "/auth/login") {
-        return { status: 200, body: auth.login(body) };
+        return { status: 200, body: await auth.login(body) };
       }
 
       if (method === "POST" && pathname === "/creative-projects") {
         return {
           status: 201,
-          body: creativeProjects.create(context(headers, requestId), body)
+          body: await creativeProjects.create(context(headers, requestId), body)
+        };
+      }
+
+      if (method === "GET" && pathname === "/creative-projects") {
+        return {
+          status: 200,
+          body: await creativeProjects.listProjects(context(headers, requestId))
         };
       }
 
@@ -182,14 +180,14 @@ export function createApp(options = {}) {
       if (method === "GET" && creativeProjectMatch) {
         return {
           status: 200,
-          body: creativeProjects.getBundle(context(headers, requestId), creativeProjectMatch[0])
+          body: await creativeProjects.getBundle(context(headers, requestId), creativeProjectMatch[0])
         };
       }
 
       if (method === "POST" && pathname === "/generation-requests") {
         return {
           status: 202,
-          body: generationRequests.create(context(headers, requestId), body)
+          body: await generationRequests.create(context(headers, requestId), body)
         };
       }
 
@@ -197,7 +195,7 @@ export function createApp(options = {}) {
       if (method === "GET" && videoJobMatch) {
         return {
           status: 200,
-          body: videoJobs.get(context(headers, requestId), videoJobMatch[0])
+          body: await videoJobs.get(context(headers, requestId), videoJobMatch[0])
         };
       }
 
@@ -205,14 +203,14 @@ export function createApp(options = {}) {
       if (method === "POST" && generatedVideoSelectMatch) {
         return {
           status: 200,
-          body: generatedVideos.select(context(headers, requestId), generatedVideoSelectMatch[0], body)
+          body: await generatedVideos.select(context(headers, requestId), generatedVideoSelectMatch[0], body)
         };
       }
 
       if (method === "POST" && pathname === "/ad-publications") {
         return {
           status: 201,
-          body: adPublications.create(context(headers, requestId), body)
+          body: await adPublications.create(context(headers, requestId), body)
         };
       }
 
@@ -220,14 +218,14 @@ export function createApp(options = {}) {
       if (method === "POST" && metricSyncMatch) {
         return {
           status: 201,
-          body: metrics.sync(context(headers, requestId), metricSyncMatch[0], body)
+          body: await metrics.sync(context(headers, requestId), metricSyncMatch[0], body)
         };
       }
 
       if (method === "POST" && pathname === "/creative-iteration-suggestions") {
         return {
           status: 201,
-          body: iterationSuggestions.create(context(headers, requestId), body)
+          body: await iterationSuggestions.create(context(headers, requestId), body)
         };
       }
 
@@ -282,7 +280,6 @@ export function createApp(options = {}) {
 
   return {
     config,
-    store,
     dispatch,
     handler,
     createServer() {

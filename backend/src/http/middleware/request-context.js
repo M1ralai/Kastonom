@@ -1,5 +1,6 @@
 import { invalidRequest } from "../errors/api-error.js";
 import { createHmac } from "node:crypto";
+import * as pgStore from "../../db/pg-store.js";
 
 export function headerValue(headers, name) {
   const wanted = name.toLowerCase();
@@ -47,7 +48,7 @@ function verifyToken(token, secret) {
   }
 }
 
-export function resolveRequestContext({ headers, config, store, requestId, tenantRequired }) {
+export async function resolveRequestContext({ headers, config, requestId, tenantRequired }) {
   let tenantId = headerValue(headers, "x-tenant-id");
   tenantId = typeof tenantId === "string" && tenantId.trim() !== "" ? tenantId.trim() : null;
 
@@ -73,8 +74,13 @@ export function resolveRequestContext({ headers, config, store, requestId, tenan
   }
 
   if (tenantId) {
-    const tenant = store.getTenant(tenantId);
-    if (!tenant || tenant.status !== "active") {
+    try {
+      const tenant = await pgStore.getTenant(tenantId);
+      if (!tenant || tenant.status !== "active") {
+        throw invalidRequest("Tenant is invalid or disabled.", { error: "INVALID_TENANT" });
+      }
+    } catch (err) {
+      // If PostgreSQL lookup fails (tenant not found), throw error
       throw invalidRequest("Tenant is invalid or disabled.", { error: "INVALID_TENANT" });
     }
   }

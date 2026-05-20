@@ -21,40 +21,9 @@ import * as pgStore from "../db/pg-store.js";
 
 const log = createLogger("creative-project");
 
-export function createCreativeProjectService({ store, ids, clock }) {
-  function buildBundle(context, project) {
-    const creativeSubject = store.findByTenant(
-      "creativeSubjects",
-      context.tenant_id,
-      (subject) => subject.project_id === project.id
-    );
-    const sourceAssets = store.listByTenant(
-      "sourceAssets",
-      context.tenant_id,
-      (asset) => asset.project_id === project.id
-    );
-    const generationRequests = store.listByTenant(
-      "generationRequests",
-      context.tenant_id,
-      (request) => request.project_id === project.id
-    );
-    const generatedVideos = store.listByTenant(
-      "generatedVideos",
-      context.tenant_id,
-      (video) => video.project_id === project.id
-    );
-
-    return {
-      creative_project: project,
-      creative_subject: creativeSubject,
-      source_assets: sourceAssets,
-      generation_requests: generationRequests,
-      generated_videos: generatedVideos
-    };
-  }
-
+export function createCreativeProjectService({ ids, clock }) {
   return {
-    create(context, body) {
+    async create(context, body) {
       const input = requireObject(body, "request body");
       const creativeSubjectInput = requireObject(input.creative_subject, "creative_subject");
       const sourceAssetInputs = requireArray(input.source_assets, "source_assets", {
@@ -145,115 +114,92 @@ export function createCreativeProjectService({ store, ids, clock }) {
         };
       });
 
-      // Insert into memory store
-      store.insert("creativeProjects", project);
-      store.insert("creativeSubjects", creativeSubject);
-      for (const asset of sourceAssets) {
-        store.insert("sourceAssets", asset);
-      }
-
       // Save to PostgreSQL
-      try {
-        pgStore.createProject(project);
-        pgStore.createSubject(creativeSubject);
-        for (const asset of sourceAssets) {
-          pgStore.createAsset(asset);
-        }
-
-        // Audit log
-        pgStore.createAuditLog({
-          userId: context.user_id,
-          tenantId: context.tenant_id,
-          action: "creative_project.create",
-          entity: "creative_projects",
-          entityId: project.id,
-          ipAddress: context.ipAddress,
-          userAgent: context.userAgent,
-          requestId: context.requestId,
-          afterData: { name: project.name },
-        });
-
-        log.info("Creative project saved to PostgreSQL", { projectId: project.id });
-      } catch (err) {
-        log.error("Failed to save creative project to PostgreSQL", { error: err.message, projectId: project.id });
-        // Continue with memory store fallback
+      const createdProject = await pgStore.createProject(project);
+      const createdSubject = await pgStore.createSubject(creativeSubject);
+      const createdAssets = [];
+      for (const asset of sourceAssets) {
+        const createdAsset = await pgStore.createAsset(asset);
+        createdAssets.push(createdAsset);
       }
+
+      // Audit log
+      await pgStore.createAuditLog({
+        userId: context.user_id,
+        tenantId: context.tenant_id,
+        action: "creative_project.create",
+        entity: "creative_projects",
+        entityId: createdProject.id,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        requestId: context.requestId,
+        afterData: { name: createdProject.name },
+      });
+
+      log.info("Creative project saved to PostgreSQL", { projectId: createdProject.id });
 
       return {
-        creative_project: project,
-        creative_subject: creativeSubject,
-        source_assets: sourceAssets,
+        creative_project: createdProject,
+        creative_subject: createdSubject,
+        source_assets: createdAssets,
         fallback_reason: null
       };
     },
 
-    getBundle(context, projectId) {
-      // Try PostgreSQL first
-      try {
-        const pgProject = pgStore.getProjectById(projectId, context.tenant_id);
-        if (pgProject) {
-          // Build bundle from PG data
-          const pgSubject = pgStore.getSubjectById(projectId, context.tenant_id);
-          const pgAssets = pgStore.listAssets(context.tenant_id, projectId);
-          const pgRequests = pgStore.listGenerationRequests(context.tenant_id, projectId);
-          const pgVideos = pgStore.listGeneratedVideos(context.tenant_id, projectId);
-
-          return {
-            creative_project: pgProject,
-            creative_subject: pgSubject,
-            source_assets: pgAssets,
-            generation_requests: pgRequests,
-            generated_videos: pgVideos
-          };
-        }
-      } catch (err) {
-        log.warn("PG getBundle failed, fallback to memory", { error: err.message });
-      }
-
-      // Fallback to memory store
-      const project = store.getByTenant("creativeProjects", context.tenant_id, projectId);
-      if (!project) {
+    async getBundle(context, projectId) {
+      const pgProject = await pgStore.getProjectById(projectId, context.tenant_id);
+      if (!pgProject) {
         throw notFound("CREATIVE_PROJECT_NOT_FOUND", "Creative project was not found.");
       }
-      return buildBundle(context, project);
+
+      const pgSubject = await pgStore.getSubjectById(projectId, context.tenant_id);
+      const pgAssets = await pgStore.listAssets(context.tenant_id, projectId);
+      const pgRequests = await pgStore.listGenerationRequests(context.tenant_id, projectId);
+      const pgVideos = await pgStore.listGeneratedVideos(context.tenant_id, projectId);
+
+      return {
+        creative_project: pgProject,
+        creative_subject: pgSubject,
+        source_assets: pgAssets,
+        generation_requests: pgRequests,
+        generated_videos: pgVideos
+      };
     },
 
-    getProject(context, projectId) {
-      // Try PostgreSQL first
-      try {
-        const project = pgStore.getProjectById(projectId, context.tenant_id);
-        if (project) return project;
-      } catch (err) {
-        log.warn("PG getProject failed, fallback to memory", { error: err.message });
-      }
-
-      // Fallback to memory store
-      const project = store.getByTenant("creativeProjects", context.tenant_id, projectId);
+    async getProject(context, projectId) {
+      const project = await pgStore.getProjectById(projectId, context.tenant_id);
       if (!project) {
         throw notFound("CREATIVE_PROJECT_NOT_FOUND", "Creative project was not found.");
       }
       return project;
     },
 
-    getSubjectForProject(context, projectId) {
-      // Try PostgreSQL first
-      try {
-        const subjects = pgStore.listSubjects(context.tenant_id, projectId);
-        if (subjects.length > 0) return subjects[0];
-      } catch (err) {
-        log.warn("PG getSubjectForProject failed, fallback to memory", { error: err.message });
-      }
-
-      // Fallback to memory store
-      const subject = store.findByTenant(
-        "creativeSubjects",
-        context.tenant_id,
-        (item) => item.project_id === projectId
-      );
-      if (!subject) {
+    async getSubjectForProject(context, projectId) {
+      const subjects = await pgStore.listSubjects(context.tenant_id, projectId);
+      if (subjects.length === 0) {
         throw notFound("CREATIVE_PROJECT_NOT_FOUND", "Creative subject was not found.");
       }
-      return subject;
+      return subjects[0];
+    },
+
+    async listProjects(context) {
+      const projects = await pgStore.listProjects(context.tenant_id);
+      if (!projects || projects.length === 0) {
+        return [];
+      }
+
+      // Build bundles with subjects
+      const bundles = await Promise.all(projects.map(async (project) => {
+        const subjects = await pgStore.listSubjects(context.tenant_id, project.id);
+        const assets = await pgStore.listAssets(context.tenant_id, project.id);
+        return {
+          creative_project: project,
+          creative_subject: subjects.length > 0 ? subjects[0] : null,
+          source_assets: assets
+        };
+      }));
+
+      return bundles;
     }
   };
 }

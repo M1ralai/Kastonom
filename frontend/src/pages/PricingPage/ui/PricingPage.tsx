@@ -1,4 +1,3 @@
-import { Logo } from "@/shared/ui/Logo";
 
 const features = {
   starter: [

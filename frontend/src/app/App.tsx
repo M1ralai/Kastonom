@@ -9,6 +9,9 @@ import { HomePage } from "@/pages/HomePage";
 import { AboutPage } from "@/pages/AboutPage";
 import { PricingPage } from "@/pages/PricingPage";
 import { FaqPage } from "@/pages/FaqPage";
+import { ProductsPage } from "@/pages/ProductsPage";
+import { CreatePage } from "@/pages/CreatePage";
+import { PreviewPage } from "@/pages/PreviewPage";
 
 // Protected Route wrapper
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -45,16 +48,19 @@ export default function App() {
           path="/*"
           element={
             <ProtectedRoute>
+              <PageNav />
               <div style={{ paddingBottom: "64px" }}>
                 <Routes>
                   <Route path="/" element={<HomePage />} />
                   <Route path="/about" element={<AboutPage />} />
                   <Route path="/pricing" element={<PricingPage />} />
                   <Route path="/faq" element={<FaqPage />} />
+                  <Route path="/products" element={<ProductsPage />} />
+                  <Route path="/create" element={<CreatePage />} />
+                  <Route path="/preview" element={<PreviewPage />} />
                   <Route path="*" element={<HomePage />} />
                 </Routes>
               </div>
-              <PageNav />
             </ProtectedRoute>
           }
         />

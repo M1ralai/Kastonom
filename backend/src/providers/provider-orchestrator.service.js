@@ -1,4 +1,8 @@
 import { configurationMissing } from "../http/errors/api-error.js";
+import { createLogger } from "../logger/index.js";
+import * as pgStore from "../db/pg-store.js";
+
+const log = createLogger("provider-orchestrator");
 
 function providerConfigError(provider, fallbackAvailable) {
   return configurationMissing(
@@ -8,8 +12,8 @@ function providerConfigError(provider, fallbackAvailable) {
   );
 }
 
-export function createProviderOrchestratorService({ store, ids, clock, config }) {
-  function createMockResult(context, { project, generationRequest, promptPayload, requestedProvider, fallbackReason }) {
+export function createProviderOrchestratorService({ ids, clock, config }) {
+  async function createMockResult(context, { project, generationRequest, promptPayload, requestedProvider, fallbackReason }) {
     const now = clock.now();
     const providerJobId = `mock-job-${generationRequest.id}`;
 
@@ -70,19 +74,23 @@ export function createProviderOrchestratorService({ store, ids, clock, config })
       selected_at: null
     };
 
-    store.insert("videoJobs", videoJob);
-    store.insert("providerResults", providerResult);
-    store.insert("generatedVideos", generatedVideo);
+    // Save to PostgreSQL
+    const createdVideoJob = await pgStore.createVideoJob(videoJob);
+    const createdProviderResult = await pgStore.createProviderResult(providerResult);
+    const createdVideo = await pgStore.createGeneratedVideo({
+      ...generatedVideo,
+      provider_result_id: createdProviderResult.id
+    });
 
     return {
-      video_job: videoJob,
-      provider_result: providerResult,
-      generated_videos: [generatedVideo],
+      video_job: createdVideoJob,
+      provider_result: createdProviderResult,
+      generated_videos: [createdVideo],
       fallback_reason: fallbackReason
     };
   }
 
-  function createFailedResult(context, { project, generationRequest, promptPayload, provider, errorCode, message }) {
+  async function createFailedResult(context, { project, generationRequest, promptPayload, provider, errorCode, message }) {
     const now = clock.now();
     const videoJob = {
       id: ids.next("video-job"),
@@ -122,13 +130,19 @@ export function createProviderOrchestratorService({ store, ids, clock, config })
       received_at: now
     };
 
-    store.insert("videoJobs", videoJob);
-    store.insert("providerResults", providerResult);
-    return { video_job: videoJob, provider_result: providerResult, generated_videos: [] };
+    // Save to PostgreSQL
+    const createdVideoJob = await pgStore.createVideoJob(videoJob);
+    const createdProviderResult = await pgStore.createProviderResult(providerResult);
+
+    return {
+      video_job: createdVideoJob,
+      provider_result: createdProviderResult,
+      generated_videos: []
+    };
   }
 
   return {
-    createVideoJob(context, { project, generationRequest, promptPayload, requestedProvider }) {
+    async createVideoJob(context, { project, generationRequest, promptPayload, requestedProvider }) {
       const provider = promptPayload.provider;
 
       if (provider === "mock") {
@@ -153,7 +167,7 @@ export function createProviderOrchestratorService({ store, ids, clock, config })
           });
         }
 
-        createFailedResult(context, {
+        return createFailedResult(context, {
           project,
           generationRequest,
           promptPayload,
@@ -161,7 +175,6 @@ export function createProviderOrchestratorService({ store, ids, clock, config })
           errorCode: "PROVIDER_CONFIG_MISSING",
           message: `${provider} provider configuration is missing.`
         });
-        throw providerConfigError(provider, false);
       }
 
       if (context.fallback_enabled) {
@@ -174,7 +187,7 @@ export function createProviderOrchestratorService({ store, ids, clock, config })
         });
       }
 
-      createFailedResult(context, {
+      return createFailedResult(context, {
         project,
         generationRequest,
         promptPayload,
@@ -182,11 +195,6 @@ export function createProviderOrchestratorService({ store, ids, clock, config })
         errorCode: "PROVIDER_UNAVAILABLE",
         message: "Live provider submissions are not enabled in this MVP backend."
       });
-      throw configurationMissing(
-        "PROVIDER_UNAVAILABLE",
-        "Live provider submissions are not enabled in this MVP backend.",
-        { fallbackAvailable: false }
-      );
     }
   };
 }

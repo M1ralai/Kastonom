@@ -34,7 +34,8 @@ CREATE TABLE IF NOT EXISTS users (
     status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'disabled')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE(tenant_id, email)
+    UNIQUE(tenant_id, email),
+    UNIQUE(email)
 );
 
 CREATE INDEX idx_users_tenant ON users(tenant_id);

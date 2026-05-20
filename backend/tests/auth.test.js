@@ -234,7 +234,7 @@ test("requests without token fall back to demo tenant in mock mode", async () =>
   });
 
   assert.equal(response.status, 201);
-  assert.equal(response.body.creative_project.tenant_id, "demo-tenant");
+  assert.equal(response.body.creative_project.tenant_id, "00000000-0000-0000-0000-000000000001");
 });
 
 console.log("Auth tests loaded successfully");

@@ -20,7 +20,7 @@ The OpenAPI document is available at `http://localhost:3001/openapi.json`.
 
 - `KASTONOM_MODE=mock`
 - `KASTONOM_FALLBACK_ENABLED=true` in mock mode
-- `KASTONOM_DEMO_TENANT_ID=demo-tenant`
+- `KASTONOM_DEMO_TENANT_ID=00000000-0000-0000-0000-000000000001`
 - `KASTONOM_DEFAULT_VIDEO_PROVIDER=mock`
 - `KASTONOM_MOCK_PREVIEW_URL=/demo-assets/mock-ad-preview.mp4`
 

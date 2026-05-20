@@ -144,7 +144,7 @@ export function loadConfig(env = process.env) {
     version: "0.1.0",
     mode,
     fallbackEnabled,
-    demoTenantId: readString(env, "KASTONOM_DEMO_TENANT_ID", "demo-tenant"),
+    demoTenantId: readString(env, "KASTONOM_DEMO_TENANT_ID", "00000000-0000-0000-0000-000000000001"),
     defaultVideoProvider,
     defaultLanguage: readString(env, "KASTONOM_DEFAULT_LANGUAGE", "Turkish"),
     defaultPlatform,

@@ -1,5 +1,6 @@
 import { STANDARD_NEGATIVE_INSTRUCTIONS, VIDEO_PROVIDERS } from "../domain/constants.js";
 import { validationError } from "../http/errors/api-error.js";
+import * as pgStore from "../db/pg-store.js";
 
 function adapterName(provider) {
   return {
@@ -14,9 +15,9 @@ function compactJoin(items, separator = " ") {
   return items.filter((item) => typeof item === "string" && item.trim() !== "").join(separator);
 }
 
-export function createPromptCompilerService({ store, ids, clock }) {
+export function createPromptCompilerService({ ids, clock, config }) {
   return {
-    compile(context, { requestedProvider, creativeSubject, sourceAssets, generationRequest }) {
+    async compile(context, { requestedProvider, creativeSubject, sourceAssets, generationRequest }) {
       let provider = requestedProvider;
       const fallbackNotes = [...generationRequest.fallback_notes];
 
@@ -85,8 +86,9 @@ export function createPromptCompilerService({ store, ids, clock }) {
         created_at: clock.now()
       };
 
-      store.insert("promptPayloads", promptPayload);
-      return promptPayload;
+      // Save to PostgreSQL
+      const createdPayload = await pgStore.createPromptPayload(promptPayload);
+      return createdPayload;
     }
   };
 }

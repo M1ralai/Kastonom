@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { Logo } from "@/shared/ui/Logo";
 
 const faqs = [
   {

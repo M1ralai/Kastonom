@@ -16,7 +16,6 @@ import * as pgStore from "../db/pg-store.js";
 const log = createLogger("generation-request");
 
 export function createGenerationRequestService({
-  store,
   ids,
   clock,
   config,
@@ -43,81 +42,8 @@ export function createGenerationRequestService({
     return Array.from(new Set(notes));
   }
 
-  function createMockVideoJobResult(context, { project, generationRequest, promptPayload, requestedProvider }) {
-    const now = clock.now();
-    const providerJobId = `mock-job-${generationRequest.id}`;
-
-    const videoJob = {
-      id: ids.next("video-job"),
-      tenant_id: context.tenant_id,
-      project_id: project.id,
-      generation_request_id: generationRequest.id,
-      prompt_payload_id: promptPayload.id,
-      provider: "mock",
-      status: "completed",
-      provider_job_id: providerJobId,
-      is_mock: true,
-      fallback_reason: requestedProvider === "mock" ? null : "provider_fallback_to_mock",
-      error_code: null,
-      error_message: null,
-      attempt_count: 1,
-      created_at: now,
-      submitted_at: now,
-      completed_at: now,
-      updated_at: now
-    };
-
-    const providerResult = {
-      id: ids.next("provider-result"),
-      tenant_id: context.tenant_id,
-      video_job_id: videoJob.id,
-      provider: "mock",
-      provider_job_id: providerJobId,
-      raw_status: "mock_completed",
-      normalized_status: "completed",
-      result_urls: [config.mockPreviewUrl],
-      error_code: null,
-      error_message: null,
-      redacted_metadata: {
-        adapter: "mock",
-        requested_provider: requestedProvider,
-        is_mock: true
-      },
-      received_at: now
-    };
-
-    const generatedVideo = {
-      id: ids.next("generated-video"),
-      tenant_id: context.tenant_id,
-      project_id: project.id,
-      generation_request_id: generationRequest.id,
-      video_job_id: videoJob.id,
-      provider_result_id: providerResult.id,
-      url: config.mockPreviewUrl,
-      thumbnail_url: null,
-      duration_seconds: generationRequest.duration_seconds,
-      aspect_ratio: generationRequest.aspect_ratio,
-      status: "generated",
-      is_selected: false,
-      is_mock: true,
-      created_at: now,
-      selected_at: null
-    };
-
-    store.insert("videoJobs", videoJob);
-    store.insert("providerResults", providerResult);
-    store.insert("generatedVideos", generatedVideo);
-
-    return {
-      video_job: videoJob,
-      provider_result: providerResult,
-      generated_videos: [generatedVideo],
-      fallback_reason: videoJob.fallback_reason
-    };
-  }
-
   return {
-    create(context, body) {
+    async create(context, body) {
       const input = requireObject(body, "request body");
       const projectId = requireString(input.project_id, "project_id");
       const sourceAssetIds = stringArray(input.source_asset_ids, "source_asset_ids", {
@@ -130,10 +56,14 @@ export function createGenerationRequestService({
         }
       }
 
-      const project = creativeProjects.getProject(context, projectId);
-      const creativeSubject = creativeProjects.getSubjectForProject(context, projectId);
+      // Get project and subject from PostgreSQL
+      const project = await creativeProjects.getProject(context, projectId);
+      const creativeSubject = await creativeProjects.getSubjectForProject(context, projectId);
+
+      // Get source assets
+      const assets = await pgStore.listAssets(context.tenant_id, project.id);
       const sourceAssets = sourceAssetIds.map((assetId) => {
-        const asset = store.getByTenant("sourceAssets", context.tenant_id, assetId);
+        const asset = assets.find(a => a.id === assetId);
         if (!asset || asset.project_id !== project.id) {
           throw notFound("SOURCE_ASSET_NOT_FOUND", "Source asset was not found.");
         }
@@ -167,42 +97,39 @@ export function createGenerationRequestService({
       };
       generationRequest.fallback_notes = fallbackNotesFor(creativeSubject, generationRequest);
 
-      store.insert("generationRequests", generationRequest);
-      store.updateByTenant("creativeProjects", context.tenant_id, project.id, (current) => ({
-        ...current,
+      // Save to PostgreSQL
+      const createdRequest = await pgStore.createGenerationRequest(generationRequest);
+
+      // Update project status
+      await pgStore.updateProject(project.id, context.tenant_id, {
         status: "generating",
-        latest_generation_request_id: generationRequest.id,
-        updated_at: clock.now()
-      }));
+        latest_generation_request_id: createdRequest.id
+      });
 
       try {
-        const promptPayload = promptCompiler.compile(context, {
+        // Compile prompt
+        const promptPayload = await promptCompiler.compile(context, {
           requestedProvider: provider,
           creativeSubject,
           sourceAssets,
-          generationRequest
+          generationRequest: createdRequest
         });
 
-        const promptCompiledRequest = store.updateByTenant(
-          "generationRequests",
+        // Update request status to prompt_compiled
+        const promptCompiledRequest = await pgStore.updateGenerationRequest(
+          createdRequest.id,
           context.tenant_id,
-          generationRequest.id,
-          (current) => ({
-            ...current,
-            status: "prompt_compiled",
-            updated_at: clock.now()
-          })
+          { status: "prompt_compiled" }
         );
 
-        // Use provider orchestrator to create video job (supports MCP network execution)
+        // Use provider orchestrator to create video job
         const providerOrchestrator = createProviderOrchestratorService({
-          store,
           ids,
           clock,
           config
         });
 
-        const providerOutput = providerOrchestrator.createVideoJob(context, {
+        const providerOutput = await providerOrchestrator.createVideoJob(context, {
           project,
           generationRequest: promptCompiledRequest,
           promptPayload,
@@ -216,26 +143,18 @@ export function createGenerationRequestService({
               ? "failed"
               : "generating";
 
-        const finalRequest = store.updateByTenant(
-          "generationRequests",
-          context.tenant_id,
-          generationRequest.id,
-          (current) => ({
-            ...current,
-            status: finalStatus,
-            updated_at: clock.now()
-          })
-        );
+        // Update request and project status
+        await pgStore.updateGenerationRequest(createdRequest.id, context.tenant_id, {
+          status: finalStatus
+        });
 
-        store.updateByTenant("creativeProjects", context.tenant_id, project.id, (current) => ({
-          ...current,
+        await pgStore.updateProject(project.id, context.tenant_id, {
           status: finalStatus === "completed" ? "ready" : finalStatus,
-          latest_generation_request_id: finalRequest.id,
-          updated_at: clock.now()
-        }));
+          latest_generation_request_id: createdRequest.id
+        });
 
         return {
-          generation_request: finalRequest,
+          generation_request: { ...createdRequest, status: finalStatus },
           prompt_payload: promptPayload,
           video_job: providerOutput.video_job,
           provider_result: providerOutput.provider_result,
@@ -243,17 +162,14 @@ export function createGenerationRequestService({
           fallback_reason: providerOutput.fallback_reason ?? null
         };
       } catch (error) {
-        store.updateByTenant("generationRequests", context.tenant_id, generationRequest.id, (current) => ({
-          ...current,
+        await pgStore.updateGenerationRequest(createdRequest.id, context.tenant_id, {
+          status: "failed"
+        });
+
+        await pgStore.updateProject(project.id, context.tenant_id, {
           status: "failed",
-          updated_at: clock.now()
-        }));
-        store.updateByTenant("creativeProjects", context.tenant_id, project.id, (current) => ({
-          ...current,
-          status: "failed",
-          latest_generation_request_id: generationRequest.id,
-          updated_at: clock.now()
-        }));
+          latest_generation_request_id: createdRequest.id
+        });
         throw error;
       }
     }

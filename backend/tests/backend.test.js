@@ -186,12 +186,12 @@ test("tenant guard defaults to demo tenant in mock mode but fails closed in live
     body: projectInput()
   });
   assert.equal(demoTenant.status, 201);
-  assert.equal(demoTenant.body.creative_project.tenant_id, "demo-tenant");
+  assert.equal(demoTenant.body.creative_project.tenant_id, "00000000-0000-0000-0000-000000000001");
 });
 
 test("tenant-scoped project lookup does not reveal cross-tenant data", async () => {
   const api = app();
-  const created = await createProject(api, { "x-tenant-id": "demo-tenant" });
+  const created = await createProject(api, { "x-tenant-id": "00000000-0000-0000-0000-000000000001" });
   const crossTenant = await api.dispatch({
     method: "GET",
     path: `/creative-projects/${created.creative_project.id}`,
@@ -239,7 +239,7 @@ test("live provider without credentials fails closed when fallback is disabled",
     KASTONOM_DEFAULT_VIDEO_PROVIDER: "pollo",
     KASTONOM_FALLBACK_ENABLED: "false"
   });
-  const headers = { "x-tenant-id": "demo-tenant" };
+  const headers = { "x-tenant-id": "00000000-0000-0000-0000-000000000001" };
   const project = await createProject(api, headers);
   const response = await api.dispatch({
     method: "POST",
@@ -259,7 +259,7 @@ test("live provider can fall back to labeled mock only when fallback is enabled"
     KASTONOM_DEFAULT_VIDEO_PROVIDER: "pollo",
     KASTONOM_FALLBACK_ENABLED: "true"
   });
-  const headers = { "x-tenant-id": "demo-tenant" };
+  const headers = { "x-tenant-id": "00000000-0000-0000-0000-000000000001" };
   const project = await createProject(api, headers);
   const response = await api.dispatch({
     method: "POST",
@@ -327,7 +327,7 @@ test("mock publication succeeds only after selected video and remains labeled th
 
 test("live ad publication fails closed when platform config is missing", async () => {
   const api = app({ KASTONOM_MODE: "live", KASTONOM_FALLBACK_ENABLED: "false" });
-  const headers = { "x-tenant-id": "demo-tenant" };
+  const headers = { "x-tenant-id": "00000000-0000-0000-0000-000000000001" };
   const project = await createProject(api, headers);
   const generation = await api.dispatch({
     method: "POST",

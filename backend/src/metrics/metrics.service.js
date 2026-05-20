@@ -26,11 +26,11 @@ const NUMERIC_METRIC_FIELDS = [
   "cost_per_video_view"
 ];
 
-export function createMetricsService({ store, ids, clock, config }) {
+export function createMetricsService({ ids, clock, config }) {
   return {
-    sync(context, adPublicationId, body) {
+    async sync(context, adPublicationId, body) {
       const input = requireObject(body, "request body");
-      const publication = store.getByTenant("adPublications", context.tenant_id, adPublicationId);
+      const publication = await pgStore.getAdPublicationById(adPublicationId, context.tenant_id);
       if (!publication) {
         throw notFound("AD_PUBLICATION_NOT_FOUND", "Ad publication was not found.");
       }
@@ -75,32 +75,26 @@ export function createMetricsService({ store, ids, clock, config }) {
         fetched_at: clock.now()
       };
 
-      store.insert("adMetricsSnapshots", snapshot);
-
       // Save to PostgreSQL
-      try {
-        pgStore.createMetricsSnapshot(snapshot);
+      const createdSnapshot = await pgStore.createMetricsSnapshot(snapshot);
 
-        // Audit log
-        pgStore.createAuditLog({
-          userId: context.user_id,
-          tenantId: context.tenant_id,
-          action: "metrics.sync",
-          entity: "ad_metrics_snapshots",
-          entityId: snapshot.id,
-          ipAddress: context.ipAddress,
-          userAgent: context.userAgent,
-          requestId: context.requestId,
-          afterData: { adPublicationId, source },
-        });
+      // Audit log
+      await pgStore.createAuditLog({
+        userId: context.user_id,
+        tenantId: context.tenant_id,
+        action: "metrics.sync",
+        entity: "ad_metrics_snapshots",
+        entityId: createdSnapshot.id,
+        ipAddress: context.ipAddress,
+        userAgent: context.userAgent,
+        requestId: context.requestId,
+        afterData: { adPublicationId, source },
+      });
 
-        log.info("Metrics snapshot saved to PostgreSQL", { snapshotId: snapshot.id });
-      } catch (err) {
-        log.error("Failed to save metrics to PostgreSQL", { error: err.message });
-      }
+      log.info("Metrics snapshot saved to PostgreSQL", { snapshotId: createdSnapshot.id });
 
       return {
-        metrics_snapshot: snapshot
+        metrics_snapshot: createdSnapshot
       };
     }
   };

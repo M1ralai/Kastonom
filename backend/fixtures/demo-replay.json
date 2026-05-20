@@ -1,7 +1,7 @@
 {
   "tenants": [
     {
-      "id": "demo-tenant",
+      "id": "00000000-0000-0000-0000-000000000001",
       "name": "Kastonom Demo Tenant",
       "mode": "demo",
       "status": "active",
@@ -9,7 +9,7 @@
       "updated_at": "2026-01-01T00:00:00.000Z"
     },
     {
-      "id": "other-tenant",
+      "id": "00000000-0000-0000-0000-000000000002",
       "name": "Kastonom Other Tenant",
       "mode": "demo",
       "status": "active",
@@ -18,19 +18,19 @@
     }
   ],
   "creative_project": {
-    "id": "demo-project",
-    "tenant_id": "demo-tenant",
+    "id": "11111111-1111-1111-1111-111111111111",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
     "name": "Demo mock source asset ad",
     "status": "ready",
-    "selected_generated_video_id": "demo-generated-video",
-    "latest_generation_request_id": "demo-generation-request",
+    "selected_generated_video_id": "77777777-7777-7777-7777-777777777777",
+    "latest_generation_request_id": "44444444-4444-4444-4444-444444444444",
     "created_at": "2026-01-01T00:00:00.000Z",
     "updated_at": "2026-01-01T00:00:00.000Z"
   },
   "creative_subject": {
-    "id": "demo-creative-subject",
-    "tenant_id": "demo-tenant",
-    "project_id": "demo-project",
+    "id": "22222222-2222-2222-2222-222222222222",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "project_id": "11111111-1111-1111-1111-111111111111",
     "subject_type": "product",
     "name": "Kastonom Demo Mug",
     "description": "Mock ceramic mug used only for the backend fallback replay.",
@@ -59,9 +59,9 @@
   },
   "source_assets": [
     {
-      "id": "demo-source-asset",
-      "tenant_id": "demo-tenant",
-      "project_id": "demo-project",
+      "id": "33333333-3333-3333-3333-333333333333",
+      "tenant_id": "00000000-0000-0000-0000-000000000001",
+      "project_id": "11111111-1111-1111-1111-111111111111",
       "asset_type": "image",
       "source": "mock",
       "url": "/demo-assets/mock-mug-reference.png",
@@ -78,12 +78,12 @@
     }
   ],
   "generation_request": {
-    "id": "demo-generation-request",
-    "tenant_id": "demo-tenant",
-    "project_id": "demo-project",
-    "creative_subject_id": "demo-creative-subject",
+    "id": "44444444-4444-4444-4444-444444444444",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "project_id": "11111111-1111-1111-1111-111111111111",
+    "creative_subject_id": "22222222-2222-2222-2222-222222222222",
     "source_asset_ids": [
-      "demo-source-asset"
+      "33333333-3333-3333-3333-333333333333"
     ],
     "status": "completed",
     "objective": "awareness",
@@ -105,10 +105,10 @@
     "updated_at": "2026-01-01T00:00:00.000Z"
   },
   "prompt_payload": {
-    "id": "demo-prompt-payload",
-    "tenant_id": "demo-tenant",
-    "project_id": "demo-project",
-    "generation_request_id": "demo-generation-request",
+    "id": "55555555-5555-5555-5555-555555555555",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "project_id": "11111111-1111-1111-1111-111111111111",
+    "generation_request_id": "44444444-4444-4444-4444-444444444444",
     "provider": "mock",
     "prompt_text": "Create a 15 second 9:16 Turkish video ad for Kastonom Demo Mug. Keep the product visible, use the mock source asset as reference, and include only approved claims: Ceramic mug; Mock product for Kastonom demo. Objective: awareness. Platform: reels. CTA: Detayları gör.",
     "negative_prompt": "Do not invent subject claims. Do not claim a discount. Do not claim limited stock. Do not claim free shipping. Do not claim guaranteed results.",
@@ -116,7 +116,7 @@
     "duration_seconds": 15,
     "aspect_ratio": "9:16",
     "source_asset_ids": [
-      "demo-source-asset"
+      "33333333-3333-3333-3333-333333333333"
     ],
     "provider_options": {
       "adapter": "MockPromptAdapter",
@@ -132,11 +132,11 @@
     "created_at": "2026-01-01T00:00:00.000Z"
   },
   "video_job": {
-    "id": "demo-video-job",
-    "tenant_id": "demo-tenant",
-    "project_id": "demo-project",
-    "generation_request_id": "demo-generation-request",
-    "prompt_payload_id": "demo-prompt-payload",
+    "id": "66666666-6666-6666-6666-666666666666",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "project_id": "11111111-1111-1111-1111-111111111111",
+    "generation_request_id": "44444444-4444-4444-4444-444444444444",
+    "prompt_payload_id": "55555555-5555-5555-5555-555555555555",
     "provider": "mock",
     "status": "completed",
     "provider_job_id": "mock-job-demo-generation-request",
@@ -151,9 +151,9 @@
     "updated_at": "2026-01-01T00:00:00.000Z"
   },
   "provider_result": {
-    "id": "demo-provider-result",
-    "tenant_id": "demo-tenant",
-    "video_job_id": "demo-video-job",
+    "id": "88888888-8888-8888-8888-888888888888",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "video_job_id": "66666666-6666-6666-6666-666666666666",
     "provider": "mock",
     "provider_job_id": "mock-job-demo-generation-request",
     "raw_status": "mock_completed",
@@ -171,12 +171,12 @@
   },
   "generated_videos": [
     {
-      "id": "demo-generated-video",
-      "tenant_id": "demo-tenant",
-      "project_id": "demo-project",
-      "generation_request_id": "demo-generation-request",
-      "video_job_id": "demo-video-job",
-      "provider_result_id": "demo-provider-result",
+      "id": "77777777-7777-7777-7777-777777777777",
+      "tenant_id": "00000000-0000-0000-0000-000000000001",
+      "project_id": "11111111-1111-1111-1111-111111111111",
+      "generation_request_id": "44444444-4444-4444-4444-444444444444",
+      "video_job_id": "66666666-6666-6666-6666-666666666666",
+      "provider_result_id": "88888888-8888-8888-8888-888888888888",
       "url": "/demo-assets/mock-ad-preview.mp4",
       "thumbnail_url": "/demo-assets/mock-ad-preview-thumbnail.png",
       "duration_seconds": 15,
@@ -189,12 +189,12 @@
     }
   ],
   "selected_generated_video": {
-    "id": "demo-generated-video",
-    "tenant_id": "demo-tenant",
-    "project_id": "demo-project",
-    "generation_request_id": "demo-generation-request",
-    "video_job_id": "demo-video-job",
-    "provider_result_id": "demo-provider-result",
+    "id": "77777777-7777-7777-7777-777777777777",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "project_id": "11111111-1111-1111-1111-111111111111",
+    "generation_request_id": "44444444-4444-4444-4444-444444444444",
+    "video_job_id": "66666666-6666-6666-6666-666666666666",
+    "provider_result_id": "88888888-8888-8888-8888-888888888888",
     "url": "/demo-assets/mock-ad-preview.mp4",
     "thumbnail_url": "/demo-assets/mock-ad-preview-thumbnail.png",
     "duration_seconds": 15,
@@ -207,8 +207,8 @@
   },
   "ad_platform_connections": [
     {
-      "id": "demo-ad-connection-meta",
-      "tenant_id": "demo-tenant",
+      "id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+      "tenant_id": "00000000-0000-0000-0000-000000000001",
       "platform": "meta_ads",
       "external_account_id": "mock-meta-account",
       "external_account_name": "Mock Meta Ads demo account",
@@ -222,11 +222,11 @@
     }
   ],
   "ad_publication": {
-    "id": "demo-ad-publication",
-    "tenant_id": "demo-tenant",
-    "project_id": "demo-project",
-    "generated_video_id": "demo-generated-video",
-    "ad_platform_connection_id": "demo-ad-connection-meta",
+    "id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "project_id": "11111111-1111-1111-1111-111111111111",
+    "generated_video_id": "77777777-7777-7777-7777-777777777777",
+    "ad_platform_connection_id": "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
     "platform": "meta_ads",
     "status": "published",
     "external_campaign_id": "mock-campaign-demo",
@@ -241,9 +241,9 @@
     "updated_at": "2026-01-01T00:00:00.000Z"
   },
   "metrics_snapshot": {
-    "id": "demo-metrics-snapshot",
-    "tenant_id": "demo-tenant",
-    "ad_publication_id": "demo-ad-publication",
+    "id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "ad_publication_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
     "platform": "meta_ads",
     "date_start": "2026-01-01",
     "date_end": "2026-01-07",
@@ -266,12 +266,12 @@
     "fetched_at": "2026-01-01T00:00:00.000Z"
   },
   "creative_iteration_suggestion": {
-    "id": "demo-iteration-suggestion",
-    "tenant_id": "demo-tenant",
-    "project_id": "demo-project",
-    "ad_publication_id": "demo-ad-publication",
-    "metrics_snapshot_id": "demo-metrics-snapshot",
-    "base_generation_request_id": "demo-generation-request",
+    "id": "dddddddd-dddd-dddd-dddd-dddddddddddd",
+    "tenant_id": "00000000-0000-0000-0000-000000000001",
+    "project_id": "11111111-1111-1111-1111-111111111111",
+    "ad_publication_id": "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb",
+    "metrics_snapshot_id": "cccccccc-cccc-cccc-cccc-cccccccccccc",
+    "base_generation_request_id": "44444444-4444-4444-4444-444444444444",
     "new_generation_request_id": null,
     "status": "suggested",
     "reason": "Demo fixture suggests testing a clearer opening frame based only on mock metrics.",

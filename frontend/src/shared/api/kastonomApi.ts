@@ -27,7 +27,9 @@ import type {
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
-const DEMO_TENANT_ID = "demo-tenant";
+
+// UUID format: 00000000-0000-0000-0000-000000000001
+const DEMO_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 // Auth token storage key
 const AUTH_TOKEN_KEY = "kastonom_auth_token";
@@ -257,6 +259,14 @@ export async function getCreativeProject(projectId: string): Promise<{
   generated_videos: GeneratedVideo[];
 }> {
   return apiRequest(`/creative-projects/${projectId}`);
+}
+
+export async function listCreativeProjects(): Promise<Array<{
+  creative_project: CreativeProject;
+  creative_subject: CreativeSubject | null;
+  source_assets: SourceAsset[];
+}>> {
+  return apiRequest("/creative-projects");
 }
 
 // ─── Generation Requests ────────────────────────────────────────

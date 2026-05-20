@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router-dom";
-import { Navbar } from "@/widgets/Navbar";
+import { NavBar } from "@/widgets/Navbar";
 import { KpiCard } from "@/widgets/KpiCard";
 import { Badge } from "@/shared/ui/Badge";
 
@@ -15,7 +15,7 @@ export const HomePage = () => {
 
   return (
     <div className="min-h-screen" style={{ background: "#F8FAFC" }}>
-      <Navbar />
+      <NavBar />
       <div className="max-w-7xl mx-auto px-6 py-12">
         {/* Hero */}
         <div className="text-center mb-16 fade-in">
