@@ -1,20 +1,83 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { MOCK_PRODUCTS, MOCK_GENERATED_VIDEOS } from "@/shared/api/kastonomApi";
+import {
+  MOCK_PRODUCTS,
+  MOCK_GENERATED_VIDEOS,
+  getVideoJob,
+  selectGeneratedVideo,
+  getDemoFallback
+} from "@/shared/api/kastonomApi";
+import type { GeneratedVideo, VideoJob } from "@/shared/types/api";
 
 export function PreviewPage() {
   const navigate = useNavigate();
+  const [videos, setVideos] = useState<GeneratedVideo[]>(MOCK_GENERATED_VIDEOS);
   const [selectedVideo, setSelectedVideo] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [projectId, setProjectId] = useState<string | null>(null);
+  const [jobId, setJobId] = useState<string | null>(null);
 
-  const handlePublish = () => {
-    if (!selectedVideo) return;
+  // Load video job data on mount
+  useEffect(() => {
+    loadVideoData();
+  }, []);
+
+  async function loadVideoData() {
+    setIsLoading(true);
+
+    // Get stored IDs
+    const storedJobId = sessionStorage.getItem("lastVideoJobId");
+    const storedProjectId = sessionStorage.getItem("lastProjectId");
+
+    if (storedJobId) {
+      setJobId(storedJobId);
+      try {
+        const result = await getVideoJob(storedJobId);
+        setVideos(result.generated_videos);
+        setProjectId(storedProjectId);
+      } catch (err) {
+        console.error("Failed to load video job:", err);
+        // Fall back to demo data
+        try {
+          const demo = await getDemoFallback();
+          setVideos(demo.generated_videos);
+          if (demo.selected_generated_video) {
+            setSelectedVideo(demo.selected_generated_video.id);
+          }
+        } catch (demoErr) {
+          console.error("Demo fallback also failed:", demoErr);
+        }
+      }
+    } else {
+      // No stored job, try demo fallback
+      try {
+        const demo = await getDemoFallback();
+        setVideos(demo.generated_videos);
+        if (demo.selected_generated_video) {
+          setSelectedVideo(demo.selected_generated_video.id);
+        }
+      } catch (err) {
+        console.error("Failed to load demo fallback:", err);
+      }
+    }
+
+    setIsLoading(false);
+  }
+
+  const handlePublish = async () => {
+    if (!selectedVideo || !projectId) return;
     setIsPublishing(true);
-    setTimeout(() => {
-      setIsPublishing(false);
-      alert("Video başarıyla yayınlandı!");
+
+    try {
+      await selectGeneratedVideo(selectedVideo, projectId);
+      alert("Video başarıyla seçildi!");
       navigate("/");
-    }, 1500);
+    } catch (err) {
+      alert("Video seçilemedi: " + (err instanceof Error ? err.message : "Bilinmeyen hata"));
+    } finally {
+      setIsPublishing(false);
+    }
   };
 
   return (

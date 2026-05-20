@@ -13,6 +13,7 @@ import { createAdPublicationService } from "./ad-publications/ad-publication.ser
 import { createMetricsService } from "./metrics/metrics.service.js";
 import { createIterationSuggestionService } from "./iteration-suggestions/iteration-suggestion.service.js";
 import { createAuthService } from "./auth/auth.service.js";
+import { createDemoReplayService } from "./demo/demo-replay.service.js";
 import { mapError } from "./http/errors/error-mapper.js";
 import {
   resolveRequestContext,
@@ -115,6 +116,7 @@ export function createApp(options = {}) {
   const metrics = createMetricsService({ ids, clock, config });
   const iterationSuggestions = createIterationSuggestionService({ ids, clock });
   const auth = createAuthService({ ids, clock, config });
+  const demoReplay = createDemoReplayService();
   const openApiSpec = createOpenApiSpec(config);
   const swaggerHtml = createSwaggerHtml();
 
@@ -151,6 +153,17 @@ export function createApp(options = {}) {
 
       if (method === "GET" && pathname === "/health") {
         return { status: 200, body: healthBody(config) };
+      }
+
+      // Demo fallback endpoint (no tenant required)
+      if (method === "GET" && pathname === "/demo/fallback") {
+        const demoContext = {
+          tenant_id: demoReplay.getDemoTenantId(),
+          user_id: null,
+          mode: "demo",
+          fallback_enabled: true
+        };
+        return { status: 200, body: demoReplay.getFallback(demoContext) };
       }
 
       // Auth endpoints (no tenant required)

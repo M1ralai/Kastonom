@@ -1,26 +1,73 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { MOCK_PRODUCTS } from "@/shared/api/kastonomApi";
-import type { ProductDisplay } from "@/shared/types/api";
+import { useState, useEffect } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import {
+  MOCK_PRODUCTS,
+  createCreativeProject,
+  createGenerationRequest
+} from "@/shared/api/kastonomApi";
+import type { CreativeProject, CreativeSubject, ProductDisplay } from "@/shared/types/api";
 
-interface CreatePageProps {
-  selectedProduct?: ProductDisplay | null;
-}
-
-export function CreatePage({ selectedProduct = MOCK_PRODUCTS[0] }: CreatePageProps) {
+export function CreatePage() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const projectId = searchParams.get("project");
+
+  // Selected project state
+  const [project, setProject] = useState<CreativeProject | null>(null);
+  const [subject, setSubject] = useState<CreativeSubject | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<ProductDisplay | null>(null);
+
+  // UI state
   const [platform, setPlatform] = useState("TikTok");
   const [tone, setTone] = useState("Enerjik");
   const [style, setStyle] = useState("Ürün Odaklı");
   const [cta, setCta] = useState("Hemen Al");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoadingProject, setIsLoadingProject] = useState(false);
+
+  // Load project from URL param
+  useEffect(() => {
+    if (projectId) {
+      loadProject(projectId);
+    }
+  }, [projectId]);
+
+  async function loadProject(id: string) {
+    setIsLoadingProject(true);
+    try {
+      const bundle = await (await fetch(`/api/creative-projects/${id}`)).json();
+      setProject(bundle.creative_project);
+      setSubject(bundle.creative_subject);
+
+      // Map subject to ProductDisplay
+      if (bundle.creative_subject) {
+        setSelectedProduct({
+          id: bundle.creative_subject.id,
+          name: bundle.creative_subject.name,
+          category: bundle.creative_subject.subject_type,
+          price: bundle.creative_subject.price,
+          currency: bundle.creative_subject.currency,
+          score: 0,
+          reasons: [],
+          img: "📦",
+          creative_subject_id: bundle.creative_subject.id,
+        });
+      }
+    } catch (err) {
+      console.error("Failed to load project:", err);
+      setError("Proje yüklenemedi");
+    } finally {
+      setIsLoadingProject(false);
+    }
+  }
 
   const opts = {
     platform: [
-      { label: "TikTok", icon: "🎵" },
-      { label: "Instagram Reels", icon: "📱" },
-      { label: "YouTube Shorts", icon: "▶️" },
-      { label: "Google Ads", icon: "🔍" },
+      { label: "TikTok", icon: "🎵", value: "tiktok" },
+      { label: "Instagram Reels", icon: "📱", value: "reels" },
+      { label: "YouTube Shorts", icon: "▶️", value: "youtube_shorts" },
+      { label: "Google Ads", icon: "🔍", value: "google_ads" },
     ],
     tone: [
       { label: "Enerjik", icon: "⚡" },
@@ -42,13 +89,81 @@ export function CreatePage({ selectedProduct = MOCK_PRODUCTS[0] }: CreatePagePro
     ],
   };
 
-  const handleGenerate = () => {
-    setIsGenerating(true);
-    // Simulate generation
-    setTimeout(() => {
-      setIsGenerating(false);
-      navigate("/preview");
-    }, 2000);
+  const handleGenerate = async () => {
+    if (!project) {
+      // Create new project first
+      setIsGenerating(true);
+      setError(null);
+      try {
+        const projectResult = await createCreativeProject({
+          name: `${selectedProduct?.name || "Yeni Proje"} - Reklam`,
+          creative_subject: {
+            subject_type: "product",
+            name: selectedProduct?.name || "Yeni Ürün",
+            description: `Reklam кампании для ${selectedProduct?.name}`,
+            allowed_claims: [],
+            forbidden_claims: ["discount", "free shipping", "limited stock"],
+            unknown_fields: ["price", "stock"],
+            source: "user_input"
+          },
+          source_assets: [{
+            asset_type: "image",
+            source: "mock",
+            url: "/demo-assets/placeholder.png"
+          }]
+        });
+
+        setProject(projectResult.creative_project);
+
+        // Create generation request
+        const genResult = await createGenerationRequest({
+          project_id: projectResult.creative_project.id,
+          source_asset_ids: projectResult.source_assets.map(a => a.id),
+          objective: "awareness",
+          platform: platform as any,
+          duration_seconds: 15,
+          aspect_ratio: "9:16",
+          language: "Turkish",
+          tone,
+          style,
+          call_to_action: cta
+        });
+
+        // Store job ID for preview page
+        sessionStorage.setItem("lastVideoJobId", genResult.video_job.id);
+        sessionStorage.setItem("lastProjectId", projectResult.creative_project.id);
+
+        navigate("/preview");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Proje oluşturulamadı");
+        setIsGenerating(false);
+      }
+    } else {
+      setIsGenerating(true);
+      setError(null);
+      try {
+        const genResult = await createGenerationRequest({
+          project_id: project.id,
+          source_asset_ids: [],
+          objective: "awareness",
+          platform: platform as any,
+          duration_seconds: 15,
+          aspect_ratio: "9:16",
+          language: "Turkish",
+          tone,
+          style,
+          call_to_action: cta
+        });
+
+        sessionStorage.setItem("lastVideoJobId", genResult.video_job.id);
+        sessionStorage.setItem("lastProjectId", project.id);
+
+        navigate("/preview");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Video oluşturulamadı");
+        setIsGenerating(false);
+      }
+    }
   };
 
   const getDuration = () => {

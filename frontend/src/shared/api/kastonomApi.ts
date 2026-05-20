@@ -84,6 +84,24 @@ export function isAuthenticated(): boolean {
   return !!getAuthToken();
 }
 
+/**
+ * Check if running in demo mode (no backend connection)
+ */
+export function isDemoMode(): boolean {
+  return localStorage.getItem("kastonom_demo_mode") === "true";
+}
+
+/**
+ * Set demo mode
+ */
+export function setDemoMode(enabled: boolean): void {
+  if (enabled) {
+    localStorage.setItem("kastonom_demo_mode", "true");
+  } else {
+    localStorage.removeItem("kastonom_demo_mode");
+  }
+}
+
 // ─── Auth API ────────────────────────────────────────────────
 
 export async function login(email: string, password: string): Promise<AuthResponse> {

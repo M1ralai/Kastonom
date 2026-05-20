@@ -1,48 +1,47 @@
-import { ApiError } from "../http/errors/api-error.js";
-import { cloneDemoFixture } from "./demo-fixture.loader.js";
+import { readFileSync } from "node:fs";
+import { resolve, dirname } from "node:path";
+import { fileURLToPath } from "node:url";
+import { notFound } from "../http/errors/api-error.js";
+import { createLogger } from "../logger/index.js";
 
-export function createDemoReplayService({ fixturePath }) {
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+const log = createLogger("demo-replay");
+
+/**
+ * Load demo fixture from fixtures/demo-replay.json
+ */
+function loadDemoFixture() {
+  try {
+    const fixturePath = resolve(__dirname, "../../fixtures/demo-replay.json");
+    const content = readFileSync(fixturePath, "utf-8");
+    return JSON.parse(content);
+  } catch (error) {
+    log.error("Failed to load demo fixture", { error: error.message });
+    return null;
+  }
+}
+
+export function createDemoReplayService() {
+  const fixture = loadDemoFixture();
+
   return {
-    getFallbackReplay() {
-      const fixture = cloneDemoFixture(fixturePath);
-      const required = [
-        "creative_project",
-        "creative_subject",
-        "source_assets",
-        "generation_request",
-        "prompt_payload",
-        "video_job",
-        "provider_result",
-        "generated_videos"
-      ];
-
-      for (const key of required) {
-        if (!fixture[key]) {
-          throw new ApiError(
-            500,
-            "DEMO_FALLBACK_UNAVAILABLE",
-            `Demo fallback fixture is missing ${key}.`
-          );
-        }
+    /**
+     * Get complete demo fallback data for hackathon mode
+     */
+    getFallback(context) {
+      if (!fixture) {
+        throw notFound("DEMO_FALLBACK_UNAVAILABLE", "Demo fixture is not available.");
       }
 
-      if (!Array.isArray(fixture.generated_videos) || fixture.generated_videos.length === 0) {
-        throw new ApiError(
-          500,
-          "DEMO_FALLBACK_UNAVAILABLE",
-          "Demo fallback fixture has no generated videos."
-        );
+      // Filter to demo tenant only
+      const demoTenantId = "00000000-0000-0000-0000-000000000001";
+
+      if (context.tenant_id !== demoTenantId && context.tenant_id !== "demo-tenant") {
+        throw notFound("DEMO_FALLBACK_UNAVAILABLE", "Demo fallback is only available for demo tenant.");
       }
 
-      for (const video of fixture.generated_videos) {
-        if (!video.url || video.is_mock !== true) {
-          throw new ApiError(
-            500,
-            "DEMO_FALLBACK_UNAVAILABLE",
-            "Demo fallback generated videos must have mock preview URLs."
-          );
-        }
-      }
+      log.info("Serving demo fallback", { tenant_id: context.tenant_id });
 
       return {
         creative_project: fixture.creative_project,
@@ -53,12 +52,26 @@ export function createDemoReplayService({ fixturePath }) {
         video_job: fixture.video_job,
         provider_result: fixture.provider_result,
         generated_videos: fixture.generated_videos,
-        selected_generated_video: fixture.selected_generated_video ?? null,
-        ad_publication: fixture.ad_publication ?? null,
-        metrics_snapshot: fixture.metrics_snapshot ?? null,
-        creative_iteration_suggestion: fixture.creative_iteration_suggestion ?? null,
-        fallback_reason: fixture.fallback_reason ?? "demo_fallback"
+        selected_generated_video: fixture.selected_generated_video,
+        ad_publication: fixture.ad_publication,
+        metrics_snapshot: fixture.metrics_snapshot,
+        creative_iteration_suggestion: fixture.creative_iteration_suggestion,
+        fallback_reason: "demo_fallback"
       };
+    },
+
+    /**
+     * Check if demo fixture is available
+     */
+    isAvailable() {
+      return fixture !== null;
+    },
+
+    /**
+     * Get demo tenant ID
+     */
+    getDemoTenantId() {
+      return "00000000-0000-0000-0000-000000000001";
     }
   };
 }
