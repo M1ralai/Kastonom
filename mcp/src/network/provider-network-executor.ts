@@ -6,7 +6,6 @@
  */
 
 import type { PromptPayload, ProviderResult, VideoProvider, VideoJobStatus } from "../types/index.js";
-import { PolloAPIClient } from "./provider-api-clients.js";
 
 /**
  * Provider API configuration
@@ -42,6 +41,96 @@ export interface ProviderExecutionOptions {
   fallbackEnabled?: boolean;
   fallbackReason?: string | null;
   mockPreviewUrl?: string;
+}
+
+const POLLO_PLATFORM_ROOT = "/api/platform";
+const KLING_VIDEO_V3_GENERATION_PATH = "/generation/kling-ai/kling-v3";
+
+function trimTrailingSlashes(value: string): string {
+  return value.replace(/\/+$/, "");
+}
+
+function buildPolloPlatformUrl(baseUrl: string, path: string): string {
+  const base = trimTrailingSlashes(baseUrl);
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (base.endsWith(POLLO_PLATFORM_ROOT)) {
+    return `${base}${normalizedPath}`;
+  }
+
+  return `${base}${POLLO_PLATFORM_ROOT}${normalizedPath}`;
+}
+
+function getStringOption(options: Record<string, unknown>, key: string): string | undefined {
+  const value = options[key];
+  return typeof value === "string" && value.trim() !== "" ? value.trim() : undefined;
+}
+
+function getNumberOption(options: Record<string, unknown>, key: string): number | undefined {
+  const value = options[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : undefined;
+}
+
+function getStringArrayOption(options: Record<string, unknown>, key: string): string[] {
+  const value = options[key];
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.startsWith("https://"));
+}
+
+function getHttpsStringOption(options: Record<string, unknown>, key: string): string[] {
+  const value = getStringOption(options, key);
+  return value?.startsWith("https://") ? [value] : [];
+}
+
+function normalizeKlingAspectRatio(value: string): "16:9" | "9:16" | "1:1" {
+  if (value === "16:9" || value === "9:16" || value === "1:1") {
+    return value;
+  }
+
+  return "9:16";
+}
+
+function normalizeKlingLength(value: number): number {
+  const roundedValue = Math.round(value);
+  return Math.min(15, Math.max(3, roundedValue));
+}
+
+function stripUndefinedValues(payload: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(
+    Object.entries(payload).filter(([, value]) => value !== undefined)
+  );
+}
+
+function objectValue(value: unknown): Record<string, unknown> | undefined {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : undefined;
+}
+
+function providerData(data: Record<string, unknown>): Record<string, unknown> {
+  return objectValue(data.data)
+    ?? objectValue(data.result)
+    ?? objectValue(data.task)
+    ?? data;
+}
+
+function firstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim() !== "") {
+      return value.trim();
+    }
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return String(value);
+    }
+  }
+
+  return undefined;
 }
 
 /**
@@ -91,7 +180,6 @@ export class ProviderNetworkExecutor {
   private mockPreviewUrl: string;
   private idFactory: (prefix: string) => string;
   private now: () => string;
-  private clientCache: Map<VideoProvider, PolloAPIClient | null>;
 
   constructor(options: NetworkExecutorOptions) {
     this.credentials = options.credentials;
@@ -100,26 +188,19 @@ export class ProviderNetworkExecutor {
     this.mockPreviewUrl = options.mockPreviewUrl ?? "/demo-assets/mock-ad-preview.mp4";
     this.idFactory = options.idFactory ?? ((prefix: string) => `${prefix}-${Date.now()}`);
     this.now = options.now ?? (() => new Date().toISOString());
-    this.clientCache = new Map();
   }
 
   /**
    * Check if provider credentials are available
    */
   hasCredentials(provider: VideoProvider): boolean {
-    if (provider === "mock") {
-      return true;
-    }
     return this.getProviderConfig(provider) !== null;
   }
 
   /**
-   * Get credentials for provider (only call for non-mock providers)
+   * Get credentials for provider
    */
   private getProviderConfig(provider: VideoProvider): ProviderAPIConfig | null {
-    if (provider === "mock") {
-      return null;
-    }
     const cred = this.credentials;
     // Type-safe access for non-mock providers only
     if (provider === "pollo" && cred.pollo?.apiKey && cred.pollo?.baseUrl) {
@@ -128,34 +209,13 @@ export class ProviderNetworkExecutor {
     if (provider === "kling" && cred.kling?.apiKey && cred.kling?.baseUrl) {
       return cred.kling;
     }
+    if (provider === "kling" && cred.pollo?.apiKey && cred.pollo?.baseUrl) {
+      return cred.pollo;
+    }
     if (provider === "runway" && cred.runway?.apiKey && cred.runway?.baseUrl) {
       return cred.runway;
     }
     return null;
-  }
-
-  /**
-   * Get or create API client for provider
-   */
-  private getAPIClient(provider: VideoProvider): PolloAPIClient | null {
-    if (this.clientCache.has(provider)) {
-      return this.clientCache.get(provider) ?? null;
-    }
-
-    const config = this.getProviderConfig(provider);
-    if (!config) {
-      this.clientCache.set(provider, null);
-      return null;
-    }
-
-    const client = new PolloAPIClient({
-      apiKey: config.apiKey,
-      baseUrl: config.baseUrl,
-      timeoutMs: config.timeoutMs ?? this.defaultTimeoutMs
-    });
-
-    this.clientCache.set(provider, client);
-    return client;
   }
 
   /**
@@ -168,54 +228,23 @@ export class ProviderNetworkExecutor {
     options: ProviderExecutionOptions = {}
   ): Promise<ProviderResult> {
     const provider = promptPayload.provider;
-    const fallbackEnabled = options.fallbackEnabled ?? this.fallbackEnabled;
-    const fallbackReason = options.fallbackReason ?? promptPayload.fallback_reason ?? null;
-    const mockPreviewUrl = options.mockPreviewUrl ?? this.mockPreviewUrl;
-
-    // If mock provider, return mock result
-    if (provider === "mock") {
-      return this.createMockResult(promptPayload, fallbackReason, mockPreviewUrl);
-    }
-
+    
     // For live providers, check credentials
     const config = this.getProviderConfig(provider);
     if (!config) {
-      if (fallbackEnabled) {
-        return this.createMockResult(
-          promptPayload,
-          "provider_config_missing_fallback_to_mock",
-          mockPreviewUrl
-        );
+      // Check if fallback is enabled - if so, return mock result
+      if (options.fallbackEnabled ?? this.fallbackEnabled) {
+        return this.generateMockResult(promptPayload, "provider_config_fallback");
       }
-
       const error = new Error(`${provider} provider configuration is missing.`);
       (error as Error & { code?: string; fallbackAvailable?: boolean }).code = "PROVIDER_CONFIG_MISSING";
       (error as Error & { code?: string; fallbackAvailable?: boolean }).fallbackAvailable = false;
       throw error;
     }
 
-    try {
-      // Execute real API call based on provider
-      const result = await this.callProviderAPI(provider, promptPayload);
-      return result;
-    } catch (error) {
-      const providerMessage = error instanceof Error ? error.message : String(error);
-
-      if (fallbackEnabled) {
-        return this.createMockResult(
-          promptPayload,
-          "provider_execution_failed_fallback_to_mock",
-          mockPreviewUrl,
-          providerMessage
-        );
-      }
-
-      const executionError = new Error(`${provider} provider execution failed.`);
-      (executionError as Error & { code?: string; providerMessage?: string; fallbackAvailable?: boolean }).code = "PROVIDER_UNAVAILABLE";
-      (executionError as Error & { code?: string; providerMessage?: string; fallbackAvailable?: boolean }).providerMessage = providerMessage;
-      (executionError as Error & { code?: string; providerMessage?: string; fallbackAvailable?: boolean }).fallbackAvailable = false;
-      throw executionError;
-    }
+    // Execute real API call based on provider
+    const result = await this.callProviderAPI(provider, promptPayload);
+    return result;
   }
 
   /**
@@ -241,11 +270,7 @@ export class ProviderNetworkExecutor {
 
     // Call appropriate provider API
     const response = await fetch(
-      provider === "pollo"
-        ? `${config.baseUrl}/v1/videos/generate`
-        : provider === "kling"
-        ? `${config.baseUrl}/api/v1/videos`
-        : `${config.baseUrl}/v1/text_to_video`,
+      this.getProviderSubmissionUrl(provider, config.baseUrl),
       {
         method: "POST",
         headers: this.getProviderHeaders(provider, config.apiKey),
@@ -259,21 +284,26 @@ export class ProviderNetworkExecutor {
     }
 
     const data = await response.json() as Record<string, unknown>;
+    const body = providerData(data);
 
     // Extract job ID based on provider response format
     if (provider === "pollo") {
-      jobId = String(data.id ?? "");
-      status = String(data.status || "queued");
+      jobId = firstString(body.id, data.id) ?? "";
+      status = firstString(body.status, data.status) ?? "queued";
     } else if (provider === "kling") {
-      jobId = String(data.task_id ?? "");
-      status = String(data.task_status || "queued");
+      jobId = firstString(body.taskId, body.task_id, body.id, data.taskId, data.task_id, data.id) ?? "";
+      status = firstString(body.status, body.task_status, data.status, data.task_status) ?? "queued";
     } else {
       // Runway
-      jobId = String(data.id ?? "");
-      status = String(data.status || "pending");
+      jobId = firstString(body.id, data.id) ?? "";
+      status = firstString(body.status, data.status) ?? "pending";
     }
 
-    const resultUrls = extractResultUrls(provider, data);
+    if (jobId === "") {
+      throw new Error(`${provider} API response did not include a task id.`);
+    }
+
+    const resultUrls = extractResultUrls(provider, body, data);
 
     return {
       id: this.idFactory("provider-result"),
@@ -288,10 +318,47 @@ export class ProviderNetworkExecutor {
       error_message: null,
       redacted_metadata: {
         adapter: `${provider}-prompt-adapter`,
+        provider_gateway: provider === "kling" ? "pollo.ai" : provider,
+        model: provider === "kling" ? "kling-v3" : undefined,
         is_mock: false
       },
       received_at: this.now()
     };
+  }
+
+  /**
+   * Get provider-specific submission URL
+   */
+  private getProviderSubmissionUrl(provider: VideoProvider, baseUrl: string): string {
+    const trimmedBaseUrl = trimTrailingSlashes(baseUrl);
+
+    if (provider === "pollo") {
+      return `${trimmedBaseUrl}/v1/videos/generate`;
+    }
+
+    if (provider === "kling") {
+      return buildPolloPlatformUrl(baseUrl, KLING_VIDEO_V3_GENERATION_PATH);
+    }
+
+    return `${trimmedBaseUrl}/v1/text_to_video`;
+  }
+
+  /**
+   * Get provider-specific status URL
+   */
+  private getProviderStatusUrl(provider: VideoProvider, baseUrl: string, providerJobId: string): string {
+    const trimmedBaseUrl = trimTrailingSlashes(baseUrl);
+    const encodedProviderJobId = encodeURIComponent(providerJobId);
+
+    if (provider === "pollo") {
+      return `${trimmedBaseUrl}/v1/videos/${encodedProviderJobId}`;
+    }
+
+    if (provider === "kling") {
+      return buildPolloPlatformUrl(baseUrl, `/generation/${encodedProviderJobId}/status`);
+    }
+
+    return `${trimmedBaseUrl}/v1/text_to_video/${encodedProviderJobId}`;
   }
 
   /**
@@ -305,7 +372,7 @@ export class ProviderNetworkExecutor {
     if (provider === "pollo" || provider === "runway") {
       headers["Authorization"] = `Bearer ${apiKey}`;
     } else if (provider === "kling") {
-      headers["X-API-Key"] = apiKey;
+      headers["x-api-key"] = apiKey;
     }
 
     return headers;
@@ -336,13 +403,33 @@ export class ProviderNetworkExecutor {
         model: "pollo-v1"
       };
     } else if (provider === "kling") {
-      return {
-        text: promptPayload.prompt_text,
-        negative_text: options.negativePrompt,
-        duration: options.durationSeconds,
-        aspect_ratio: options.aspectRatio,
-        model_id: "kling-video-v1"
-      };
+      const providerOptions = promptPayload.provider_options ?? {};
+      
+      // Kling v3 uses single "image" field, not "images" array
+      const imageUrl = 
+        getHttpsStringOption(providerOptions, "image")[0] ??
+        getStringArrayOption(providerOptions, "reference_images")[0] ??
+        getStringArrayOption(providerOptions, "images")[0];
+
+      if (!imageUrl) {
+        throw new Error("Kling v3 requires an image URL in provider_options.image");
+      }
+
+      const input = stripUndefinedValues({
+        image: imageUrl,
+        prompt: promptPayload.prompt_text,
+        negativePrompt: options.negativePrompt,
+        aspectRatio: normalizeKlingAspectRatio(options.aspectRatio),
+        length: normalizeKlingLength(getNumberOption(providerOptions, "length") ?? options.durationSeconds),
+        mode: getStringOption(providerOptions, "mode") ?? "pro",
+        generateAudio: getStringOption(providerOptions, "generateAudio") !== "false"
+      });
+
+      return stripUndefinedValues({
+        input,
+        webhookUrl: getStringOption(providerOptions, "webhookUrl"),
+        clientSource: getStringOption(providerOptions, "clientSource") ?? "kastonom-mcp"
+      });
     } else {
       // Runway
       return {
@@ -368,14 +455,7 @@ export class ProviderNetworkExecutor {
       throw new Error(`No configuration for provider: ${provider}`);
     }
 
-    const url =
-      provider === "pollo"
-        ? `${config.baseUrl}/v1/videos/${providerJobId}`
-        : provider === "kling"
-        ? `${config.baseUrl}/api/v1/videos/${providerJobId}`
-        : `${config.baseUrl}/v1/text_to_video/${providerJobId}`;
-
-    const response = await fetch(url, {
+    const response = await fetch(this.getProviderStatusUrl(provider, config.baseUrl, providerJobId), {
       headers: this.getProviderHeaders(provider, config.apiKey)
     });
 
@@ -385,6 +465,7 @@ export class ProviderNetworkExecutor {
     }
 
     const data = await response.json() as Record<string, unknown>;
+    const body = providerData(data);
 
     // Extract status and URL based on provider response format
     let status: string;
@@ -392,20 +473,57 @@ export class ProviderNetworkExecutor {
     let error: string | undefined;
 
     if (provider === "pollo") {
-      status = String(data.status ?? "queued");
-      videoUrl = data.url ? String(data.url) : undefined;
-      error = data.error ? String(data.error) : undefined;
+      status = firstString(body.status, data.status) ?? "queued";
+      videoUrl = firstString(body.url, body.video_url, data.url, data.video_url);
+      error = firstString(body.error, data.error);
     } else if (provider === "kling") {
-      status = String(data.task_status ?? "queued");
-      const video = data.video as Record<string, unknown> | undefined;
-      videoUrl = video?.url ? String(video.url) : undefined;
-      error = data.error ? String(data.error) : undefined;
+      // Kling v3 response format: { result: [{ status, videoUrl, failMsg }] }
+      const resultArray = data.result as unknown[] | undefined;
+      const firstResult = Array.isArray(resultArray) && resultArray.length > 0 
+        ? resultArray[0] as Record<string, unknown> 
+        : undefined;
+      
+      // Also check legacy formats
+      const generation = selectGeneration(body.generations ?? data.generations);
+      const video = objectValue(body.video) ?? objectValue(data.video);
+      
+      // Extract video URL from various possible locations
+      videoUrl = firstString(
+        firstResult?.videoUrl,
+        firstResult?.url,
+        generation?.url,
+        video?.url, 
+        body.url, 
+        data.url
+      );
+      
+      // Extract error message
+      error = firstString(
+        firstResult?.failMsg,
+        firstResult?.fail_message,
+        generation?.failMsg, 
+        body.failMsg, 
+        data.failMsg, 
+        body.error, 
+        data.error
+      );
+      
+      // Extract status - if we have a videoUrl, consider it completed
+      status = firstString(
+        firstResult?.status,
+        generation?.status,
+        videoUrl ? "completed" : undefined,
+        body.status,
+        body.task_status,
+        data.status,
+        data.task_status
+      ) ?? "queued";
     } else {
       // Runway
-      status = String(data.status ?? "pending");
-      const output = data.output as Record<string, unknown> | undefined;
-      videoUrl = output?.video_url ? String(output.video_url) : undefined;
-      error = data.error ? String(data.error) : undefined;
+      status = firstString(body.status, data.status) ?? "pending";
+      const output = objectValue(body.output) ?? objectValue(data.output);
+      videoUrl = firstString(output?.video_url, body.video_url, body.url, data.video_url, data.url);
+      error = firstString(body.error, data.error);
     }
 
     return {
@@ -416,31 +534,29 @@ export class ProviderNetworkExecutor {
   }
 
   /**
-   * Create mock provider result
+   * Generate mock result when credentials are missing and fallback is enabled
    */
-  private createMockResult(
+  private generateMockResult(
     promptPayload: PromptPayload,
-    fallbackReason: string | null,
-    mockPreviewUrl: string,
-    providerErrorMessage?: string
+    fallbackReason: string
   ): ProviderResult {
     return {
-      id: this.idFactory("mock-result"),
+      id: this.idFactory("provider-result"),
       tenant_id: promptPayload.tenant_id,
       video_job_id: "",
-      provider: "mock",
+      provider: promptPayload.provider,
       provider_job_id: this.idFactory("mock-job"),
-      raw_status: "mock_completed",
-      normalized_status: "completed" as VideoJobStatus,
-      result_urls: [mockPreviewUrl],
+      raw_status: "completed",
+      normalized_status: "completed",
+      result_urls: [this.mockPreviewUrl],
       error_code: null,
       error_message: null,
       redacted_metadata: {
-        adapter: "MockPromptAdapter",
+        adapter: `${promptPayload.provider}-prompt-adapter`,
+        provider_gateway: promptPayload.provider,
         is_mock: true,
-        requested_provider: promptPayload.provider,
-        fallback_reason: fallbackReason ?? "mock_provider",
-        provider_error: providerErrorMessage ?? null
+        fallback_reason: fallbackReason,
+        fallback_enabled: true
       },
       received_at: this.now()
     };
@@ -451,7 +567,6 @@ export class ProviderNetworkExecutor {
    */
   getProviderReadiness(): Record<VideoProvider, { ready: boolean; is_mock: boolean }> {
     return {
-      mock: { ready: true, is_mock: true },
       pollo: { ready: this.hasCredentials("pollo"), is_mock: !this.hasCredentials("pollo") },
       kling: { ready: this.hasCredentials("kling"), is_mock: !this.hasCredentials("kling") },
       runway: { ready: this.hasCredentials("runway"), is_mock: !this.hasCredentials("runway") }
@@ -465,18 +580,72 @@ function collectStringUrl(value: unknown, urls: string[]): void {
   }
 }
 
-function extractResultUrls(provider: VideoProvider, data: Record<string, unknown>): string[] {
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
+
+function selectGeneration(value: unknown): Record<string, unknown> | undefined {
+  if (!Array.isArray(value)) {
+    return undefined;
+  }
+
+  for (const item of value) {
+    if (item && typeof item === "object" && "url" in item) {
+      return item as Record<string, unknown>;
+    }
+  }
+
+  const firstItem = value[0];
+  return firstItem && typeof firstItem === "object"
+    ? firstItem as Record<string, unknown>
+    : undefined;
+}
+
+function extractResultUrls(
+  provider: VideoProvider,
+  data: Record<string, unknown>,
+  rawData: Record<string, unknown> = data
+): string[] {
   const urls: string[] = [];
 
   if (provider === "pollo") {
     collectStringUrl(data.url, urls);
     collectStringUrl(data.video_url, urls);
+    collectStringUrl(rawData.url, urls);
+    collectStringUrl(rawData.video_url, urls);
   }
 
   if (provider === "kling") {
-    const video = data.video as Record<string, unknown> | undefined;
+    // Check Kling v3 format: data.result is an array of { videoUrl, status }
+    const resultArray = data.result as unknown[] | undefined;
+    if (Array.isArray(resultArray) && resultArray.length > 0) {
+      for (const item of resultArray) {
+        if (item && typeof item === "object") {
+          const resultItem = item as Record<string, unknown>;
+          collectStringUrl(resultItem.videoUrl, urls);
+          collectStringUrl(resultItem.url, urls);
+        }
+      }
+    }
+    
+    // Legacy format checks
+    const video = objectValue(data.video) ?? objectValue(rawData.video);
     collectStringUrl(video?.url, urls);
     collectStringUrl(data.url, urls);
+    collectStringUrl(rawData.url, urls);
+
+    const generations = Array.isArray(data.generations)
+      ? data.generations
+      : Array.isArray(rawData.generations)
+      ? rawData.generations
+      : [];
+    if (generations.length > 0) {
+      for (const generation of generations) {
+        if (generation && typeof generation === "object") {
+          collectStringUrl((generation as Record<string, unknown>).url, urls);
+        }
+      }
+    }
   }
 
   if (provider === "runway") {

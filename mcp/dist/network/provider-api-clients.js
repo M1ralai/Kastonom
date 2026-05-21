@@ -4,9 +4,71 @@
  * @file MCP-007: Real provider API implementations
  * @description Live API clients for Pollo, Kling, Runway
  */
+const POLLO_PLATFORM_ROOT = "/api/platform";
+const KLING_VIDEO_O1_GENERATION_PATH = "/generation/kling-ai/kling-video-o1";
+function trimTrailingSlashes(value) {
+    return value.replace(/\/+$/, "");
+}
+function buildPolloPlatformUrl(baseUrl, path) {
+    const base = trimTrailingSlashes(baseUrl);
+    const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+    if (base.endsWith(POLLO_PLATFORM_ROOT)) {
+        return `${base}${normalizedPath}`;
+    }
+    return `${base}${POLLO_PLATFORM_ROOT}${normalizedPath}`;
+}
+function stringValue(value) {
+    return typeof value === "string" && value.trim() !== "" ? value : undefined;
+}
+function objectValue(value) {
+    return value && typeof value === "object" && !Array.isArray(value)
+        ? value
+        : undefined;
+}
+function providerData(data) {
+    return objectValue(data.data)
+        ?? objectValue(data.result)
+        ?? objectValue(data.task)
+        ?? data;
+}
+function firstString(...values) {
+    for (const value of values) {
+        if (typeof value === "string" && value.trim() !== "") {
+            return value.trim();
+        }
+        if (typeof value === "number" && Number.isFinite(value)) {
+            return String(value);
+        }
+    }
+    return undefined;
+}
+function normalizeKlingAspectRatio(value) {
+    if (value === "16:9" || value === "9:16" || value === "1:1") {
+        return value;
+    }
+    return "9:16";
+}
+function normalizeKlingLength(value) {
+    const roundedValue = Math.round(value);
+    return Math.min(15, Math.max(3, roundedValue));
+}
+function selectGeneration(value) {
+    if (!Array.isArray(value)) {
+        return undefined;
+    }
+    for (const item of value) {
+        if (item && typeof item === "object" && "url" in item) {
+            return item;
+        }
+    }
+    const firstItem = value[0];
+    return firstItem && typeof firstItem === "object"
+        ? firstItem
+        : undefined;
+}
 function normalizeClientStatus(value, fallback = "queued") {
     const status = String(value ?? fallback).toLowerCase();
-    if (status === "completed" || status === "done" || status === "succeed") {
+    if (status === "completed" || status === "done" || status === "succeed" || status === "success") {
         return "completed";
     }
     if (status === "failed" || status === "error") {
@@ -79,8 +141,8 @@ export class PolloAPIClient {
     }
 }
 /**
- * Kling API client
- * @see https://docs.klingai.com
+ * Kling Video O1 client through the Pollo AI platform API.
+ * @see https://docs.pollo.ai/m/kling-ai/kling-video-o1
  */
 export class KlingAPIClient {
     config;
@@ -91,18 +153,27 @@ export class KlingAPIClient {
         };
     }
     async createJob(promptText, options) {
-        const response = await fetch(`${this.config.baseUrl}/api/v1/videos`, {
+        const referenceImages = (options.referenceImages ?? [])
+            .map((image) => image.trim())
+            .filter((image) => image.startsWith("https://"));
+        if (referenceImages.length === 0) {
+            throw new Error("Kling Video O1 requires at least one HTTPS reference image.");
+        }
+        const response = await fetch(buildPolloPlatformUrl(this.config.baseUrl, KLING_VIDEO_O1_GENERATION_PATH), {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
-                "X-API-Key": this.config.apiKey
+                "x-api-key": this.config.apiKey
             },
             body: JSON.stringify({
-                text: promptText,
-                negative_text: options.negativePrompt,
-                duration: options.durationSeconds,
-                aspect_ratio: options.aspectRatio,
-                model_id: "kling-video-v1"
+                input: {
+                    images: Array.from(new Set(referenceImages)),
+                    prompt: promptText,
+                    aspectRatio: normalizeKlingAspectRatio(options.aspectRatio),
+                    length: normalizeKlingLength(options.durationSeconds),
+                    mode: "pro"
+                },
+                clientSource: "kastonom-mcp"
             })
         });
         if (!response.ok) {
@@ -110,15 +181,20 @@ export class KlingAPIClient {
             throw new Error(`Kling API error: ${response.status} - ${error}`);
         }
         const data = await response.json();
+        const body = providerData(data);
+        const jobId = firstString(body.taskId, body.task_id, body.id, data.taskId, data.task_id, data.id);
+        if (!jobId) {
+            throw new Error("Kling API response did not include a task id.");
+        }
         return {
-            jobId: String(data.task_id ?? ""),
-            status: String(data.task_status || "queued")
+            jobId,
+            status: firstString(body.status, body.task_status, data.status, data.task_status) ?? "queued"
         };
     }
     async getJobStatus(jobId) {
-        const response = await fetch(`${this.config.baseUrl}/api/v1/videos/${jobId}`, {
+        const response = await fetch(buildPolloPlatformUrl(this.config.baseUrl, `/generation/${encodeURIComponent(jobId)}/status`), {
             headers: {
-                "X-API-Key": this.config.apiKey
+                "x-api-key": this.config.apiKey
             }
         });
         if (!response.ok) {
@@ -126,11 +202,23 @@ export class KlingAPIClient {
             throw new Error(`Kling API error: ${response.status} - ${error}`);
         }
         const data = await response.json();
-        const video = data.video;
+        // Handle nested result array structure: { result: [{ status, videoUrl, ... }] }
+        const resultArray = data.result;
+        const firstResult = Array.isArray(resultArray) && resultArray.length > 0
+            ? resultArray[0]
+            : undefined;
+        // Extract status and videoUrl from first result item
+        const resultStatus = firstString(firstResult?.status, data.status);
+        const resultVideoUrl = firstString(firstResult?.videoUrl, firstResult?.url, data.videoUrl, data.url);
+        const resultError = firstString(firstResult?.failMsg, firstResult?.fail_message, data.failMsg, data.error);
+        // If we have a videoUrl, consider it completed even if status is unknown
+        const finalStatus = resultVideoUrl
+            ? normalizeClientStatus(resultStatus ?? "completed")
+            : normalizeClientStatus(resultStatus ?? "queued");
         return {
-            status: normalizeClientStatus(data.task_status),
-            videoUrl: video?.url ? String(video.url) : undefined,
-            error: data.error ? String(data.error) : undefined
+            status: finalStatus,
+            videoUrl: resultVideoUrl,
+            error: resultError
         };
     }
 }

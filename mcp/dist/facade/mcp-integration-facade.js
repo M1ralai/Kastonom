@@ -61,9 +61,7 @@ export class MCPIntegrationFacade {
             provider: input.provider,
             durationSeconds: input.durationSeconds,
             aspectRatio: input.aspectRatio,
-            language: input.language ?? "Turkish",
-            isMock: input.provider === "mock",
-            fallbackReason: input.provider === "mock" ? "mock_provider" : null
+            language: input.language ?? "Turkish"
         };
         return compilePrompt(input.creativeBrief, compileOptions, tenantId, this.llmApiKey);
     }

@@ -17,7 +17,7 @@ export { SCORING_WEIGHTS, RECOMMENDATION_THRESHOLD } from "./scoring/weights.js"
 export { generateCreativeBrief, generateBriefWithContext, validateContent } from "./brief-generator/index.js";
 
 // Prompt Compiler
-export { createMockPromptAdapter, createPolloPromptAdapter, compilePrompt } from "./prompt-compiler/index.js";
+export { createPolloPromptAdapter, compilePrompt } from "./prompt-compiler/index.js";
 
 // Iteration Engine
 export { analyzeMetricsAndSuggest, getAlternativeAngles } from "./iteration-engine/index.js";

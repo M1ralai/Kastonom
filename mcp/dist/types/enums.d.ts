@@ -165,8 +165,9 @@ export declare const CONFIDENCE_VALUES: Confidence[];
 /**
  * Video provider
  * @description Supported AI video generation providers.
+ * All providers are accessed through Pollo AI gateway.
  */
-export type VideoProvider = "pollo" | "kling" | "runway" | "mock";
+export type VideoProvider = "pollo" | "kling" | "runway";
 /**
  * Valid VideoProvider values
  */

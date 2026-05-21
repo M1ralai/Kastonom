@@ -2,9 +2,16 @@
  * MCP Prompt Compiler - Adapter Interface
  * @module mcp/prompt-compiler
  * @file MCP-004: Prompt compiler adapter interface and implementations
- * @description Provider-specific prompt compilation with LLM optimization and fallback.
+ * @description Provider-specific prompt compilation with LLM optimization.
+ * PRODUCTION: Mock provider removed - use live providers only
  */
 import type { VideoProvider, AspectRatio, CreativeBriefContent, PromptPayload } from "../types/index.js";
+/**
+ * Error thrown when attempting to use mock provider
+ */
+export declare class MockProviderNotSupportedError extends Error {
+    constructor();
+}
 /**
  * Prompt compiler options
  */
@@ -25,7 +32,6 @@ export interface CompileOptions {
     aspectRatio: AspectRatio;
     language?: string;
     sourceAssetIds?: string[];
-    isMock?: boolean;
     fallbackReason?: string | null;
 }
 /**
@@ -35,19 +41,15 @@ export interface BasePromptAdapter {
     compile(brief: CreativeBriefContent, options: CompileOptions): PromptPayload;
 }
 /**
- * Mock prompt adapter (always deterministic, labeled)
- */
-export declare function createMockPromptAdapter(tenantId: string): BasePromptAdapter;
-/**
- * Pollo prompt adapter (LLM-enhanced, rule-based fallback)
+ * Pollo prompt adapter (LLM-enhanced)
  */
 export declare function createPolloPromptAdapter(tenantId: string, _llmApiKey?: string | null): BasePromptAdapter;
 /**
- * Kling prompt adapter (LLM-enhanced, rule-based fallback)
+ * Kling prompt adapter (LLM-enhanced)
  */
 export declare function createKlingPromptAdapter(tenantId: string, _llmApiKey?: string | null): BasePromptAdapter;
 /**
- * Runway prompt adapter (LLM-enhanced, rule-based fallback)
+ * Runway prompt adapter (LLM-enhanced)
  */
 export declare function createRunwayPromptAdapter(tenantId: string, _llmApiKey?: string | null): BasePromptAdapter;
 /**

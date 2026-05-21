@@ -140,7 +140,7 @@ export const CONFIDENCE_VALUES = ["low", "medium", "high"];
 /**
  * Valid VideoProvider values
  */
-export const VIDEO_PROVIDERS = ["pollo", "kling", "runway", "mock"];
+export const VIDEO_PROVIDERS = ["pollo", "kling", "runway"];
 /**
  * Valid GenerationMethod values
  */

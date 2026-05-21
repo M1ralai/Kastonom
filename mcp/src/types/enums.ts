@@ -314,13 +314,14 @@ export const CONFIDENCE_VALUES: Confidence[] = ["low", "medium", "high"];
 /**
  * Video provider
  * @description Supported AI video generation providers.
+ * All providers are accessed through Pollo AI gateway.
  */
-export type VideoProvider = "pollo" | "kling" | "runway" | "mock";
+export type VideoProvider = "pollo" | "kling" | "runway";
 
 /**
  * Valid VideoProvider values
  */
-export const VIDEO_PROVIDERS: VideoProvider[] = ["pollo", "kling", "runway", "mock"];
+export const VIDEO_PROVIDERS: VideoProvider[] = ["pollo", "kling", "runway"];
 
 /**
  * Generation method

@@ -9,7 +9,7 @@ export { createScoringEngine, quickScore, ScoringEngine } from "./scoring/index.
 export { extractSalesVelocity, extractStockMovement, extractNewProductBoost } from "./scoring/rules.js";
 export { SCORING_WEIGHTS, RECOMMENDATION_THRESHOLD } from "./scoring/weights.js";
 export { generateCreativeBrief, generateBriefWithContext, validateContent } from "./brief-generator/index.js";
-export { createMockPromptAdapter, createPolloPromptAdapter, compilePrompt } from "./prompt-compiler/index.js";
+export { createPolloPromptAdapter, compilePrompt } from "./prompt-compiler/index.js";
 export { analyzeMetricsAndSuggest, getAlternativeAngles } from "./iteration-engine/index.js";
 export { createMCPFacade, createDemoMCPFacade, MCPIntegrationFacade } from "./facade/index.js";
 export { createNetworkExecutor, createMockNetworkExecutor, ProviderNetworkExecutor } from "./network/index.js";

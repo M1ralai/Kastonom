@@ -40,8 +40,8 @@ export declare class PolloAPIClient {
     }>;
 }
 /**
- * Kling API client
- * @see https://docs.klingai.com
+ * Kling Video O1 client through the Pollo AI platform API.
+ * @see https://docs.pollo.ai/m/kling-ai/kling-video-o1
  */
 export declare class KlingAPIClient {
     private config;
@@ -50,6 +50,7 @@ export declare class KlingAPIClient {
         durationSeconds: number;
         aspectRatio: string;
         negativePrompt?: string;
+        referenceImages?: string[];
     }): Promise<{
         jobId: string;
         status: string;

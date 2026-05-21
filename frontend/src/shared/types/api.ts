@@ -21,7 +21,7 @@ export type VideoJobStatus = "queued" | "submitted" | "processing" | "completed"
 export type ProjectStatus = "draft" | "generating" | "ready" | "published" | "archived" | "failed";
 export type GeneratedVideoStatus = "generated" | "selected" | "rejected" | "published" | "unavailable";
 export type AdPublicationStatus = "draft" | "publishing" | "published" | "failed" | "paused" | "archived";
-export type VideoProvider = "pollo" | "kling" | "runway" | "mock";
+export type VideoProvider = "pollo" | "kling" | "runway";
 export type AdPlatform = "meta_ads" | "google_ads";
 export type MetricsSource = "meta_ads_api" | "google_ads_api" | "mock" | "manual" | "unknown";
 

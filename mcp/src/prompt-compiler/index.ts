@@ -4,7 +4,6 @@
  */
 
 export {
-  createMockPromptAdapter,
   createPolloPromptAdapter,
   createKlingPromptAdapter,
   createRunwayPromptAdapter,

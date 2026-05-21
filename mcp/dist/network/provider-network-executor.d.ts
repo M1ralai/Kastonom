@@ -48,20 +48,15 @@ export declare class ProviderNetworkExecutor {
     private mockPreviewUrl;
     private idFactory;
     private now;
-    private clientCache;
     constructor(options: NetworkExecutorOptions);
     /**
      * Check if provider credentials are available
      */
     hasCredentials(provider: VideoProvider): boolean;
     /**
-     * Get credentials for provider (only call for non-mock providers)
+     * Get credentials for provider
      */
     private getProviderConfig;
-    /**
-     * Get or create API client for provider
-     */
-    private getAPIClient;
     /**
      * Execute provider submission with real API call
      * @param promptPayload - Compiled prompt payload
@@ -72,6 +67,14 @@ export declare class ProviderNetworkExecutor {
      * Call provider API based on provider type
      */
     private callProviderAPI;
+    /**
+     * Get provider-specific submission URL
+     */
+    private getProviderSubmissionUrl;
+    /**
+     * Get provider-specific status URL
+     */
+    private getProviderStatusUrl;
     /**
      * Get provider-specific headers
      */
@@ -89,9 +92,9 @@ export declare class ProviderNetworkExecutor {
         error?: string;
     }>;
     /**
-     * Create mock provider result
+     * Generate mock result when credentials are missing and fallback is enabled
      */
-    private createMockResult;
+    private generateMockResult;
     /**
      * Check provider readiness
      */

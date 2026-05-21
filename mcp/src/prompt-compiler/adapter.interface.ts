@@ -2,7 +2,8 @@
  * MCP Prompt Compiler - Adapter Interface
  * @module mcp/prompt-compiler
  * @file MCP-004: Prompt compiler adapter interface and implementations
- * @description Provider-specific prompt compilation with LLM optimization and fallback.
+ * @description Provider-specific prompt compilation with LLM optimization.
+ * PRODUCTION: Mock provider removed - use live providers only
  */
 
 import type {
@@ -11,6 +12,16 @@ import type {
   CreativeBriefContent,
   PromptPayload
 } from "../types/index.js";
+
+/**
+ * Error thrown when attempting to use mock provider
+ */
+export class MockProviderNotSupportedError extends Error {
+  constructor() {
+    super("Mock provider is not supported in production. Please configure a live video provider (pollo, kling, or runway) with valid API credentials.");
+    this.name = "MockProviderNotSupportedError";
+  }
+}
 
 /**
  * Prompt compiler options
@@ -33,7 +44,6 @@ export interface CompileOptions {
   aspectRatio: AspectRatio;
   language?: string;
   sourceAssetIds?: string[];
-  isMock?: boolean;
   fallbackReason?: string | null;
 }
 
@@ -48,60 +58,12 @@ export interface BasePromptAdapter {
 }
 
 /**
- * Mock prompt adapter (always deterministic, labeled)
- */
-export function createMockPromptAdapter(tenantId: string): BasePromptAdapter {
-  return {
-    compile(brief: CreativeBriefContent, options: CompileOptions): PromptPayload {
-      const { durationSeconds, aspectRatio, language = "Turkish", sourceAssetIds = [], fallbackReason } = options;
-
-      const promptText = [
-        `Create a ${durationSeconds} second ${aspectRatio} video ad.`,
-        `Hook: ${brief.hook}`,
-        `Main message: ${brief.main_claim}`,
-        `Call to action: ${brief.call_to_action}`,
-        `Style: ${brief.creative_angle}`,
-        `Tone: ${brief.tone}`
-      ].join(" ");
-
-      const negativePrompt = [
-        "Do not show price, discount, or warranty claims.",
-        "Do not claim stock availability.",
-        "Do not include medical, legal, or financial claims.",
-        "Do not infer demographics without data."
-      ].join(" ");
-
-      return {
-        id: `mock-payload-${Date.now()}`,
-        tenant_id: tenantId,
-        project_id: "",
-        generation_request_id: "",
-        provider: "mock",
-        prompt_text: promptText,
-        negative_prompt: negativePrompt,
-        language,
-        duration_seconds: durationSeconds,
-        aspect_ratio: aspectRatio,
-        source_asset_ids: sourceAssetIds,
-        provider_options: {
-          adapter: "MockPromptAdapter",
-          is_demo: true
-        },
-        is_mock: true,
-        fallback_reason: fallbackReason ?? "mock_adapter",
-        created_at: new Date().toISOString()
-      };
-    }
-  };
-}
-
-/**
- * Pollo prompt adapter (LLM-enhanced, rule-based fallback)
+ * Pollo prompt adapter (LLM-enhanced)
  */
 export function createPolloPromptAdapter(tenantId: string, _llmApiKey?: string | null): BasePromptAdapter {
   return {
     compile(brief: CreativeBriefContent, options: CompileOptions): PromptPayload {
-      const { durationSeconds, aspectRatio, language = "Turkish", sourceAssetIds = [], isMock = true, fallbackReason } = options;
+      const { durationSeconds, aspectRatio, language = "Turkish", sourceAssetIds = [], fallbackReason } = options;
 
       // Build provider-specific prompt
       const promptText = [
@@ -141,8 +103,8 @@ export function createPolloPromptAdapter(tenantId: string, _llmApiKey?: string |
           platform: "pollo",
           vertical_format: aspectRatio === "9:16"
         },
-        is_mock: isMock,
-        fallback_reason: fallbackReason ?? (isMock ? "provider_fallback_to_mock" : null),
+        is_mock: false,
+        fallback_reason: fallbackReason ?? null,
         created_at: new Date().toISOString()
       };
     }
@@ -150,12 +112,12 @@ export function createPolloPromptAdapter(tenantId: string, _llmApiKey?: string |
 }
 
 /**
- * Kling prompt adapter (LLM-enhanced, rule-based fallback)
+ * Kling prompt adapter (LLM-enhanced)
  */
 export function createKlingPromptAdapter(tenantId: string, _llmApiKey?: string | null): BasePromptAdapter {
   return {
     compile(brief: CreativeBriefContent, options: CompileOptions): PromptPayload {
-      const { durationSeconds, aspectRatio, language = "Turkish", sourceAssetIds = [], isMock = true, fallbackReason } = options;
+      const { durationSeconds, aspectRatio, language = "Turkish", sourceAssetIds = [], fallbackReason } = options;
 
       const promptText = [
         `Cinematic ${durationSeconds}s ${aspectRatio} video.`,
@@ -193,8 +155,8 @@ export function createKlingPromptAdapter(tenantId: string, _llmApiKey?: string |
           platform: "kling",
           cinematic: true
         },
-        is_mock: isMock,
-        fallback_reason: fallbackReason ?? (isMock ? "provider_fallback_to_mock" : null),
+        is_mock: false,
+        fallback_reason: fallbackReason ?? null,
         created_at: new Date().toISOString()
       };
     }
@@ -202,12 +164,12 @@ export function createKlingPromptAdapter(tenantId: string, _llmApiKey?: string |
 }
 
 /**
- * Runway prompt adapter (LLM-enhanced, rule-based fallback)
+ * Runway prompt adapter (LLM-enhanced)
  */
 export function createRunwayPromptAdapter(tenantId: string, _llmApiKey?: string | null): BasePromptAdapter {
   return {
     compile(brief: CreativeBriefContent, options: CompileOptions): PromptPayload {
-      const { durationSeconds, aspectRatio, language = "Turkish", sourceAssetIds = [], isMock = true, fallbackReason } = options;
+      const { durationSeconds, aspectRatio, language = "Turkish", sourceAssetIds = [], fallbackReason } = options;
 
       const promptText = [
         `Motion graphics video ${durationSeconds}s ${aspectRatio}.`,
@@ -244,8 +206,8 @@ export function createRunwayPromptAdapter(tenantId: string, _llmApiKey?: string 
           platform: "runway",
           motion_graphics: true
         },
-        is_mock: isMock,
-        fallback_reason: fallbackReason ?? (isMock ? "provider_fallback_to_mock" : null),
+        is_mock: false,
+        fallback_reason: fallbackReason ?? null,
         created_at: new Date().toISOString()
       };
     }
@@ -261,8 +223,6 @@ export function getAdapter(
   llmApiKey?: string | null
 ): BasePromptAdapter {
   switch (provider) {
-    case "mock":
-      return createMockPromptAdapter(tenantId);
     case "pollo":
       return createPolloPromptAdapter(tenantId, llmApiKey);
     case "kling":
@@ -270,8 +230,7 @@ export function getAdapter(
     case "runway":
       return createRunwayPromptAdapter(tenantId, llmApiKey);
     default:
-      // Fallback to mock for unknown providers
-      return createMockPromptAdapter(tenantId);
+      throw new Error(`Unknown video provider: ${provider}`);
   }
 }
 
