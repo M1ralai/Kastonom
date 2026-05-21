@@ -150,7 +150,7 @@ export async function compileWithMCP(context, { requestedProvider, creativeSubje
   ].join(" ");
 
   const promptPayload = {
-    id: generateId("prompt-payload"),
+    id: ids.uuid(),
     tenant_id: context.tenant_id,
     project_id: generationRequest.project_id,
     generation_request_id: generationRequest.id,
@@ -272,7 +272,7 @@ export function createPromptCompilerService({ ids, clock, config }) {
       ].join(" ");
 
       const promptPayload = {
-        id: ids.next("prompt-payload"),
+        id: ids.uuid(),
         tenant_id: context.tenant_id,
         project_id: generationRequest.project_id,
         generation_request_id: generationRequest.id,

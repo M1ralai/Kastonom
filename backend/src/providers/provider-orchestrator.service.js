@@ -18,7 +18,7 @@ export function createProviderOrchestratorService({ ids, clock, config }) {
     const providerJobId = `mock-job-${generationRequest.id}`;
 
     const videoJob = {
-      id: ids.next("video-job"),
+      id: ids.uuid(),
       tenant_id: context.tenant_id,
       project_id: project.id,
       generation_request_id: generationRequest.id,
@@ -38,7 +38,7 @@ export function createProviderOrchestratorService({ ids, clock, config }) {
     };
 
     const providerResult = {
-      id: ids.next("provider-result"),
+      id: ids.uuid(),
       tenant_id: context.tenant_id,
       video_job_id: videoJob.id,
       provider: "mock",
@@ -57,7 +57,7 @@ export function createProviderOrchestratorService({ ids, clock, config }) {
     };
 
     const generatedVideo = {
-      id: ids.next("generated-video"),
+      id: ids.uuid(),
       tenant_id: context.tenant_id,
       project_id: project.id,
       generation_request_id: generationRequest.id,
@@ -93,7 +93,7 @@ export function createProviderOrchestratorService({ ids, clock, config }) {
   async function createFailedResult(context, { project, generationRequest, promptPayload, provider, errorCode, message }) {
     const now = clock.now();
     const videoJob = {
-      id: ids.next("video-job"),
+      id: ids.uuid(),
       tenant_id: context.tenant_id,
       project_id: project.id,
       generation_request_id: generationRequest.id,
@@ -113,7 +113,7 @@ export function createProviderOrchestratorService({ ids, clock, config }) {
     };
 
     const providerResult = {
-      id: ids.next("provider-result"),
+      id: ids.uuid(),
       tenant_id: context.tenant_id,
       video_job_id: videoJob.id,
       provider,

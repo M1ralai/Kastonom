@@ -72,7 +72,7 @@ export function createGenerationRequestService({
 
       const now = clock.now();
       const generationRequest = {
-        id: ids.next("generation-request"),
+        id: ids.uuid(),
         tenant_id: context.tenant_id,
         project_id: project.id,
         creative_subject_id: creativeSubject.id,

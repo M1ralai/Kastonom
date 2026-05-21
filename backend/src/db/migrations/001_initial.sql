@@ -113,7 +113,9 @@ CREATE INDEX idx_subjects_type ON creative_subjects(subject_type);
 CREATE TABLE IF NOT EXISTS source_assets (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-    project_id UUID NOT NULL REFERENCES creative_projects(id) ON DELETE CASCADE,
+    project_id UUID REFERENCES creative_projects(id) ON DELETE CASCADE,
+    -- Note: project_id is nullable to allow uploads before project creation
+    -- Use idx_assets_unattached index to query unattached assets
     asset_type VARCHAR(20) NOT NULL CHECK (asset_type IN ('image', 'video', 'url')),
     source VARCHAR(30) NOT NULL DEFAULT 'upload' CHECK (source IN ('upload', 'external_url', 'generated', 'mock')),
     url VARCHAR(500) NOT NULL,
@@ -129,6 +131,7 @@ CREATE TABLE IF NOT EXISTS source_assets (
 
 CREATE INDEX idx_assets_tenant ON source_assets(tenant_id);
 CREATE INDEX idx_assets_project ON source_assets(project_id);
+CREATE INDEX idx_assets_unattached ON source_assets(tenant_id) WHERE project_id IS NULL;
 
 -- ===========================================
 -- GENERATION REQUESTS

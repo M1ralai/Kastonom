@@ -61,7 +61,7 @@ export function createMetricsService({ ids, clock, config }) {
       }
 
       const snapshot = {
-        id: ids.next("ad-metrics-snapshot"),
+        id: ids.uuid(),
         tenant_id: context.tenant_id,
         ad_publication_id: publication.id,
         platform: publication.platform,

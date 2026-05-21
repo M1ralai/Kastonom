@@ -30,11 +30,15 @@ export function mapError(error, requestId) {
     };
   }
 
+  // Log the actual error for debugging
+  console.error("Unhandled error:", error);
+
   return {
     status: 500,
     body: {
       error: "INTERNAL_ERROR",
-      message: "Internal backend error.",
+      message: error?.message || "Internal backend error.",
+      detail: error?.stack || String(error),
       request_id: requestId
     }
   };

@@ -56,6 +56,13 @@ async function readRequestBody(request) {
     return null;
   }
 
+  const contentType = request.headers["content-type"] || "";
+
+  // Skip JSON parsing for multipart/form-data
+  if (contentType.includes("multipart/form-data")) {
+    return null; // Let the route handler handle the raw request
+  }
+
   let raw = "";
   for await (const chunk of request) {
     raw += chunk;
@@ -129,7 +136,7 @@ export function createApp(options = {}) {
     });
   }
 
-  async function dispatch({ method = "GET", path = "/", headers = {}, body = null }) {
+  async function dispatch({ method = "GET", path = "/", headers = {}, body = null, rawRequest = null }) {
     const requestId = resolveRequestId(headers, `req-${randomUUID()}`);
     const url = new URL(path, "http://localhost");
     const pathname = url.pathname;
@@ -193,7 +200,7 @@ export function createApp(options = {}) {
       if (method === "POST" && pathname === "/source-assets/upload") {
         return {
           status: 201,
-          body: await creativeProjects.uploadSourceAsset(context(headers, requestId), request)
+          body: await creativeProjects.uploadSourceAsset(context(headers, requestId), rawRequest)
         };
       }
 
@@ -267,11 +274,16 @@ export function createApp(options = {}) {
       }
 
       const body = await readRequestBody(request);
+
+      // Pass raw request for multipart routes
+      const isMultipart = (request.headers["content-type"] || "").includes("multipart/form-data");
+
       const result = await dispatch({
         method: request.method,
         path: request.url,
         headers: request.headers,
-        body
+        body,
+        rawRequest: isMultipart ? request : null
       });
 
       const duration = Date.now() - startTime;

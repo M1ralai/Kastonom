@@ -34,7 +34,7 @@ export function createCreativeProjectService({ ids, clock }) {
       log.info("Creating creative project", { tenant_id: context.tenant_id, name: input.name });
 
       const project = {
-        id: ids.next("creative-project"),
+        id: ids.uuid(),
         tenant_id: context.tenant_id,
         name: requireString(input.name, "name"),
         status: "draft",
@@ -45,7 +45,7 @@ export function createCreativeProjectService({ ids, clock }) {
       };
 
       const creativeSubject = {
-        id: ids.next("creative-subject"),
+        id: ids.uuid(),
         tenant_id: context.tenant_id,
         project_id: project.id,
         subject_type: enumValue(
@@ -91,7 +91,7 @@ export function createCreativeProjectService({ ids, clock }) {
         }
 
         return {
-          id: ids.next("source-asset"),
+          id: ids.uuid(),
           tenant_id: context.tenant_id,
           project_id: project.id,
           asset_type: enumValue(assetInput.asset_type, `source_assets[${index}].asset_type`, ASSET_TYPES, {
@@ -202,18 +202,22 @@ export function createCreativeProjectService({ ids, clock }) {
       return bundles;
     },
 
-    async uploadSourceAsset(context, request) {
+    async uploadSourceAsset(context, rawRequest) {
       log.info("Uploading source asset", { tenant_id: context.tenant_id });
+
+      if (!rawRequest) {
+        throw validationError("No raw request provided for multipart upload", { error: "INVALID_REQUEST" });
+      }
 
       // Parse multipart form data
       const chunks = [];
-      for await (const chunk of request) {
+      for await (const chunk of rawRequest) {
         chunks.push(chunk);
       }
-      const rawBody = Buffer.concat(chunks);
+      const bodyBuffer = Buffer.concat(chunks);
 
       // Simple multipart parser for single file
-      const contentType = request.headers["content-type"] || "";
+      const contentType = rawRequest.headers["content-type"] || "";
       const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
       if (!boundaryMatch) {
         throw validationError("Missing multipart boundary", { error: "INVALID_REQUEST" });
@@ -221,7 +225,7 @@ export function createCreativeProjectService({ ids, clock }) {
       const boundary = boundaryMatch[1] || boundaryMatch[2];
 
       // Parse parts
-      const parts = this._parseMultipart(rawBody, boundary);
+      const parts = this._parseMultipart(bodyBuffer, boundary);
       const filePart = parts.find(p => p.name === "file");
       const assetType = parts.find(p => p.name === "asset_type")?.value || "image";
 
@@ -239,7 +243,7 @@ export function createCreativeProjectService({ ids, clock }) {
       }
 
       const now = clock.now();
-      const assetId = ids.next("source-asset");
+      const assetId = ids.uuid();
 
       // Generate a simple URL for the uploaded file (in production, use S3/GCS)
       const fileExt = mimeType.split("/")[1] || "jpg";

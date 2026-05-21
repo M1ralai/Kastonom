@@ -42,7 +42,7 @@ export function createIterationSuggestionService({ ids, clock }) {
 
       const now = clock.now();
       const suggestion = {
-        id: ids.next("creative-iteration-suggestion"),
+        id: ids.uuid(),
         tenant_id: context.tenant_id,
         project_id: project.id,
         ad_publication_id: adPublicationId,

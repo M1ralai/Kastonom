@@ -166,16 +166,20 @@ export function logout(): void {
 }
 
 /**
- * Get headers for API requests (with auth token)
+ * Get headers for API requests (with auth token and tenant_id)
  */
 function getHeaders(): HeadersInit {
   const token = getAuthToken();
+  const user = getAuthUser();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
   };
 
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+  if (user?.tenant_id) {
+    headers["x-tenant-id"] = user.tenant_id;
   }
 
   return headers;
@@ -281,9 +285,13 @@ export async function uploadSourceAsset(file: File): Promise<{
   formData.append("source", "upload");
 
   const token = getAuthToken();
+  const user = getAuthUser();
   const headers: HeadersInit = {};
   if (token) {
     headers["Authorization"] = `Bearer ${token}`;
+  }
+  if (user?.tenant_id) {
+    headers["x-tenant-id"] = user.tenant_id;
   }
 
   const response = await fetch(`${API_BASE_URL}/source-assets/upload`, {

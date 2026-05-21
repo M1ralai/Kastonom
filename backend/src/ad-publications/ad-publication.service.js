@@ -70,7 +70,7 @@ export function createAdPublicationService({ ids, clock, config }) {
 
       const now = clock.now();
       const publication = {
-        id: ids.next("ad-publication"),
+        id: ids.uuid(),
         tenant_id: context.tenant_id,
         project_id: project.id,
         generated_video_id: generatedVideo.id,
