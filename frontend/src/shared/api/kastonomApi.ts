@@ -269,6 +269,37 @@ export async function createCreativeProject(input: CreateProjectInput): Promise<
   });
 }
 
+// ─── Source Assets Upload ───────────────────────────────────────
+
+export async function uploadSourceAsset(file: File): Promise<{
+  source_asset: SourceAsset;
+  upload_url: string;
+}> {
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("asset_type", "image");
+  formData.append("source", "upload");
+
+  const token = getAuthToken();
+  const headers: HeadersInit = {};
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+
+  const response = await fetch(`${API_BASE_URL}/source-assets/upload`, {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: "Upload failed" }));
+    throw new Error(error.message || "Görsel yüklenemedi");
+  }
+
+  return response.json();
+}
+
 export async function getCreativeProject(projectId: string): Promise<{
   creative_project: CreativeProject;
   creative_subject: CreativeSubject;

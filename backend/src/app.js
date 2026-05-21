@@ -189,6 +189,14 @@ export function createApp(options = {}) {
         };
       }
 
+      // Source assets upload (multipart form data)
+      if (method === "POST" && pathname === "/source-assets/upload") {
+        return {
+          status: 201,
+          body: await creativeProjects.uploadSourceAsset(context(headers, requestId), request)
+        };
+      }
+
       const creativeProjectMatch = matchPath(pathname, /^\/creative-projects\/([^/]+)$/);
       if (method === "GET" && creativeProjectMatch) {
         return {

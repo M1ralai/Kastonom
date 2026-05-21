@@ -200,6 +200,123 @@ export function createCreativeProjectService({ ids, clock }) {
       }));
 
       return bundles;
+    },
+
+    async uploadSourceAsset(context, request) {
+      log.info("Uploading source asset", { tenant_id: context.tenant_id });
+
+      // Parse multipart form data
+      const chunks = [];
+      for await (const chunk of request) {
+        chunks.push(chunk);
+      }
+      const rawBody = Buffer.concat(chunks);
+
+      // Simple multipart parser for single file
+      const contentType = request.headers["content-type"] || "";
+      const boundaryMatch = contentType.match(/boundary=(?:"([^"]+)"|([^;]+))/);
+      if (!boundaryMatch) {
+        throw validationError("Missing multipart boundary", { error: "INVALID_REQUEST" });
+      }
+      const boundary = boundaryMatch[1] || boundaryMatch[2];
+
+      // Parse parts
+      const parts = this._parseMultipart(rawBody, boundary);
+      const filePart = parts.find(p => p.name === "file");
+      const assetType = parts.find(p => p.name === "asset_type")?.value || "image";
+
+      if (!filePart || !filePart.data) {
+        throw validationError("No file provided", { error: "INVALID_REQUEST" });
+      }
+
+      // Validate file type
+      const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+      const mimeType = filePart.contentType || "application/octet-stream";
+
+      // Allow any image type for MVP
+      if (!mimeType.startsWith("image/") && mimeType !== "application/octet-stream") {
+        throw validationError("Only image files are allowed", { error: "INVALID_REQUEST" });
+      }
+
+      const now = clock.now();
+      const assetId = ids.next("source-asset");
+
+      // Generate a simple URL for the uploaded file (in production, use S3/GCS)
+      const fileExt = mimeType.split("/")[1] || "jpg";
+      const fileName = `${assetId}.${fileExt}`;
+      const uploadUrl = `/uploads/${fileName}`;
+
+      // For MVP, we'll store as a data URL or just return the upload path
+      // In production, you would upload to S3/GCS here
+      const sourceAsset = {
+        id: assetId,
+        tenant_id: context.tenant_id,
+        project_id: null, // No project yet - will be linked when creating project
+        asset_type: enumValue(assetType, "asset_type", ASSET_TYPES, { error: "INVALID_ASSET_TYPE" }),
+        source: "upload",
+        url: uploadUrl,
+        storage_key: fileName,
+        mime_type: mimeType,
+        width: null,
+        height: null,
+        duration_seconds: null,
+        checksum: null,
+        metadata: { original_name: filePart.filename },
+        created_at: now
+      };
+
+      // Save to PostgreSQL
+      const createdAsset = await pgStore.createAsset(sourceAsset);
+
+      log.info("Source asset uploaded", { assetId: createdAsset.id, tenant_id: context.tenant_id });
+
+      return {
+        source_asset: createdAsset,
+        upload_url: uploadUrl
+      };
+    },
+
+    _parseMultipart(buffer, boundary) {
+      const parts = [];
+      const boundaryBuffer = Buffer.from(`--${boundary}`);
+      const endBoundary = Buffer.from(`--${boundary}--`);
+
+      let start = 0;
+      let idx = buffer.indexOf(boundaryBuffer, start);
+
+      while (idx !== -1) {
+        const nextIdx = buffer.indexOf(boundaryBuffer, idx + boundaryBuffer.length);
+        if (nextIdx === -1) break;
+
+        const partData = buffer.slice(idx + boundaryBuffer.length + 2, nextIdx - 2); // Skip \r\n
+        const separatorIdx = partData.indexOf("\r\n\r\n");
+        if (separatorIdx === -1) {
+          idx = nextIdx;
+          continue;
+        }
+
+        const headers = partData.slice(0, separatorIdx).toString();
+        const content = partData.slice(separatorIdx + 4);
+
+        // Parse Content-Disposition
+        const nameMatch = headers.match(/name="([^"]+)"/);
+        const filenameMatch = headers.match(/filename="([^"]+)"/);
+        const contentTypeMatch = headers.match(/Content-Type:\s*([^\r\n]+)/i);
+
+        if (nameMatch) {
+          parts.push({
+            name: nameMatch[1],
+            filename: filenameMatch ? filenameMatch[1] : null,
+            contentType: contentTypeMatch ? contentTypeMatch[1].trim() : null,
+            data: content,
+            value: content.toString("utf8")
+          });
+        }
+
+        idx = nextIdx;
+      }
+
+      return parts;
     }
   };
 }

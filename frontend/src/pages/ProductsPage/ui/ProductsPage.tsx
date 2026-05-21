@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { KpiCard } from "@/widgets/KpiCard";
-import { listCreativeProjects } from "@/shared/api/kastonomApi";
+import { listCreativeProjects, createCreativeProject, uploadSourceAsset } from "@/shared/api/kastonomApi";
 import type { CreativeProject, CreativeSubject, SourceAsset } from "@/shared/types/api";
 
 interface ProjectBundle {
@@ -59,6 +59,179 @@ export function ProductsPage() {
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
   const [isDemoMode, setIsDemoMode] = useState(false);
+
+  // Modal state
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+
+  // Form state
+  const [formName, setFormName] = useState("");
+  const [formDescription, setFormDescription] = useState("");
+  const [formPrice, setFormPrice] = useState("");
+  const [formCategory, setFormCategory] = useState<string>("product");
+
+  // File upload state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [isDragging, setIsDragging] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadedAssetId, setUploadedAssetId] = useState<string | null>(null);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+
+  // Reset form
+  function resetForm() {
+    setFormName("");
+    setFormDescription("");
+    setFormPrice("");
+    setFormCategory("product");
+    setSelectedFile(null);
+    setPreviewUrl(null);
+    setIsDragging(false);
+    setIsUploading(false);
+    setUploadedAssetId(null);
+    setUploadedUrl(null);
+    setCreateError(null);
+  }
+
+  // Handle file drop
+  function handleDragOver(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(true);
+  }
+
+  function handleDragLeave(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+  }
+
+  function handleDrop(e: React.DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  }
+
+  function handleFileInputChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      handleFileSelect(files[0]);
+    }
+  }
+
+  function handleFileSelect(file: File) {
+    // Validate file type
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
+    if (!allowedTypes.includes(file.type)) {
+      setCreateError("Sadece JPG, PNG, WEBP veya GIF dosyaları kabul edilir.");
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setCreateError("Dosya boyutu 5MB'ı geçemez.");
+      return;
+    }
+
+    setSelectedFile(file);
+    setCreateError(null);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function uploadFile() {
+    if (!selectedFile) {
+      setCreateError("Lütfen bir görsel seçin.");
+      return null;
+    }
+
+    setIsUploading(true);
+    setCreateError(null);
+
+    try {
+      const result = await uploadSourceAsset(selectedFile);
+      setUploadedAssetId(result.source_asset.id);
+      setUploadedUrl(result.upload_url);
+      return result;
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Görsel yüklenemedi.");
+      return null;
+    } finally {
+      setIsUploading(false);
+    }
+  }
+
+  // Open modal
+  function handleOpenModal() {
+    resetForm();
+    setShowAddModal(true);
+  }
+
+  // Create project
+  async function handleCreateProject() {
+    if (!formName.trim()) {
+      setCreateError("Ürün adı gereklidir.");
+      return;
+    }
+
+    if (!selectedFile) {
+      setCreateError("Lütfen bir görsel seçin.");
+      return;
+    }
+
+    setIsCreating(true);
+    setCreateError(null);
+
+    try {
+      // First upload the file
+      const uploadResult = await uploadFile();
+      if (!uploadResult) {
+        setIsCreating(false);
+        return;
+      }
+
+      const result = await createCreativeProject({
+        name: formName,
+        creative_subject: {
+          subject_type: formCategory as "product" | "service" | "brand" | "offer" | "event" | "place" | "other" | "unknown",
+          name: formName,
+          description: formDescription || undefined,
+          price: formPrice ? parseFloat(formPrice) : undefined,
+          currency: formPrice ? "TRY" : undefined,
+          allowed_claims: [],
+          forbidden_claims: ["discount", "free shipping", "limited stock"],
+          unknown_fields: formPrice ? [] : ["price"],
+          source: "user_input"
+        },
+        source_assets: [{
+          asset_type: "image",
+          source: "upload",
+          url: uploadResult.upload_url,
+          metadata: { asset_id: uploadResult.source_asset.id }
+        }]
+      });
+
+      // Close modal and refresh
+      setShowAddModal(false);
+      await loadProjects();
+
+      // Navigate to create page with new project
+      navigate(`/create?project=${result.creative_project.id}`);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Proje oluşturulamadı.");
+      console.error("Failed to create project:", err);
+    } finally {
+      setIsCreating(false);
+    }
+  }
 
   useEffect(() => {
     loadProjects();
@@ -201,7 +374,7 @@ export function ProductsPage() {
 
           {/* Create New Button */}
           <button
-            onClick={() => navigate("/create")}
+            onClick={handleOpenModal}
             className="px-6 py-3 rounded-xl font-bold text-sm text-white transition-all hover:opacity-90"
             style={{
               background: "linear-gradient(135deg, #8CC63F, #6BAA2F)",
@@ -421,6 +594,201 @@ export function ProductsPage() {
               </div>
               <div className="text-xs" style={{ color: "#B45309" }}>
                 Bu veriler backend bağlantısı olmadan gösteriliyor. Gerçek veriler için backend'i başlatın.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Add Product Modal */}
+        {showAddModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            {/* Backdrop */}
+            <div
+              className="absolute inset-0 bg-black/50"
+              onClick={() => setShowAddModal(false)}
+            />
+
+            {/* Modal Content */}
+            <div
+              className="relative w-full max-w-md rounded-2xl p-6 shadow-2xl"
+              style={{ background: "#fff" }}
+            >
+              {/* Header */}
+              <div className="flex items-center justify-between mb-6">
+                <h2 className="text-xl font-black" style={{ color: "#1B365D" }}>
+                  Yeni Ürün Ekle
+                </h2>
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
+                  style={{ color: "#94A3B8" }}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M18 6L6 18M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Error */}
+              {createError && (
+                <div className="mb-4 p-3 rounded-xl text-sm" style={{ background: "#FEF2F2", color: "#DC2626", border: "1px solid #FECACA" }}>
+                  {createError}
+                </div>
+              )}
+
+              {/* Form */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1B365D" }}>
+                    Ürün Adı *
+                  </label>
+                  <input
+                    type="text"
+                    value={formName}
+                    onChange={(e) => setFormName(e.target.value)}
+                    placeholder="Örn: Bluetooth Kulaklık Wave 200"
+                    className="w-full px-4 py-3 rounded-xl border text-sm"
+                    style={{ background: "#fff", borderColor: "#E2E8F0", color: "#1B365D" }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1B365D" }}>
+                    Açıklama
+                  </label>
+                  <textarea
+                    value={formDescription}
+                    onChange={(e) => setFormDescription(e.target.value)}
+                    placeholder="Ürün hakkında kısa bir açıklama..."
+                    rows={3}
+                    className="w-full px-4 py-3 rounded-xl border text-sm resize-none"
+                    style={{ background: "#fff", borderColor: "#E2E8F0", color: "#1B365D" }}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1B365D" }}>
+                      Fiyat (TL)
+                    </label>
+                    <input
+                      type="number"
+                      value={formPrice}
+                      onChange={(e) => setFormPrice(e.target.value)}
+                      placeholder="899"
+                      className="w-full px-4 py-3 rounded-xl border text-sm"
+                      style={{ background: "#fff", borderColor: "#E2E8F0", color: "#1B365D" }}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1B365D" }}>
+                      Kategori
+                    </label>
+                    <select
+                      value={formCategory}
+                      onChange={(e) => setFormCategory(e.target.value)}
+                      className="w-full px-4 py-3 rounded-xl border text-sm"
+                      style={{ background: "#fff", borderColor: "#E2E8F0", color: "#1B365D" }}
+                    >
+                      <option value="product">Ürün</option>
+                      <option value="service">Hizmet</option>
+                      <option value="brand">Marka</option>
+                      <option value="offer">Teklif</option>
+                      <option value="event">Etkinlik</option>
+                      <option value="place">Mekan</option>
+                      <option value="other">Diğer</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-semibold mb-1.5" style={{ color: "#1B365D" }}>
+                    Görsel *
+                  </label>
+                  <div
+                    className="border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all"
+                    style={{
+                      borderColor: isDragging ? "#8CC63F" : selectedFile ? "#8CC63F" : "#E2E8F0",
+                      background: isDragging ? "#F0FDE8" : "#F8FAFC"
+                    }}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    onClick={() => document.getElementById("file-input")?.click()}
+                  >
+                    {previewUrl ? (
+                      <div className="relative">
+                        <img
+                          src={previewUrl}
+                          alt="Preview"
+                          className="max-h-32 mx-auto rounded-lg"
+                        />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSelectedFile(null);
+                            setPreviewUrl(null);
+                          }}
+                          className="absolute top-0 right-0 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center"
+                          style={{ transform: "translate(50%, -50%)" }}
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ) : isUploading ? (
+                      <div>
+                        <div className="animate-spin text-3xl mb-2">⟳</div>
+                        <p className="text-sm" style={{ color: "#64748B" }}>Yükleniyor...</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-4xl mb-2">📷</div>
+                        <p className="text-sm font-semibold" style={{ color: "#1B365D" }}>
+                          Görseli sürükle & bırak
+                        </p>
+                        <p className="text-xs mt-1" style={{ color: "#94A3B8" }}>
+                          veya dosya seç (JPG, PNG, WEBP, GIF - max 5MB)
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    id="file-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,image/gif"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3 mt-6">
+                <button
+                  onClick={() => setShowAddModal(false)}
+                  className="flex-1 py-3 rounded-xl font-semibold text-sm transition-all"
+                  style={{ background: "#F1F5F9", color: "#64748B" }}
+                >
+                  İptal
+                </button>
+                <button
+                  onClick={handleCreateProject}
+                  disabled={isCreating}
+                  className="flex-1 py-3 rounded-xl font-bold text-sm text-white transition-all flex items-center justify-center gap-2"
+                  style={{
+                    background: isCreating ? "#94A3B8" : "linear-gradient(135deg, #8CC63F, #6BAA2F)",
+                    cursor: isCreating ? "not-allowed" : "pointer",
+                  }}
+                >
+                  {isCreating ? (
+                    <>
+                      <span className="animate-spin">⟳</span>
+                      Oluşturuluyor...
+                    </>
+                  ) : (
+                    "Oluştur ve Reklam Yap"
+                  )}
+                </button>
               </div>
             </div>
           </div>
