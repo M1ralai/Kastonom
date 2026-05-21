@@ -1,7 +1,13 @@
-import "dotenv/config";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
 import { createApp } from "./app.js";
 import { initDatabase, closeDatabase } from "./db/index.js";
 import { createLogger } from "./logger/index.js";
+
+const backendRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
+dotenv.config({ path: resolve(backendRoot, ".env") });
+dotenv.config({ path: resolve(backendRoot, ".env.local"), override: true });
 
 const log = createLogger("server");
 

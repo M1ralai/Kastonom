@@ -21,7 +21,10 @@ function requireNormalizedProviderResult(context, result) {
   }
 
   if (!VIDEO_PROVIDERS.includes(result.provider)) {
-    throw new ApiError(502, ErrorCodes.PROVIDER_UNAVAILABLE, "MCP provider result used an unsupported provider.");
+    // Allow "mock" in result for backward compatibility during migration
+    if (result.provider !== "mock") {
+      throw new ApiError(502, ErrorCodes.PROVIDER_UNAVAILABLE, "MCP provider result used an unsupported provider.");
+    }
   }
 
   if (!VIDEO_JOB_STATUSES.includes(result.normalized_status)) {

@@ -1,121 +1,12 @@
 /**
  * Security Middleware
- * Production-ready security: rate limiting, secure headers, body limits, CORS
+ * Production-ready security: secure headers, body limits, CORS
  * @module backend/http/middleware
  */
 
 import { createLogger } from "../../logger/index.js";
 
 const log = createLogger("security");
-
-/**
- * In-memory rate limit store with sliding window
- * For production, consider Redis-based store
- */
-export function createRateLimitStore() {
-  const store = new Map(); // key: clientIp, value: { count, windowStart }
-
-  return {
-    /**
-     * Check if request is within rate limit
-     * @param {string} clientIp
-     * @param {number} maxRequests - Maximum requests per window
-     * @param {number} windowMs - Window size in milliseconds
-     * @returns {{ allowed: boolean, remaining: number, resetMs: number }}
-     */
-    check(clientIp, maxRequests, windowMs) {
-      const now = Date.now();
-      const record = store.get(clientIp);
-
-      // Initialize or reset if window expired
-      if (!record || now - record.windowStart >= windowMs) {
-        store.set(clientIp, { count: 1, windowStart: now });
-        return { allowed: true, remaining: maxRequests - 1, resetMs: windowMs };
-      }
-
-      // Check if within limit
-      if (record.count >= maxRequests) {
-        const resetMs = windowMs - (now - record.windowStart);
-        return { allowed: false, remaining: 0, resetMs };
-      }
-
-      // Increment count
-      record.count++;
-      return { allowed: true, remaining: maxRequests - record.count, resetMs: windowMs - (now - record.windowStart) };
-    },
-
-    /**
-     * Clean up expired entries (call periodically)
-     */
-    cleanup(windowMs) {
-      const now = Date.now();
-      for (const [key, record] of store.entries()) {
-        if (now - record.windowStart >= windowMs) {
-          store.delete(key);
-        }
-      }
-    },
-
-    /**
-     * Get current size (for monitoring)
-     */
-    size() {
-      return store.size;
-    }
-  };
-}
-
-/**
- * Create rate limit middleware
- * @param {Object} options
- * @param {number} options.maxRequests - Maximum requests per window (default: 100)
- * @param {number} options.windowMs - Window size in ms (default: 15 minutes)
- * @param {Object} options.store - Optional rate limit store
- */
-export function createRateLimitMiddleware({
-  maxRequests = 100,
-  windowMs = 15 * 60 * 1000, // 15 minutes
-  store = null
-}) {
-  const rateLimitStore = store || createRateLimitStore();
-
-  // Periodic cleanup every 5 minutes
-  setInterval(() => {
-    rateLimitStore.cleanup(windowMs);
-  }, 5 * 60 * 1000).unref();
-
-  return async function rateLimitMiddleware(context, request) {
-    const clientIp = getClientIp(request);
-    const result = rateLimitStore.check(clientIp, maxRequests, windowMs);
-
-    // Add rate limit headers to context for response
-    context.rateLimit = {
-      limit: maxRequests,
-      remaining: result.remaining,
-      resetMs: result.resetMs
-    };
-
-    if (!result.allowed) {
-      log.warn("Rate limit exceeded", { clientIp, maxRequests });
-      return {
-        status: 429,
-        body: {
-          error: "RATE_LIMIT_EXCEEDED",
-          message: "Too many requests. Please try again later.",
-          retryAfterMs: result.resetMs
-        },
-        headers: {
-          "Retry-After": Math.ceil(result.resetMs / 1000).toString(),
-          "X-RateLimit-Limit": maxRequests.toString(),
-          "X-RateLimit-Remaining": "0",
-          "X-RateLimit-Reset": Math.ceil((Date.now() + result.resetMs) / 1000).toString()
-        }
-      };
-    }
-
-    return null; // Continue to next handler
-  };
-}
 
 /**
  * Create security headers middleware (Helmet-like)
@@ -222,27 +113,6 @@ export function createCorsMiddleware({
 }
 
 /**
- * Get client IP from request
- * Handles proxied requests (X-Forwarded-For, etc.)
- */
-function getClientIp(request) {
-  // Check common proxy headers
-  const forwardedFor = request.headers["x-forwarded-for"];
-  if (forwardedFor) {
-    // X-Forwarded-For can contain multiple IPs, first is original client
-    return forwardedFor.split(",")[0].trim();
-  }
-
-  const realIp = request.headers["x-real-ip"];
-  if (realIp) {
-    return realIp;
-  }
-
-  // Fallback to socket address
-  return request.socket?.remoteAddress || request.ip || "unknown";
-}
-
-/**
  * Create combined security middleware stack
  * @param {Object} config
  */
@@ -252,17 +122,11 @@ export function createSecurityMiddlewareStack(config) {
       ? process.env.KASTONOM_ALLOWED_ORIGINS.split(",").map(o => o.trim())
       : ["*"]);
 
-  const rateLimit = createRateLimitMiddleware({
-    maxRequests: config.rateLimitMaxRequests || 100,
-    windowMs: config.rateLimitWindowMs || 15 * 60 * 1000
-  });
-
   const secureHeaders = createSecureHeadersMiddleware();
   const bodyLimit = createBodyLimitMiddleware(config.bodyLimitBytes || 1_048_576);
   const cors = createCorsMiddleware({ allowedOrigins });
 
   return {
-    rateLimit,
     secureHeaders,
     bodyLimit,
     cors,
@@ -280,10 +144,6 @@ export function createSecurityMiddlewareStack(config) {
       const bodyResult = await bodyLimit(context, request);
       if (bodyResult) return bodyResult;
 
-      // Rate limit
-      const rateResult = await rateLimit(context, request);
-      if (rateResult) return rateResult;
-
       // Secure headers
       await secureHeaders(context, request);
 
@@ -293,8 +153,6 @@ export function createSecurityMiddlewareStack(config) {
 }
 
 export default {
-  createRateLimitStore,
-  createRateLimitMiddleware,
   createSecureHeadersMiddleware,
   createBodyLimitMiddleware,
   createCorsMiddleware,

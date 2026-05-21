@@ -15,6 +15,63 @@ function compactJoin(items, separator = " ") {
   return items.filter((item) => typeof item === "string" && item.trim() !== "").join(separator);
 }
 
+function isObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function isHttpsUrl(value) {
+  if (typeof value !== "string" || value.trim() === "") {
+    return false;
+  }
+
+  try {
+    return new URL(value).protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function toPublicHttpsUrl(assetUrl, config) {
+  if (isHttpsUrl(assetUrl)) {
+    return assetUrl.trim();
+  }
+
+  if (typeof assetUrl !== "string" || !assetUrl.startsWith("/")) {
+    return null;
+  }
+
+  const publicAssetBaseUrl = config.publicAssetBaseUrl ?? config.publicBaseUrl;
+  if (!isHttpsUrl(publicAssetBaseUrl)) {
+    return null;
+  }
+
+  return new URL(assetUrl, publicAssetBaseUrl).toString();
+}
+
+function referenceImageUrlsFor(sourceAssets, config) {
+  const urls = [];
+
+  for (const asset of sourceAssets) {
+    if (asset.asset_type !== "image") {
+      continue;
+    }
+
+    const metadata = isObject(asset.metadata) ? asset.metadata : {};
+    const explicitReferenceUrl =
+      metadata.reference_image_url
+      ?? metadata.https_url
+      ?? metadata.public_url;
+    const referenceUrl = toPublicHttpsUrl(explicitReferenceUrl, config)
+      ?? toPublicHttpsUrl(asset.url, config);
+
+    if (referenceUrl) {
+      urls.push(referenceUrl);
+    }
+  }
+
+  return Array.from(new Set(urls));
+}
+
 export function createPromptCompilerService({ ids, clock, config }) {
   return {
     async compile(context, { requestedProvider, creativeSubject, sourceAssets, generationRequest }) {
@@ -32,6 +89,7 @@ export function createPromptCompilerService({ ids, clock, config }) {
       }
 
       const assetReferences = sourceAssets.map((asset) => `${asset.id}:${asset.url}`).join(", ");
+      const referenceImages = referenceImageUrlsFor(sourceAssets, config);
       const allowedClaims = creativeSubject.allowed_claims.length
         ? creativeSubject.allowed_claims.join("; ")
         : "not_available";
@@ -79,6 +137,7 @@ export function createPromptCompilerService({ ids, clock, config }) {
           adapter: adapterName(provider),
           platform: generationRequest.platform,
           objective: generationRequest.objective,
+          reference_images: referenceImages,
           source_asset_count: sourceAssets.length
         },
         is_mock: provider === "mock",

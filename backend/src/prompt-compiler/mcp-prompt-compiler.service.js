@@ -6,6 +6,9 @@ import * as pgStore from "../db/pg-store.js";
 let mcpFacade = null;
 let mcpModule = null;
 
+// Default image URL for Kling v3 video generation (when no source asset is provided)
+const KLING_DEFAULT_IMAGE_URL = "https://www.gaming.gen.tr/wp-content/uploads/2025/12/logitech-g-pro-x-superlight-2-dex-8k-hz-hero-2-sensor-pembe-kablosuz-gaming-mouse-910-007374-2-1.jpg";
+
 /**
  * Dynamically load MCP module
  */
@@ -169,7 +172,11 @@ export async function compileWithMCP(context, { requestedProvider, creativeSubje
       adapter: adapterName(provider),
       platform: generationRequest.platform,
       objective: generationRequest.objective,
-      source_asset_count: sourceAssets.length
+      source_asset_count: sourceAssets.length,
+      // Kling Video O1 requires a reference image
+      reference_image: provider === "kling" && sourceAssets.length > 0 
+        ? sourceAssets[0].url 
+        : undefined
     },
     is_mock: provider === "mock",
     fallback_notes: fallbackNotes,
@@ -287,7 +294,11 @@ export function createPromptCompilerService({ ids, clock, config }) {
           adapter: adapterName(provider),
           platform: generationRequest.platform,
           objective: generationRequest.objective,
-          source_asset_count: sourceAssets.length
+          source_asset_count: sourceAssets.length,
+          // Kling v3 always requires an image - use default if no source assets
+          image: provider === "kling" 
+            ? (sourceAssets.length > 0 ? sourceAssets[0].url : KLING_DEFAULT_IMAGE_URL)
+            : undefined
         },
         is_mock: provider === "mock",
         fallback_notes: fallbackNotes,

@@ -93,6 +93,21 @@ test("GET /health returns safe mock readiness without secrets", async () => {
   assert.equal(JSON.stringify(response.body).includes("super-secret-provider-key"), false);
 });
 
+test("GET /health treats Kling as ready with Pollo AI platform credentials", async () => {
+  const api = app({
+    KASTONOM_MODE: "live",
+    KASTONOM_DEFAULT_VIDEO_PROVIDER: "kling",
+    POLLO_API_KEY: "super-secret-provider-key",
+    POLLO_API_BASE_URL: "https://pollo.ai"
+  });
+  const response = await api.dispatch({ method: "GET", path: "/health" });
+
+  assert.equal(response.status, 200);
+  assert.equal(response.body.status, "ok");
+  assert.equal(response.body.video_provider_readiness.kling.ready, true);
+  assert.equal(JSON.stringify(response.body).includes("super-secret-provider-key"), false);
+});
+
 test("Swagger docs and OpenAPI spec exist and include every backend route", async () => {
   const api = app();
   const openApi = await api.dispatch({ method: "GET", path: "/openapi.json" });
@@ -210,6 +225,7 @@ test("full mock flow creates prompt payload, job, generated video, polling respo
   assert.equal(generation.prompt_payload.is_mock, true);
   assert.match(generation.prompt_payload.prompt_text, /Test Mug/);
   assert.match(generation.prompt_payload.negative_prompt, /No discount claim/);
+  assert.deepEqual(generation.prompt_payload.provider_options.reference_images, ["https://example.com/mug.png"]);
   assert.equal(generation.video_job.status, "completed");
   assert.equal(generation.generated_videos[0].is_mock, true);
 
@@ -272,6 +288,95 @@ test("live provider can fall back to labeled mock only when fallback is enabled"
   assert.equal(response.body.video_job.provider, "mock");
   assert.equal(response.body.video_job.is_mock, true);
   assert.equal(response.body.fallback_reason, "provider_config_missing_fallback_to_mock");
+});
+
+test("live Kling provider completion creates generated video and marks project ready", async (t) => {
+  const originalFetch = globalThis.fetch;
+
+  t.after(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  globalThis.fetch = async (input, init) => {
+    const url = String(input);
+
+    if (url.endsWith("/api/platform/generation/kling-ai/kling-video-o1")) {
+      const body = JSON.parse(String(init?.body));
+      assert.deepEqual(body.input.images, ["https://example.com/mug.png"]);
+
+      return new Response(JSON.stringify({
+        data: {
+          taskId: "pollo-task-nested",
+          status: "waiting"
+        }
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    if (url.endsWith("/api/platform/generation/pollo-task-nested/status")) {
+      return new Response(JSON.stringify({
+        data: {
+          taskId: "pollo-task-nested",
+          generations: [
+            {
+              id: "generation-1",
+              status: "succeed",
+              url: "https://cdn.example.com/generated-video.mp4"
+            }
+          ]
+        }
+      }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" }
+      });
+    }
+
+    throw new Error(`Unexpected fetch URL: ${url}`);
+  };
+
+  const api = app({
+    KASTONOM_MODE: "live",
+    KASTONOM_DEFAULT_VIDEO_PROVIDER: "kling",
+    KASTONOM_FALLBACK_ENABLED: "false",
+    POLLO_API_KEY: "test-pollo-key",
+    POLLO_API_BASE_URL: "https://pollo.ai"
+  });
+  const headers = { "x-tenant-id": "00000000-0000-0000-0000-000000000001" };
+  const project = await createProject(api, headers);
+  const generation = await api.dispatch({
+    method: "POST",
+    path: "/generation-requests",
+    headers,
+    body: generationInput(project, "kling")
+  });
+
+  assert.equal(generation.status, 202);
+  assert.equal(generation.body.video_job.provider, "kling");
+  assert.equal(generation.body.video_job.status, "queued");
+  assert.equal(generation.body.video_job.provider_job_id, "pollo-task-nested");
+
+  const polled = await api.dispatch({
+    method: "GET",
+    path: `/video-jobs/${generation.body.video_job.id}`,
+    headers
+  });
+
+  assert.equal(polled.status, 200);
+  assert.equal(polled.body.video_job.status, "completed");
+  assert.equal(polled.body.generated_videos.length, 1);
+  assert.equal(polled.body.generated_videos[0].url, "https://cdn.example.com/generated-video.mp4");
+
+  const bundle = await api.dispatch({
+    method: "GET",
+    path: `/creative-projects/${project.creative_project.id}`,
+    headers
+  });
+
+  assert.equal(bundle.status, 200);
+  assert.equal(bundle.body.creative_project.status, "ready");
+  assert.equal(bundle.body.generation_requests[0].status, "completed");
 });
 
 test("ad publication requires explicit user confirmation", async () => {

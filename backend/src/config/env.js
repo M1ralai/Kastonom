@@ -56,18 +56,33 @@ function readiness(env, names) {
   };
 }
 
+function readinessWithFallback(env, primaryNames, fallbackNames) {
+  const primary = readiness(env, primaryNames);
+  if (primary.ready) {
+    return primary;
+  }
+
+  const fallback = readiness(env, fallbackNames);
+  if (fallback.ready) {
+    return fallback;
+  }
+
+  return {
+    ready: false,
+    missing: primary.missing
+  };
+}
+
 function videoProviderReadiness(env) {
   const pollo = readiness(env, ["POLLO_API_KEY", "POLLO_API_BASE_URL"]);
-  const kling = readiness(env, ["KLING_API_KEY", "KLING_API_BASE_URL"]);
+  const kling = readinessWithFallback(
+    env,
+    ["KLING_API_KEY", "KLING_API_BASE_URL"],
+    ["POLLO_API_KEY", "POLLO_API_BASE_URL"]
+  );
   const runway = readiness(env, ["RUNWAY_API_KEY", "RUNWAY_API_BASE_URL"]);
 
   return {
-    mock: {
-      ready: true,
-      mode: "mock",
-      is_mock: true,
-      missing: []
-    },
     pollo: {
       ...pollo,
       mode: "live",
@@ -97,10 +112,21 @@ function providerCredential(env, apiKeyName, baseUrlName) {
   return { apiKey, baseUrl };
 }
 
+function providerCredentialWithFallback(env, primaryApiKeyName, primaryBaseUrlName, fallbackApiKeyName, fallbackBaseUrlName) {
+  return providerCredential(env, primaryApiKeyName, primaryBaseUrlName)
+    ?? providerCredential(env, fallbackApiKeyName, fallbackBaseUrlName);
+}
+
 function videoProviderCredentials(env) {
   return {
     pollo: providerCredential(env, "POLLO_API_KEY", "POLLO_API_BASE_URL"),
-    kling: providerCredential(env, "KLING_API_KEY", "KLING_API_BASE_URL"),
+    kling: providerCredentialWithFallback(
+      env,
+      "KLING_API_KEY",
+      "KLING_API_BASE_URL",
+      "POLLO_API_KEY",
+      "POLLO_API_BASE_URL"
+    ),
     runway: providerCredential(env, "RUNWAY_API_KEY", "RUNWAY_API_BASE_URL")
   };
 }
@@ -141,10 +167,10 @@ function adPlatformReadiness(env, mode) {
 }
 
 export function loadConfig(env = process.env) {
-  const mode = requireEnum(readString(env, "KASTONOM_MODE", "mock"), "KASTONOM_MODE", MODES);
-  const fallbackEnabled = readBoolean(env, "KASTONOM_FALLBACK_ENABLED", mode === "mock");
+  const mode = requireEnum(readString(env, "KASTONOM_MODE", "demo"), "KASTONOM_MODE", MODES);
+  const fallbackEnabled = readBoolean(env, "KASTONOM_FALLBACK_ENABLED", mode === "demo");
   const defaultVideoProvider = requireEnum(
-    readString(env, "KASTONOM_DEFAULT_VIDEO_PROVIDER", "mock"),
+    readString(env, "KASTONOM_DEFAULT_VIDEO_PROVIDER", "kling"),
     "KASTONOM_DEFAULT_VIDEO_PROVIDER",
     VIDEO_PROVIDERS
   );
@@ -158,6 +184,7 @@ export function loadConfig(env = process.env) {
     "KASTONOM_DEFAULT_ASPECT_RATIO",
     ASPECT_RATIOS
   );
+  const publicBaseUrl = readString(env, "KASTONOM_PUBLIC_BASE_URL", "http://localhost:3001");
 
   const config = {
     version: "0.1.0",
@@ -169,7 +196,8 @@ export function loadConfig(env = process.env) {
     defaultPlatform,
     defaultDurationSeconds: readInteger(env, "KASTONOM_DEFAULT_DURATION_SECONDS", 15),
     defaultAspectRatio,
-    publicBaseUrl: readString(env, "KASTONOM_PUBLIC_BASE_URL", "http://localhost:3001"),
+    publicBaseUrl,
+    publicAssetBaseUrl: readString(env, "KASTONOM_PUBLIC_ASSET_BASE_URL", publicBaseUrl),
     mockPreviewUrl: readString(env, "KASTONOM_MOCK_PREVIEW_URL", "/demo-assets/mock-ad-preview.mp4")
   };
 

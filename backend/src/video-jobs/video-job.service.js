@@ -16,6 +16,16 @@ function shouldPollProvider(videoJob) {
   );
 }
 
+function isUnpollableLiveJob(videoJob) {
+  return (
+    videoJob
+    && !videoJob.is_mock
+    && videoJob.provider !== "mock"
+    && !videoJob.provider_job_id
+    && !TERMINAL_STATUSES.has(videoJob.status)
+  );
+}
+
 function redactedMetadata(providerResult, updates = {}) {
   const current = providerResult?.redacted_metadata;
   return {
@@ -28,6 +38,40 @@ export function createVideoJobService({ ids, clock, config }) {
   const mcpNetwork = createMcpNetworkClient({ ids, clock, config });
 
   async function maybeRefreshFromProvider(context, videoJob) {
+    if (isUnpollableLiveJob(videoJob)) {
+      const message = "Provider did not return a pollable task id.";
+      const now = clock.now();
+      const updatedJob = await pgStore.updateVideoJob(videoJob.id, context.tenant_id, {
+        status: "failed",
+        error_code: "PROVIDER_TASK_ID_MISSING",
+        error_message: message,
+        completed_at: now
+      }) ?? videoJob;
+
+      const existingResult = await pgStore.getProviderResultByVideoJobId(videoJob.id, context.tenant_id);
+      if (existingResult) {
+        await pgStore.updateProviderResult(existingResult.id, context.tenant_id, {
+          normalized_status: "failed",
+          error_code: "PROVIDER_TASK_ID_MISSING",
+          error_message: message,
+          redacted_metadata: redactedMetadata(existingResult, {
+            mcp_status_poll: true,
+            unpollable_provider_job: true
+          })
+        });
+      }
+
+      await pgStore.updateGenerationRequest(videoJob.generation_request_id, context.tenant_id, {
+        status: "failed"
+      });
+      await pgStore.updateProject(videoJob.project_id, context.tenant_id, {
+        status: "failed",
+        latest_generation_request_id: videoJob.generation_request_id
+      });
+
+      return updatedJob;
+    }
+
     if (!shouldPollProvider(videoJob)) {
       return videoJob;
     }
@@ -102,6 +146,24 @@ export function createVideoJobService({ ids, clock, config }) {
             is_mock: false
           });
         }
+      }
+
+      if (status === "completed") {
+        await pgStore.updateGenerationRequest(videoJob.generation_request_id, context.tenant_id, {
+          status: "completed"
+        });
+        await pgStore.updateProject(videoJob.project_id, context.tenant_id, {
+          status: "ready",
+          latest_generation_request_id: videoJob.generation_request_id
+        });
+      } else if (status === "failed") {
+        await pgStore.updateGenerationRequest(videoJob.generation_request_id, context.tenant_id, {
+          status: "failed"
+        });
+        await pgStore.updateProject(videoJob.project_id, context.tenant_id, {
+          status: "failed",
+          latest_generation_request_id: videoJob.generation_request_id
+        });
       }
 
       return updatedJob ?? videoJob;
