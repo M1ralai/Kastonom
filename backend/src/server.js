@@ -1,3 +1,4 @@
+import "dotenv/config";
 import { createApp } from "./app.js";
 import { initDatabase, closeDatabase } from "./db/index.js";
 import { createLogger } from "./logger/index.js";

@@ -86,6 +86,25 @@ function videoProviderReadiness(env) {
   };
 }
 
+function providerCredential(env, apiKeyName, baseUrlName) {
+  const apiKey = readString(env, apiKeyName);
+  const baseUrl = readString(env, baseUrlName);
+
+  if (!apiKey || !baseUrl) {
+    return undefined;
+  }
+
+  return { apiKey, baseUrl };
+}
+
+function videoProviderCredentials(env) {
+  return {
+    pollo: providerCredential(env, "POLLO_API_KEY", "POLLO_API_BASE_URL"),
+    kling: providerCredential(env, "KLING_API_KEY", "KLING_API_BASE_URL"),
+    runway: providerCredential(env, "RUNWAY_API_KEY", "RUNWAY_API_BASE_URL")
+  };
+}
+
 function adPlatformReadiness(env, mode) {
   if (mode === "mock") {
     return {
@@ -155,6 +174,7 @@ export function loadConfig(env = process.env) {
   };
 
   config.videoProviderReadiness = videoProviderReadiness(env);
+  config.videoProviderCredentials = videoProviderCredentials(env);
   config.adPlatformReadiness = adPlatformReadiness(env, mode);
   config.supportedAdPlatforms = AD_PLATFORMS;
 

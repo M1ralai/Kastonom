@@ -1,3 +1,4 @@
+import { mkdir, writeFile } from "node:fs/promises";
 import {
   ASSET_SOURCES,
   ASSET_TYPES,
@@ -15,11 +16,23 @@ import {
   requireString,
   stringArray
 } from "../domain/validation.js";
+import { ErrorCodes } from "../http/errors/error-codes.js";
 import { notFound, validationError } from "../http/errors/api-error.js";
 import { createLogger } from "../logger/index.js";
 import * as pgStore from "../db/pg-store.js";
 
 const log = createLogger("creative-project");
+const UPLOAD_DIRECTORY = new URL("../../uploads/", import.meta.url);
+const MIME_EXTENSIONS = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/webp": "webp",
+  "image/gif": "gif"
+};
+
+function extensionForMimeType(mimeType) {
+  return MIME_EXTENSIONS[mimeType] || "jpg";
+}
 
 export function createCreativeProjectService({ ids, clock }) {
   return {
@@ -86,7 +99,7 @@ export function createCreativeProjectService({ ids, clock }) {
       const sourceAssets = sourceAssetInputs.map((assetInput, index) => {
         if (!isPlainObject(assetInput)) {
           throw validationError(`source_assets[${index}] must be an object.`, {
-            error: "SOURCE_ASSET_INVALID"
+            error: ErrorCodes.SOURCE_ASSET_INVALID
           });
         }
 
@@ -149,7 +162,7 @@ export function createCreativeProjectService({ ids, clock }) {
     async getBundle(context, projectId) {
       const pgProject = await pgStore.getProjectById(projectId, context.tenant_id);
       if (!pgProject) {
-        throw notFound("CREATIVE_PROJECT_NOT_FOUND", "Creative project was not found.");
+        throw notFound(ErrorCodes.CREATIVE_PROJECT_NOT_FOUND, "Creative project was not found.");
       }
 
       const pgSubject = await pgStore.getSubjectById(projectId, context.tenant_id);
@@ -177,7 +190,7 @@ export function createCreativeProjectService({ ids, clock }) {
     async getSubjectForProject(context, projectId) {
       const subjects = await pgStore.listSubjects(context.tenant_id, projectId);
       if (subjects.length === 0) {
-        throw notFound("CREATIVE_PROJECT_NOT_FOUND", "Creative subject was not found.");
+        throw notFound(ErrorCodes.CREATIVE_PROJECT_NOT_FOUND, "Creative subject was not found.");
       }
       return subjects[0];
     },
@@ -246,12 +259,13 @@ export function createCreativeProjectService({ ids, clock }) {
       const assetId = ids.uuid();
 
       // Generate a simple URL for the uploaded file (in production, use S3/GCS)
-      const fileExt = mimeType.split("/")[1] || "jpg";
+      const fileExt = extensionForMimeType(mimeType);
       const fileName = `${assetId}.${fileExt}`;
       const uploadUrl = `/uploads/${fileName}`;
 
-      // For MVP, we'll store as a data URL or just return the upload path
-      // In production, you would upload to S3/GCS here
+      await mkdir(UPLOAD_DIRECTORY, { recursive: true });
+      await writeFile(new URL(fileName, UPLOAD_DIRECTORY), filePart.data);
+
       const sourceAsset = {
         id: assetId,
         tenant_id: context.tenant_id,
@@ -277,6 +291,83 @@ export function createCreativeProjectService({ ids, clock }) {
       return {
         source_asset: createdAsset,
         upload_url: uploadUrl
+      };
+    },
+
+    /**
+     * Get project metrics for CreatePage
+     * Returns AI score, margin, stock info from ERP if available
+     */
+    async getMetrics(context, projectId) {
+      const project = await pgStore.getProjectById(projectId, context.tenant_id);
+      if (!project) {
+        throw notFound(ErrorCodes.CREATIVE_PROJECT_NOT_FOUND, "Creative project was not found.");
+      }
+
+      // Get subject
+      const subjects = await pgStore.listSubjects(context.tenant_id, projectId);
+      const subject = subjects.length > 0 ? subjects[0] : null;
+      if (!subject) {
+        throw notFound(ErrorCodes.CREATIVE_PROJECT_NOT_FOUND, "Creative subject was not found.");
+      }
+
+      // Get source assets count for AI score calculation
+      const assets = await pgStore.listAssets(context.tenant_id, projectId);
+
+      // Calculate AI score based on data quality (simple heuristic)
+      let aiScore = 50; // Base score
+      const aiReasons = [];
+
+      if (subject.price) {
+        aiScore += 10;
+        aiReasons.push("Fiyat bilgisi mevcut");
+      } else {
+        aiReasons.push("Fiyat bilgisi eksik");
+      }
+
+      if (subject.description) {
+        aiScore += 10;
+        aiReasons.push("Açıklama mevcut");
+      }
+
+      if (assets.length > 0) {
+        aiScore += 15;
+        aiReasons.push(`${assets.length} kaynak asset mevcut`);
+      }
+
+      if (!subject.unknown_fields || subject.unknown_fields.length < 3) {
+        aiScore += 10;
+        aiReasons.push("Çok az bilinmeyen alan");
+      }
+
+      // Calculate margin (if price is available, estimate margin)
+      // In production, this would come from ERP data
+      let marginPercent = null;
+      if (subject.price) {
+        // Mock margin calculation - in production from ERP
+        marginPercent = Math.round(subject.price * 0.35);
+      }
+
+      // Get ERP data (mock for now - in production would call ERP connector)
+      const erpData = {
+        stock_available: null,
+        stock_reserved: null,
+        last_sync_at: null
+      };
+
+      return {
+        project_id: projectId,
+        creative_subject: {
+          id: subject.id,
+          name: subject.name,
+          price: subject.price,
+          currency: subject.currency,
+          margin_percent: marginPercent,
+          stock_count: erpData.stock_available,
+          ai_score: aiScore,
+          ai_reasons: aiReasons
+        },
+        erp_data: erpData
       };
     },
 

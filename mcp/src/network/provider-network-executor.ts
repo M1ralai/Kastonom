@@ -32,6 +32,16 @@ export interface ProviderCredentials {
 export interface NetworkExecutorOptions {
   credentials: ProviderCredentials;
   defaultTimeoutMs?: number;
+  fallbackEnabled?: boolean;
+  mockPreviewUrl?: string;
+  idFactory?: (prefix: string) => string;
+  now?: () => string;
+}
+
+export interface ProviderExecutionOptions {
+  fallbackEnabled?: boolean;
+  fallbackReason?: string | null;
+  mockPreviewUrl?: string;
 }
 
 /**
@@ -77,11 +87,19 @@ function mapProviderStatus(
 export class ProviderNetworkExecutor {
   private credentials: ProviderCredentials;
   private defaultTimeoutMs: number;
+  private fallbackEnabled: boolean;
+  private mockPreviewUrl: string;
+  private idFactory: (prefix: string) => string;
+  private now: () => string;
   private clientCache: Map<VideoProvider, PolloAPIClient | null>;
 
   constructor(options: NetworkExecutorOptions) {
     this.credentials = options.credentials;
     this.defaultTimeoutMs = options.defaultTimeoutMs ?? 30000;
+    this.fallbackEnabled = options.fallbackEnabled ?? false;
+    this.mockPreviewUrl = options.mockPreviewUrl ?? "/demo-assets/mock-ad-preview.mp4";
+    this.idFactory = options.idFactory ?? ((prefix: string) => `${prefix}-${Date.now()}`);
+    this.now = options.now ?? (() => new Date().toISOString());
     this.clientCache = new Map();
   }
 
@@ -92,8 +110,7 @@ export class ProviderNetworkExecutor {
     if (provider === "mock") {
       return true;
     }
-    const cred = this.credentials;
-    return cred[provider] !== undefined;
+    return this.getProviderConfig(provider) !== null;
   }
 
   /**
@@ -105,9 +122,15 @@ export class ProviderNetworkExecutor {
     }
     const cred = this.credentials;
     // Type-safe access for non-mock providers only
-    if (provider === "pollo") return cred.pollo ?? null;
-    if (provider === "kling") return cred.kling ?? null;
-    if (provider === "runway") return cred.runway ?? null;
+    if (provider === "pollo" && cred.pollo?.apiKey && cred.pollo?.baseUrl) {
+      return cred.pollo;
+    }
+    if (provider === "kling" && cred.kling?.apiKey && cred.kling?.baseUrl) {
+      return cred.kling;
+    }
+    if (provider === "runway" && cred.runway?.apiKey && cred.runway?.baseUrl) {
+      return cred.runway;
+    }
     return null;
   }
 
@@ -140,19 +163,35 @@ export class ProviderNetworkExecutor {
    * @param promptPayload - Compiled prompt payload
    * @returns Normalized provider result
    */
-  async executeSubmission(promptPayload: PromptPayload): Promise<ProviderResult> {
+  async executeSubmission(
+    promptPayload: PromptPayload,
+    options: ProviderExecutionOptions = {}
+  ): Promise<ProviderResult> {
     const provider = promptPayload.provider;
+    const fallbackEnabled = options.fallbackEnabled ?? this.fallbackEnabled;
+    const fallbackReason = options.fallbackReason ?? promptPayload.fallback_reason ?? null;
+    const mockPreviewUrl = options.mockPreviewUrl ?? this.mockPreviewUrl;
 
     // If mock provider, return mock result
     if (provider === "mock") {
-      return this.createMockResult(promptPayload);
+      return this.createMockResult(promptPayload, fallbackReason, mockPreviewUrl);
     }
 
     // For live providers, check credentials
     const config = this.getProviderConfig(provider);
     if (!config) {
-      // No credentials, return mock result with fallback reason
-      return this.createMockResult(promptPayload);
+      if (fallbackEnabled) {
+        return this.createMockResult(
+          promptPayload,
+          "provider_config_missing_fallback_to_mock",
+          mockPreviewUrl
+        );
+      }
+
+      const error = new Error(`${provider} provider configuration is missing.`);
+      (error as Error & { code?: string; fallbackAvailable?: boolean }).code = "PROVIDER_CONFIG_MISSING";
+      (error as Error & { code?: string; fallbackAvailable?: boolean }).fallbackAvailable = false;
+      throw error;
     }
 
     try {
@@ -160,9 +199,22 @@ export class ProviderNetworkExecutor {
       const result = await this.callProviderAPI(provider, promptPayload);
       return result;
     } catch (error) {
-      // On error, return mock result with fallback reason
-      console.error(`Provider API error for ${provider}:`, error);
-      return this.createMockResult(promptPayload);
+      const providerMessage = error instanceof Error ? error.message : String(error);
+
+      if (fallbackEnabled) {
+        return this.createMockResult(
+          promptPayload,
+          "provider_execution_failed_fallback_to_mock",
+          mockPreviewUrl,
+          providerMessage
+        );
+      }
+
+      const executionError = new Error(`${provider} provider execution failed.`);
+      (executionError as Error & { code?: string; providerMessage?: string; fallbackAvailable?: boolean }).code = "PROVIDER_UNAVAILABLE";
+      (executionError as Error & { code?: string; providerMessage?: string; fallbackAvailable?: boolean }).providerMessage = providerMessage;
+      (executionError as Error & { code?: string; providerMessage?: string; fallbackAvailable?: boolean }).fallbackAvailable = false;
+      throw executionError;
     }
   }
 
@@ -221,22 +273,24 @@ export class ProviderNetworkExecutor {
       status = String(data.status || "pending");
     }
 
+    const resultUrls = extractResultUrls(provider, data);
+
     return {
-      id: `provider-result-${Date.now()}`,
+      id: this.idFactory("provider-result"),
       tenant_id: promptPayload.tenant_id,
       video_job_id: "",
       provider,
       provider_job_id: jobId,
       raw_status: status,
       normalized_status: mapProviderStatus(provider, status),
-      result_urls: [],
+      result_urls: resultUrls,
       error_code: null,
       error_message: null,
       redacted_metadata: {
         adapter: `${provider}-prompt-adapter`,
         is_mock: false
       },
-      received_at: new Date().toISOString()
+      received_at: this.now()
     };
   }
 
@@ -364,24 +418,31 @@ export class ProviderNetworkExecutor {
   /**
    * Create mock provider result
    */
-  private createMockResult(promptPayload: PromptPayload): ProviderResult {
+  private createMockResult(
+    promptPayload: PromptPayload,
+    fallbackReason: string | null,
+    mockPreviewUrl: string,
+    providerErrorMessage?: string
+  ): ProviderResult {
     return {
-      id: `mock-result-${Date.now()}`,
+      id: this.idFactory("mock-result"),
       tenant_id: promptPayload.tenant_id,
       video_job_id: "",
       provider: "mock",
-      provider_job_id: `mock-job-${Date.now()}`,
+      provider_job_id: this.idFactory("mock-job"),
       raw_status: "mock_completed",
       normalized_status: "completed" as VideoJobStatus,
-      result_urls: ["/demo-assets/mock-ad-preview.mp4"],
+      result_urls: [mockPreviewUrl],
       error_code: null,
       error_message: null,
       redacted_metadata: {
         adapter: "MockPromptAdapter",
         is_mock: true,
-        fallback_reason: promptPayload.fallback_reason
+        requested_provider: promptPayload.provider,
+        fallback_reason: fallbackReason ?? "mock_provider",
+        provider_error: providerErrorMessage ?? null
       },
-      received_at: new Date().toISOString()
+      received_at: this.now()
     };
   }
 
@@ -391,11 +452,48 @@ export class ProviderNetworkExecutor {
   getProviderReadiness(): Record<VideoProvider, { ready: boolean; is_mock: boolean }> {
     return {
       mock: { ready: true, is_mock: true },
-      pollo: { ready: this.credentials.pollo !== undefined, is_mock: this.credentials.pollo === undefined },
-      kling: { ready: this.credentials.kling !== undefined, is_mock: this.credentials.kling === undefined },
-      runway: { ready: this.credentials.runway !== undefined, is_mock: this.credentials.runway === undefined }
+      pollo: { ready: this.hasCredentials("pollo"), is_mock: !this.hasCredentials("pollo") },
+      kling: { ready: this.hasCredentials("kling"), is_mock: !this.hasCredentials("kling") },
+      runway: { ready: this.hasCredentials("runway"), is_mock: !this.hasCredentials("runway") }
     };
   }
+}
+
+function collectStringUrl(value: unknown, urls: string[]): void {
+  if (typeof value === "string" && value.trim() !== "") {
+    urls.push(value);
+  }
+}
+
+function extractResultUrls(provider: VideoProvider, data: Record<string, unknown>): string[] {
+  const urls: string[] = [];
+
+  if (provider === "pollo") {
+    collectStringUrl(data.url, urls);
+    collectStringUrl(data.video_url, urls);
+  }
+
+  if (provider === "kling") {
+    const video = data.video as Record<string, unknown> | undefined;
+    collectStringUrl(video?.url, urls);
+    collectStringUrl(data.url, urls);
+  }
+
+  if (provider === "runway") {
+    const output = data.output as Record<string, unknown> | undefined;
+    collectStringUrl(output?.video_url, urls);
+    collectStringUrl(data.video_url, urls);
+    collectStringUrl(data.url, urls);
+  }
+
+  const output = data.output;
+  if (Array.isArray(output)) {
+    for (const item of output) {
+      collectStringUrl(item, urls);
+    }
+  }
+
+  return Array.from(new Set(urls));
 }
 
 /**
@@ -411,6 +509,7 @@ export function createNetworkExecutor(options: NetworkExecutorOptions): Provider
 export function createMockNetworkExecutor(): ProviderNetworkExecutor {
   return new ProviderNetworkExecutor({
     credentials: {},
-    defaultTimeoutMs: 5000
+    defaultTimeoutMs: 5000,
+    fallbackEnabled: true
   });
 }

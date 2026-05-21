@@ -8,6 +8,7 @@ import {
   requireString,
   stringArray
 } from "../domain/validation.js";
+import { ErrorCodes } from "../http/errors/error-codes.js";
 import { notFound, validationError } from "../http/errors/api-error.js";
 import { createProviderOrchestratorService } from "../providers/provider-orchestrator.service.js";
 import { createLogger } from "../logger/index.js";
@@ -42,6 +43,29 @@ export function createGenerationRequestService({
     return Array.from(new Set(notes));
   }
 
+  // Cost calculation constants
+  const BASE_CREDIT_COST = 1;
+  const PLATFORM_COST_MULTIPLIERS = {
+    tiktok: 1.0,
+    reels: 1.0,
+    youtube_shorts: 1.1,
+    meta_ads: 1.2,
+    google_ads: 1.3
+  };
+  const DURATION_COST_MULTIPLIERS = {
+    15: 1.0,
+    30: 1.5,
+    60: 2.0
+  };
+  const ASPECT_RATIO_COST_MULTIPLIERS = {
+    "9:16": 1.0,
+    "1:1": 0.9,
+    "4:5": 0.9,
+    "16:9": 0.8
+  };
+  const BASE_CREDIT_PRICE_TRY = 85; // Base price in TRY
+  const MAX_PRICE_MULTIPLIER = 1.4; // Max 40% markup
+
   return {
     async create(context, body) {
       const input = requireObject(body, "request body");
@@ -65,7 +89,7 @@ export function createGenerationRequestService({
       const sourceAssets = sourceAssetIds.map((assetId) => {
         const asset = assets.find(a => a.id === assetId);
         if (!asset || asset.project_id !== project.id) {
-          throw notFound("SOURCE_ASSET_NOT_FOUND", "Source asset was not found.");
+          throw notFound(ErrorCodes.SOURCE_ASSET_NOT_FOUND, "Source asset was not found.");
         }
         return asset;
       });
@@ -172,6 +196,52 @@ export function createGenerationRequestService({
         });
         throw error;
       }
+    },
+
+    /**
+     * Estimate cost for a generation request
+     * Returns estimated credits and cost in local currency
+     */
+    async estimateCost(context, body) {
+      const input = requireObject(body, "request body");
+
+      const platform = enumValue(input.platform, "platform", PLATFORMS);
+      const durationSeconds = requireInteger(input.duration_seconds, "duration_seconds");
+      const aspectRatio = enumValue(input.aspect_ratio, "aspect_ratio", ASPECT_RATIOS);
+
+      log.info("Estimating generation cost", {
+        tenant_id: context.tenant_id,
+        platform,
+        duration_seconds: durationSeconds,
+        aspect_ratio: aspectRatio
+      });
+
+      // Calculate credit cost
+      const platformMultiplier = PLATFORM_COST_MULTIPLIERS[platform] || 1.0;
+      const durationMultiplier = DURATION_COST_MULTIPLIERS[durationSeconds] || 1.0;
+      const aspectMultiplier = ASPECT_RATIO_COST_MULTIPLIERS[aspectRatio] || 1.0;
+
+      const estimatedCredits = Math.ceil(
+        BASE_CREDIT_COST * platformMultiplier * durationMultiplier * aspectMultiplier
+      );
+
+      // Calculate cost in TRY
+      const estimatedCost = Math.round(BASE_CREDIT_PRICE_TRY * platformMultiplier * durationMultiplier * aspectMultiplier);
+      const maxAmount = Math.round(estimatedCost * MAX_PRICE_MULTIPLIER);
+
+      log.info("Cost estimate calculated", {
+        estimated_credits: estimatedCredits,
+        estimated_cost: estimatedCost
+      });
+
+      return {
+        estimated_credits: estimatedCredits,
+        estimated_cost: {
+          amount: estimatedCost,
+          currency: "TRY",
+          max_amount: maxAmount
+        }
+      };
     }
   };
 }

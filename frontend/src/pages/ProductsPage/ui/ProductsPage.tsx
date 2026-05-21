@@ -1,7 +1,8 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { KpiCard } from "@/widgets/KpiCard";
 import { listCreativeProjects, createCreativeProject, uploadSourceAsset } from "@/shared/api/kastonomApi";
+import { getImageAssetPreviewUrl } from "@/shared/lib/assetPreview";
 import type { CreativeProject, CreativeSubject, SourceAsset } from "@/shared/types/api";
 
 interface ProjectBundle {
@@ -51,6 +52,44 @@ function formatPrice(price?: number, currency?: string): string {
   }).format(price);
 }
 
+function ProjectThumbnail({
+  assets,
+  alt,
+  size,
+}: {
+  assets: SourceAsset[];
+  alt: string;
+  size: "grid" | "list";
+}) {
+  const [imageFailed, setImageFailed] = useState(false);
+  const previewUrl = getImageAssetPreviewUrl(assets);
+  const className = size === "grid" ? "w-14 h-14" : "w-12 h-12";
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [previewUrl]);
+
+  return (
+    <div
+      className={`${className} rounded-xl flex items-center justify-center overflow-hidden text-center`}
+      style={{ background: "#F1F5F9" }}
+    >
+      {previewUrl && !imageFailed ? (
+        <img
+          src={previewUrl}
+          alt={alt}
+          className="h-full w-full object-cover"
+          onError={() => setImageFailed(true)}
+        />
+      ) : (
+        <span className="text-[10px] font-semibold leading-tight px-1" style={{ color: "#94A3B8" }}>
+          Görsel yok
+        </span>
+      )}
+    </div>
+  );
+}
+
 export function ProductsPage() {
   const navigate = useNavigate();
   const [projects, setProjects] = useState<ProjectBundle[]>([]);
@@ -76,8 +115,6 @@ export function ProductsPage() {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [uploadedAssetId, setUploadedAssetId] = useState<string | null>(null);
-  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
 
   // Reset form
   function resetForm() {
@@ -89,8 +126,6 @@ export function ProductsPage() {
     setPreviewUrl(null);
     setIsDragging(false);
     setIsUploading(false);
-    setUploadedAssetId(null);
-    setUploadedUrl(null);
     setCreateError(null);
   }
 
@@ -158,8 +193,6 @@ export function ProductsPage() {
 
     try {
       const result = await uploadSourceAsset(selectedFile);
-      setUploadedAssetId(result.source_asset.id);
-      setUploadedUrl(result.upload_url);
       return result;
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : "Görsel yüklenemedi.");
@@ -431,17 +464,7 @@ export function ProductsPage() {
                     <>
                       {/* Grid View */}
                       <div className="flex items-start justify-between mb-4">
-                        <div
-                          className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl"
-                          style={{ background: "linear-gradient(135deg,#EFF9FF,#F0FDE8)" }}
-                        >
-                          {subject?.subject_type === "product" ? "📦" :
-                           subject?.subject_type === "service" ? "🛠️" :
-                           subject?.subject_type === "brand" ? "✨" :
-                           subject?.subject_type === "offer" ? "🎁" :
-                           subject?.subject_type === "event" ? "📅" :
-                           subject?.subject_type === "place" ? "📍" : "📁"}
-                        </div>
+                        <ProjectThumbnail assets={assets} alt={`${subject?.name || project.name} görseli`} size="grid" />
                         <span
                           className="px-3 py-1 rounded-full text-xs font-bold"
                           style={{ background: statusStyle.bg, color: statusStyle.color }}
@@ -532,14 +555,7 @@ export function ProductsPage() {
                     <>
                       {/* List View */}
                       <div className="flex items-center gap-4">
-                        <div
-                          className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl"
-                          style={{ background: "linear-gradient(135deg,#EFF9FF,#F0FDE8)" }}
-                        >
-                          {subject?.subject_type === "product" ? "📦" :
-                           subject?.subject_type === "service" ? "🛠️" :
-                           subject?.subject_type === "brand" ? "✨" : "📁"}
-                        </div>
+                        <ProjectThumbnail assets={assets} alt={`${subject?.name || project.name} görseli`} size="list" />
                         <div className="flex-1">
                           <div className="flex items-center gap-2 mb-1">
                             <span className="font-black text-sm" style={{ color: "#1B365D" }}>

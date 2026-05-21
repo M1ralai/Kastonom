@@ -451,6 +451,15 @@ export async function updateVideoJob(id, tenantId, data) {
 // Provider Results
 // ===========================================
 
+export async function getProviderResultByVideoJobId(videoJobId, tenantId) {
+  const result = await query(
+    "SELECT * FROM provider_results WHERE video_job_id = $1 AND tenant_id = $2 ORDER BY received_at DESC LIMIT 1",
+    [videoJobId, tenantId],
+    { table: "provider_results", operation: "select" }
+  );
+  return result.rows[0];
+}
+
 export async function createProviderResult(data) {
   const result = await query(
     `INSERT INTO provider_results (id, tenant_id, video_job_id, provider, provider_job_id, raw_status, normalized_status, result_urls, error_code, error_message, redacted_metadata)
@@ -462,6 +471,38 @@ export async function createProviderResult(data) {
       data.redacted_metadata ? JSON.stringify(data.redacted_metadata) : null
     ],
     { table: "provider_results", operation: "insert" }
+  );
+  return result.rows[0];
+}
+
+export async function updateProviderResult(id, tenantId, data) {
+  const fields = [];
+  const values = [];
+  let idx = 1;
+
+  const allowedFields = [
+    "provider_job_id",
+    "raw_status",
+    "normalized_status",
+    "result_urls",
+    "error_code",
+    "error_message",
+    "redacted_metadata"
+  ];
+
+  for (const field of allowedFields) {
+    if (data[field] !== undefined) {
+      fields.push(`${field} = $${idx++}`);
+      values.push(field === "redacted_metadata" ? JSON.stringify(data[field]) : data[field]);
+    }
+  }
+
+  values.push(id, tenantId);
+
+  const result = await query(
+    `UPDATE provider_results SET ${fields.join(", ")} WHERE id = $${idx++} AND tenant_id = $${idx} RETURNING *`,
+    values,
+    { table: "provider_results", operation: "update" }
   );
   return result.rows[0];
 }
@@ -651,6 +692,74 @@ export async function createIterationSuggestion(data) {
   return result.rows[0];
 }
 
+// ===========================================
+// Refresh Tokens
+// ===========================================
+
+export async function createRefreshToken(data) {
+  const result = await query(
+    `INSERT INTO refresh_tokens (id, user_id, token_hash, family, expires_at, ip_address, user_agent)
+     VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`,
+    [
+      data.id, data.user_id, data.token_hash, data.family, data.expires_at,
+      data.ip_address || null, data.user_agent || null
+    ],
+    { table: "refresh_tokens", operation: "insert" }
+  );
+  return result.rows[0];
+}
+
+export async function getRefreshToken(token) {
+  // Hash the token to lookup
+  const { createHmac } = await import("node:crypto");
+  const jwtSecret = process.env.JWT_SECRET || "dev-secret-change-in-production";
+  const tokenHash = createHmac("sha256", jwtSecret).update(token).digest("hex");
+  
+  const result = await query(
+    `SELECT * FROM refresh_tokens WHERE token_hash = $1 AND revoked_at IS NULL`,
+    [tokenHash],
+    { table: "refresh_tokens", operation: "select" }
+  );
+  return result.rows[0];
+}
+
+export async function revokeRefreshToken(token) {
+  const { createHmac } = await import("node:crypto");
+  const jwtSecret = process.env.JWT_SECRET || "dev-secret-change-in-production";
+  const tokenHash = createHmac("sha256", jwtSecret).update(token).digest("hex");
+  
+  await query(
+    `UPDATE refresh_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE token_hash = $1`,
+    [tokenHash],
+    { table: "refresh_tokens", operation: "update" }
+  );
+}
+
+export async function revokeRefreshTokenFamily(family) {
+  await query(
+    `UPDATE refresh_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE family = $1 AND revoked_at IS NULL`,
+    [family],
+    { table: "refresh_tokens", operation: "update" }
+  );
+}
+
+export async function revokeAllUserRefreshTokens(userId) {
+  await query(
+    `UPDATE refresh_tokens SET revoked_at = CURRENT_TIMESTAMP WHERE user_id = $1 AND revoked_at IS NULL`,
+    [userId],
+    { table: "refresh_tokens", operation: "update" }
+  );
+}
+
+export async function cleanupExpiredRefreshTokens() {
+  const result = await query(
+    `DELETE FROM refresh_tokens WHERE expires_at < CURRENT_TIMESTAMP OR revoked_at IS NOT NULL`,
+    [],
+    { table: "refresh_tokens", operation: "delete" }
+  );
+  return result.rowCount;
+}
+
 export default {
   // Audit
   createAuditLog,
@@ -699,7 +808,9 @@ export default {
   updateVideoJob,
 
   // Provider Results
+  getProviderResultByVideoJobId,
   createProviderResult,
+  updateProviderResult,
 
   // Generated Videos
   getGeneratedVideoById,
@@ -719,4 +830,12 @@ export default {
 
   // Iteration Suggestions
   createIterationSuggestion,
+
+  // Refresh Tokens
+  createRefreshToken,
+  getRefreshToken,
+  revokeRefreshToken,
+  revokeRefreshTokenFamily,
+  revokeAllUserRefreshTokens,
+  cleanupExpiredRefreshTokens,
 };

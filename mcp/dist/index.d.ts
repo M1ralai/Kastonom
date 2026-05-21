@@ -12,7 +12,7 @@ export { generateCreativeBrief, generateBriefWithContext, validateContent } from
 export { createMockPromptAdapter, createPolloPromptAdapter, compilePrompt } from "./prompt-compiler/index.js";
 export { analyzeMetricsAndSuggest, getAlternativeAngles } from "./iteration-engine/index.js";
 export { createMCPFacade, createDemoMCPFacade, MCPIntegrationFacade } from "./facade/index.js";
-export { createMockNetworkExecutor, ProviderNetworkExecutor } from "./network/index.js";
+export { createNetworkExecutor, createMockNetworkExecutor, ProviderNetworkExecutor } from "./network/index.js";
 export declare const MCP_VERSION = "1.0.0";
 export declare const MCP_LAYER = "mcp_ai";
 //# sourceMappingURL=index.d.ts.map

@@ -96,7 +96,7 @@ export async function initTestDatabase() {
       CREATE TABLE IF NOT EXISTS source_assets (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
         tenant_id UUID NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
-        project_id UUID NOT NULL REFERENCES creative_projects(id) ON DELETE CASCADE,
+        project_id UUID REFERENCES creative_projects(id) ON DELETE CASCADE,
         asset_type VARCHAR(20) NOT NULL CHECK (asset_type IN ('image', 'video', 'url')),
         source VARCHAR(30) NOT NULL DEFAULT 'upload' CHECK (source IN ('upload', 'external_url', 'generated', 'mock')),
         url VARCHAR(500) NOT NULL,
@@ -109,6 +109,8 @@ export async function initTestDatabase() {
         metadata JSONB,
         created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
       );
+
+      ALTER TABLE source_assets ALTER COLUMN project_id DROP NOT NULL;
 
       CREATE TABLE IF NOT EXISTS generation_requests (
         id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

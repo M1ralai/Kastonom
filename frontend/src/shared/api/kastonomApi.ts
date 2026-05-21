@@ -1,6 +1,6 @@
 /**
  * Frontend API Service - Communicates with Backend
- * @description Handles all API calls to the backend, with fallback support
+ * @description Handles all API calls to the backend
  */
 
 import type {
@@ -15,8 +15,6 @@ import type {
   ProviderResult,
   AdPublication,
   AdMetricsSnapshot,
-  ProductDisplay,
-  ScoreBreakdown,
   VideoJobStatus,
   Platform,
   VideoProvider,
@@ -27,9 +25,6 @@ import type {
 
 // API Configuration
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3001";
-
-// UUID format: 00000000-0000-0000-0000-000000000001
-const DEMO_TENANT_ID = "00000000-0000-0000-0000-000000000001";
 
 // Auth token storage key
 const AUTH_TOKEN_KEY = "kastonom_auth_token";
@@ -84,23 +79,6 @@ export function isAuthenticated(): boolean {
   return !!getAuthToken();
 }
 
-/**
- * Check if running in demo mode (no backend connection)
- */
-export function isDemoMode(): boolean {
-  return localStorage.getItem("kastonom_demo_mode") === "true";
-}
-
-/**
- * Set demo mode
- */
-export function setDemoMode(enabled: boolean): void {
-  if (enabled) {
-    localStorage.setItem("kastonom_demo_mode", "true");
-  } else {
-    localStorage.removeItem("kastonom_demo_mode");
-  }
-}
 
 // ─── Auth API ────────────────────────────────────────────────
 
@@ -217,24 +195,56 @@ export async function checkHealth(): Promise<HealthResponse> {
   return apiRequest<HealthResponse>("/health");
 }
 
-/**
- * Demo Fallback - Get complete demo state
- */
-export async function getDemoFallback(): Promise<{
-  creative_project: CreativeProject;
-  creative_subject: CreativeSubject;
-  source_assets: SourceAsset[];
-  generation_request: GenerationRequest;
-  prompt_payload: PromptPayload;
-  video_job: VideoJob;
-  provider_result: ProviderResult;
-  generated_videos: GeneratedVideo[];
-  selected_generated_video: GeneratedVideo | null;
-  ad_publication: AdPublication | null;
-  metrics_snapshot: AdMetricsSnapshot | null;
-  fallback_reason: string;
-}> {
-  return apiRequest("/demo/fallback");
+// ─── Dashboard Endpoints ──────────────────────────────────────
+
+export interface KpiSummary {
+  monthly_video_count: number;
+  monthly_video_change: number;
+  remaining_credits: number;
+  credit_currency: string;
+  average_ctr: number;
+  sector_average_ctr: number;
+  ctr_change_percent: number;
+}
+
+export async function getKpiSummary(): Promise<KpiSummary> {
+  return apiRequest<KpiSummary>("/dashboard/kpi-summary");
+}
+
+export interface RecentActivity {
+  id: string;
+  project_id: string;
+  project_name: string;
+  status: string;
+  icon: string;
+  generated_video: {
+    impressions: number;
+    ctr: number;
+  } | null;
+  updated_at: string;
+}
+
+export interface RecentActivitiesResponse {
+  activities: RecentActivity[];
+}
+
+export async function getRecentActivities(limit: number = 10): Promise<RecentActivitiesResponse> {
+  return apiRequest<RecentActivitiesResponse>(`/dashboard/recent-activities?limit=${limit}`);
+}
+
+// ─── Tenant Endpoints ─────────────────────────────────────────
+
+export interface TenantCredits {
+  tenant_id: string;
+  current_credits: number;
+  credit_currency: string;
+  monthly_allowance: number;
+  used_this_month: number;
+  videos_per_credit: number;
+}
+
+export async function getTenantCredits(): Promise<TenantCredits> {
+  return apiRequest<TenantCredits>("/tenant/credits");
 }
 
 // ─── Creative Projects ─────────────────────────────────────────
@@ -273,6 +283,49 @@ export async function createCreativeProject(input: CreateProjectInput): Promise<
   });
 }
 
+export async function getCreativeProject(projectId: string): Promise<{
+  creative_project: CreativeProject;
+  creative_subject: CreativeSubject;
+  source_assets: SourceAsset[];
+  generation_requests: GenerationRequest[];
+  generated_videos: GeneratedVideo[];
+}> {
+  return apiRequest(`/creative-projects/${projectId}`);
+}
+
+export async function listCreativeProjects(): Promise<Array<{
+  creative_project: CreativeProject;
+  creative_subject: CreativeSubject | null;
+  source_assets: SourceAsset[];
+}>> {
+  return apiRequest("/creative-projects");
+}
+
+// ─── Project Metrics ───────────────────────────────────────────
+
+export interface ProjectMetrics {
+  project_id: string;
+  creative_subject: {
+    id: string;
+    name: string;
+    price: number | null;
+    currency: string | null;
+    margin_percent: number | null;
+    stock_count: number | null;
+    ai_score: number;
+    ai_reasons: string[];
+  };
+  erp_data: {
+    stock_available: number | null;
+    stock_reserved: number | null;
+    last_sync_at: string | null;
+  };
+}
+
+export async function getProjectMetrics(projectId: string): Promise<ProjectMetrics> {
+  return apiRequest<ProjectMetrics>(`/creative-projects/${projectId}/metrics`);
+}
+
 // ─── Source Assets Upload ───────────────────────────────────────
 
 export async function uploadSourceAsset(file: File): Promise<{
@@ -308,24 +361,6 @@ export async function uploadSourceAsset(file: File): Promise<{
   return response.json();
 }
 
-export async function getCreativeProject(projectId: string): Promise<{
-  creative_project: CreativeProject;
-  creative_subject: CreativeSubject;
-  source_assets: SourceAsset[];
-  generation_requests: GenerationRequest[];
-  generated_videos: GeneratedVideo[];
-}> {
-  return apiRequest(`/creative-projects/${projectId}`);
-}
-
-export async function listCreativeProjects(): Promise<Array<{
-  creative_project: CreativeProject;
-  creative_subject: CreativeSubject | null;
-  source_assets: SourceAsset[];
-}>> {
-  return apiRequest("/creative-projects");
-}
-
 // ─── Generation Requests ────────────────────────────────────────
 
 export interface CreateGenerationRequestInput {
@@ -358,6 +393,28 @@ export async function createGenerationRequest(input: CreateGenerationRequestInpu
   });
 }
 
+export interface EstimateCostInput {
+  platform: Platform;
+  duration_seconds: number;
+  aspect_ratio: AspectRatio;
+}
+
+export interface EstimateCostResponse {
+  estimated_credits: number;
+  estimated_cost: {
+    amount: number;
+    currency: string;
+    max_amount: number;
+  };
+}
+
+export async function estimateCost(input: EstimateCostInput): Promise<EstimateCostResponse> {
+  return apiRequest<EstimateCostResponse>("/generation-requests/estimate-cost", {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
 // ─── Video Jobs ────────────────────────────────────────────────
 
 export async function getVideoJob(jobId: string): Promise<{
@@ -367,6 +424,42 @@ export async function getVideoJob(jobId: string): Promise<{
   fallback_reason: string | null;
 }> {
   return apiRequest(`/video-jobs/${jobId}`);
+}
+
+export interface VideoJobFullResponse {
+  video_job: {
+    id: string;
+    status: string;
+    created_at: string;
+  };
+  generated_videos: Array<{
+    id: string;
+    url: string;
+    thumbnail_url: string | null;
+    duration_seconds: number | null;
+    aspect_ratio: string;
+    status: string;
+    is_selected: boolean;
+  }>;
+  project: {
+    id: string;
+    name: string;
+  };
+  creative_subject: {
+    id: string;
+    name: string;
+    img: string | null;
+  } | null;
+  generation_request: {
+    platform: string;
+    tone: string | null;
+    style: string | null;
+    call_to_action: string | null;
+  } | null;
+}
+
+export async function getVideoJobFull(jobId: string): Promise<VideoJobFullResponse> {
+  return apiRequest<VideoJobFullResponse>(`/video-jobs/${jobId}/full`);
 }
 
 // ─── Generated Videos ──────────────────────────────────────────
@@ -431,151 +524,6 @@ export async function syncMetrics(
   });
 }
 
-// ─── Mock Data Fallbacks ────────────────────────────────────────
-
-/**
- * Mock products for demo fallback when backend is unavailable
- */
-export const MOCK_PRODUCTS: ProductDisplay[] = [
-  {
-    id: "prod-001",
-    name: "Erkek Koşu Ayakkabısı Pro X",
-    sku: "SKU-4421",
-    category: "Spor",
-    price: 1299,
-    currency: "TRY",
-    stock: "248 adet",
-    score: 87,
-    reasons: [
-      "Arama hacmi %40 arttı",
-      "Sepet terk oranı düşük",
-      "Rakip stok azaldı"
-    ],
-    margin: "42%",
-    img: "👟",
-    creative_subject_id: "cs-001",
-  },
-  {
-    id: "prod-002",
-    name: "Bluetooth Kulaklık Wave 200",
-    sku: "SKU-2981",
-    category: "Elektronik",
-    price: 899,
-    currency: "TRY",
-    stock: "115 adet",
-    score: 73,
-    reasons: [
-      "Yaz sezonu talebi yüksek",
-      "Sosyal medya trendi",
-      "Geri dönüş oranı düşük"
-    ],
-    margin: "38%",
-    img: "🎧",
-    creative_subject_id: "cs-002",
-  },
-  {
-    id: "prod-003",
-    name: "Ergonomik Sırt Çantası Kids",
-    sku: "SKU-7734",
-    category: "Çocuk",
-    price: 649,
-    currency: "TRY",
-    stock: "430 adet",
-    score: 65,
-    reasons: [
-      "Okul sezonu yaklaşıyor",
-      "Kâr marjı güçlü",
-      "Yorumlar pozitif"
-    ],
-    margin: "55%",
-    img: "🎒",
-    creative_subject_id: "cs-003",
-  },
-];
-
-/**
- * Mock score breakdown for product insights
- */
-export const MOCK_SCORE_BREAKDOWN: ScoreBreakdown = {
-  hype_score: 87,
-  trend_potential: 82,
-  sales_velocity: 78,
-  stock_movement: "Artış",
-  new_product_boost: false,
-  audience_fit: "18-45 Erkek, Spor & Outdoor ilgi alanı",
-  recommendation_reason: "Arama hacminde %40 artış ve mevsimsel talep yüksekliği tespit edildi.",
-};
-
-/**
- * Mock generated videos for preview
- */
-export const MOCK_GENERATED_VIDEOS: GeneratedVideo[] = [
-  {
-    id: "gv-001",
-    tenant_id: DEMO_TENANT_ID,
-    project_id: "proj-001",
-    generation_request_id: "gr-001",
-    video_job_id: "vj-001",
-    url: "https://example.com/video-a.mp4",
-    thumbnail_url: "https://example.com/thumb-a.jpg",
-    duration_seconds: 15,
-    aspect_ratio: "9:16",
-    status: "generated",
-    is_selected: false,
-    is_mock: true,
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "gv-002",
-    tenant_id: DEMO_TENANT_ID,
-    project_id: "proj-001",
-    generation_request_id: "gr-001",
-    video_job_id: "vj-001",
-    url: "https://example.com/video-b.mp4",
-    thumbnail_url: "https://example.com/thumb-b.jpg",
-    duration_seconds: 15,
-    aspect_ratio: "9:16",
-    status: "generated",
-    is_selected: false,
-    is_mock: true,
-    created_at: new Date().toISOString(),
-  },
-];
-
-/**
- * Mock ad metrics for performance page
- */
-export const MOCK_METRICS: AdMetricsSnapshot = {
-  id: "metrics-001",
-  tenant_id: DEMO_TENANT_ID,
-  ad_publication_id: "pub-001",
-  platform: "meta_ads",
-  date_start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-  date_end: new Date().toISOString().split("T")[0],
-  impressions: 45000,
-  clicks: 1080,
-  spend: 1240,
-  currency: "TRY",
-  ctr: 2.4,
-  cpc: 1.15,
-  conversions: 42,
-  conversion_value: 42000,
-  roas: 3.2,
-  video_views: 28000,
-  video_view_rate: 62,
-  cost_per_video_view: 0.04,
-  source: "mock",
-  fetched_at: new Date().toISOString(),
-};
-
-/**
- * Mock ad platforms for publish page
- */
-export const MOCK_AD_PLATFORMS = [
-  { name: "Meta Ads", icon: "📘", connected: true, account: "Kastonom Official · ID:1048290" },
-  { name: "Google Ads", icon: "🔍", connected: true, account: "kastonom@ads.google · MCC aktif" },
-  { name: "TikTok Ads", icon: "🎵", connected: false, account: "Bağlı değil" },
-];
 
 // ─── State Management ───────────────────────────────────────────
 
@@ -602,12 +550,11 @@ export interface AppState {
 
   // UI State
   isLoading: boolean;
-  isDemoMode: boolean;
   error: string | null;
 }
 
 export const initialAppState: AppState = {
-  tenantId: DEMO_TENANT_ID,
+  tenantId: "",
   currentProject: null,
   currentSubject: null,
   currentAssets: [],
@@ -618,7 +565,6 @@ export const initialAppState: AppState = {
   currentPublication: null,
   currentMetrics: null,
   isLoading: false,
-  isDemoMode: true,
   error: null,
 };
 

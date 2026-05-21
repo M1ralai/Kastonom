@@ -19,7 +19,7 @@ export { analyzeMetricsAndSuggest, getAlternativeAngles } from "./iteration-engi
 // Facade
 export { createMCPFacade, createDemoMCPFacade, MCPIntegrationFacade } from "./facade/index.js";
 // Network
-export { createMockNetworkExecutor, ProviderNetworkExecutor } from "./network/index.js";
+export { createNetworkExecutor, createMockNetworkExecutor, ProviderNetworkExecutor } from "./network/index.js";
 // Version info
 export const MCP_VERSION = "1.0.0";
 export const MCP_LAYER = "mcp_ai";

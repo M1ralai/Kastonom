@@ -27,6 +27,15 @@ export interface ProviderCredentials {
 export interface NetworkExecutorOptions {
     credentials: ProviderCredentials;
     defaultTimeoutMs?: number;
+    fallbackEnabled?: boolean;
+    mockPreviewUrl?: string;
+    idFactory?: (prefix: string) => string;
+    now?: () => string;
+}
+export interface ProviderExecutionOptions {
+    fallbackEnabled?: boolean;
+    fallbackReason?: string | null;
+    mockPreviewUrl?: string;
 }
 /**
  * Provider network executor
@@ -35,6 +44,11 @@ export interface NetworkExecutorOptions {
 export declare class ProviderNetworkExecutor {
     private credentials;
     private defaultTimeoutMs;
+    private fallbackEnabled;
+    private mockPreviewUrl;
+    private idFactory;
+    private now;
+    private clientCache;
     constructor(options: NetworkExecutorOptions);
     /**
      * Check if provider credentials are available
@@ -45,11 +59,35 @@ export declare class ProviderNetworkExecutor {
      */
     private getProviderConfig;
     /**
-     * Execute provider submission (placeholder for actual HTTP calls)
+     * Get or create API client for provider
+     */
+    private getAPIClient;
+    /**
+     * Execute provider submission with real API call
      * @param promptPayload - Compiled prompt payload
      * @returns Normalized provider result
      */
-    executeSubmission(promptPayload: PromptPayload): Promise<ProviderResult>;
+    executeSubmission(promptPayload: PromptPayload, options?: ProviderExecutionOptions): Promise<ProviderResult>;
+    /**
+     * Call provider API based on provider type
+     */
+    private callProviderAPI;
+    /**
+     * Get provider-specific headers
+     */
+    private getProviderHeaders;
+    /**
+     * Build provider-specific payload
+     */
+    private buildProviderPayload;
+    /**
+     * Get job status from provider
+     */
+    getJobStatus(provider: VideoProvider, providerJobId: string): Promise<{
+        status: "queued" | "processing" | "completed" | "failed";
+        videoUrl?: string;
+        error?: string;
+    }>;
     /**
      * Create mock provider result
      */

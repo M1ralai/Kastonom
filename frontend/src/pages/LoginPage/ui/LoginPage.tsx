@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "@/shared/ui/Logo";
 import { Badge } from "@/shared/ui/Badge";
-import { login as apiLogin, register as apiRegister } from "@/shared/api/kastonomApi";
+import { login as apiLogin, register as apiRegister, setAuthToken, setAuthUser } from "@/shared/api/kastonomApi";
 
 export const LoginPage = () => {
   const navigate = useNavigate();
@@ -24,7 +24,21 @@ export const LoginPage = () => {
     setError(null);
 
     try {
-      await apiLogin(email, password);
+      const result = await apiLogin(email, password);
+      
+      // Store token - backend returns access_token, not token
+      const token = result.access_token || result.token;
+      if (token) {
+        setAuthToken(token);
+        // Set user info with tenant_id
+        setAuthUser({
+          id: result.user.id,
+          email: result.user.email,
+          name: result.user.name,
+          tenant_id: result.user.tenant_id
+        });
+      }
+      
       navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Giriş başarısız. Lütfen tekrar deneyin.");
@@ -48,7 +62,22 @@ export const LoginPage = () => {
     setError(null);
 
     try {
-      await apiRegister(email, password, name, companyName);
+      const result = await apiRegister(email, password, name, companyName);
+      
+      // Store token - backend returns token for register
+      const token = result.token || result.access_token;
+      if (token) {
+        setAuthToken(token);
+        // Set user info with tenant_id from response
+        const tenantId = result.tenant?.id || result.user.tenant_id;
+        setAuthUser({
+          id: result.user.id,
+          email: result.user.email,
+          name: result.user.name,
+          tenant_id: tenantId
+        });
+      }
+      
       navigate("/");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Kayıt başarısız. Lütfen tekrar deneyin.");

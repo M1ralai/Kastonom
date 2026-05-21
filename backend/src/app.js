@@ -1,5 +1,6 @@
 import { createServer } from "node:http";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import { loadConfig } from "./config/env.js";
 import { createClock } from "./domain/clock.js";
 import { createIdFactory } from "./domain/ids.js";
@@ -13,24 +14,35 @@ import { createAdPublicationService } from "./ad-publications/ad-publication.ser
 import { createMetricsService } from "./metrics/metrics.service.js";
 import { createIterationSuggestionService } from "./iteration-suggestions/iteration-suggestion.service.js";
 import { createAuthService } from "./auth/auth.service.js";
-import { createDemoReplayService } from "./demo/demo-replay.service.js";
+import { createKpiSummaryService } from "./dashboard/kpi-summary.service.js";
+import { createRecentActivitiesService } from "./dashboard/recent-activities.service.js";
+import { createTenantService } from "./tenant/tenant.service.js";
 import { mapError } from "./http/errors/error-mapper.js";
 import {
   resolveRequestContext,
   resolveRequestId
 } from "./http/middleware/request-context.js";
+import { createSecurityMiddlewareStack } from "./http/middleware/security.js";
 import { invalidRequest, notFound } from "./http/errors/api-error.js";
 import { createOpenApiSpec, createSwaggerHtml } from "./http/openapi.js";
 import { createLogger } from "./logger/index.js";
 
 const log = createLogger("request");
+const UPLOAD_DIRECTORY = new URL("../uploads/", import.meta.url);
+const UPLOAD_CONTENT_TYPES = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  gif: "image/gif"
+};
 
 function sendJson(response, status, body) {
   response.statusCode = status;
   response.setHeader("content-type", "application/json; charset=utf-8");
   response.setHeader("access-control-allow-origin", "*");
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
-      response.setHeader("access-control-allow-headers", "content-type,x-tenant-id,x-request-id,authorization");
+  response.setHeader("access-control-allow-headers", "content-type,x-tenant-id,x-request-id,authorization");
   response.end(JSON.stringify(body));
 }
 
@@ -39,8 +51,22 @@ function sendText(response, status, body, contentType) {
   response.setHeader("content-type", contentType);
   response.setHeader("access-control-allow-origin", "*");
   response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
-      response.setHeader("access-control-allow-headers", "content-type,x-tenant-id,x-request-id,authorization");
+  response.setHeader("access-control-allow-headers", "content-type,x-tenant-id,x-request-id,authorization");
   response.end(body);
+}
+
+function sendBinary(response, status, body, contentType) {
+  response.statusCode = status;
+  response.setHeader("content-type", contentType);
+  response.setHeader("access-control-allow-origin", "*");
+  response.setHeader("access-control-allow-methods", "GET,POST,OPTIONS");
+  response.setHeader("access-control-allow-headers", "content-type,x-tenant-id,x-request-id,authorization");
+  response.end(body);
+}
+
+function getUploadContentType(fileName) {
+  const extension = fileName.split(".").pop()?.toLowerCase();
+  return UPLOAD_CONTENT_TYPES[extension] || "application/octet-stream";
 }
 
 function sendResult(response, result) {
@@ -48,6 +74,27 @@ function sendResult(response, result) {
     sendText(response, result.status, result.body, result.contentType);
     return;
   }
+
+  if (result.body instanceof Uint8Array) {
+    sendBinary(response, result.status, result.body, result.contentType || "application/octet-stream");
+    return;
+  }
+
+  // Apply security headers from context if available
+  const headers = {
+    ...result.headers,
+    ...(result._context?.securityHeaders || {}),
+    ...(result._context?.corsHeaders || {})
+  };
+
+  if (Object.keys(headers).length > 0) {
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    response.setHeader("X-Frame-Options", "DENY");
+    for (const [key, value] of Object.entries(headers)) {
+      response.setHeader(key, value);
+    }
+  }
+
   sendJson(response, result.status, result.body);
 }
 
@@ -87,6 +134,26 @@ function matchPath(pathname, pattern) {
   return match ? match.slice(1).map(decodeURIComponent) : null;
 }
 
+async function getDbHealth() {
+  try {
+    const start = Date.now();
+    const result = await query("SELECT 1 as health", [], { check: "health" });
+    const duration = Date.now() - start;
+    return {
+      healthy: true,
+      duration_ms: duration,
+      pool_size: getPool().totalCount,
+      idle_connections: getPool().idleCount,
+      waiting_clients: getPool().waitingCount
+    };
+  } catch (err) {
+    return {
+      healthy: false,
+      error: err.message
+    };
+  }
+}
+
 function healthBody(config) {
   const selectedVideoReadiness = config.videoProviderReadiness[config.defaultVideoProvider];
   const degraded = config.mode === "live" && config.defaultVideoProvider !== "mock" && !selectedVideoReadiness?.ready;
@@ -117,15 +184,20 @@ export function createApp(options = {}) {
     creativeProjects,
     promptCompiler
   });
-  const videoJobs = createVideoJobService({});
+  const videoJobs = createVideoJobService({ ids, clock, config });
   const generatedVideos = createGeneratedVideoService({ clock });
   const adPublications = createAdPublicationService({ ids, clock, config });
   const metrics = createMetricsService({ ids, clock, config });
   const iterationSuggestions = createIterationSuggestionService({ ids, clock });
   const auth = createAuthService({ ids, clock, config });
-  const demoReplay = createDemoReplayService();
+  const kpiSummary = createKpiSummaryService({ clock });
+  const recentActivities = createRecentActivitiesService({ clock });
+  const tenantService = createTenantService({ clock });
   const openApiSpec = createOpenApiSpec(config);
   const swaggerHtml = createSwaggerHtml();
+
+  // Initialize security middleware stack
+  const security = createSecurityMiddlewareStack(config);
 
   async function context(headers, requestId) {
     return resolveRequestContext({
@@ -140,6 +212,16 @@ export function createApp(options = {}) {
     const requestId = resolveRequestId(headers, `req-${randomUUID()}`);
     const url = new URL(path, "http://localhost");
     const pathname = url.pathname;
+
+    // Create fresh context for each request
+    const contextObj = { requestId };
+
+    // Apply security middleware
+    const rawReq = rawRequest || { method, headers, url: path };
+    const securityResult = await security.apply(contextObj, rawReq);
+    if (securityResult) {
+      return securityResult;
+    }
 
     try {
       if (method === "OPTIONS") {
@@ -162,15 +244,30 @@ export function createApp(options = {}) {
         return { status: 200, body: healthBody(config) };
       }
 
-      // Demo fallback endpoint (no tenant required)
-      if (method === "GET" && pathname === "/demo/fallback") {
-        const demoContext = {
-          tenant_id: demoReplay.getDemoTenantId(),
-          user_id: null,
-          mode: "demo",
-          fallback_enabled: true
+      const uploadMatch = matchPath(pathname, /^\/uploads\/([A-Za-z0-9_-]+\.(?:jpg|jpeg|png|webp|gif))$/);
+      if (method === "GET" && uploadMatch) {
+        const fileName = uploadMatch[0];
+        try {
+          return {
+            status: 200,
+            body: await readFile(new URL(fileName, UPLOAD_DIRECTORY)),
+            contentType: getUploadContentType(fileName)
+          };
+        } catch {
+          return { status: 404, body: { error: "NOT_FOUND", message: "Upload was not found." } };
+        }
+      }
+
+      if (method === "GET" && pathname === "/health/ready") {
+        const dbHealth = await getDbHealth();
+        const status = dbHealth.healthy ? "ok" : "degraded";
+        return {
+          status: dbHealth.healthy ? 200 : 503,
+          body: {
+            status,
+            checks: { database: dbHealth }
+          }
         };
-        return { status: 200, body: demoReplay.getFallback(demoContext) };
       }
 
       // Auth endpoints (no tenant required)
@@ -182,17 +279,45 @@ export function createApp(options = {}) {
         return { status: 200, body: await auth.login(body) };
       }
 
+      // Dashboard endpoints
+      if (method === "GET" && pathname === "/dashboard/kpi-summary") {
+        return {
+          status: 200,
+          body: await kpiSummary.getSummary(await context(headers, requestId))
+        };
+      }
+
+      const recentActivitiesMatch = matchPath(pathname, /^\/dashboard\/recent-activities$/);
+      if (method === "GET" && recentActivitiesMatch) {
+        const urlParams = new URL(path, "http://localhost").searchParams;
+        const limit = urlParams.get("limit") ? parseInt(urlParams.get("limit")) : 10;
+        return {
+          status: 200,
+          body: await recentActivities.getActivities(await context(headers, requestId), { limit })
+        };
+      }
+
+      // Tenant endpoints
+      if (method === "GET" && pathname === "/tenant/credits") {
+        return {
+          status: 200,
+          body: await tenantService.getCredits(await context(headers, requestId))
+        };
+      }
+
+      // Creative projects endpoints
       if (method === "POST" && pathname === "/creative-projects") {
         return {
           status: 201,
-          body: await creativeProjects.create(context(headers, requestId), body)
+          body: await creativeProjects.create(await context(headers, requestId), body),
+          headers: contextObj.securityHeaders || {}
         };
       }
 
       if (method === "GET" && pathname === "/creative-projects") {
         return {
           status: 200,
-          body: await creativeProjects.listProjects(context(headers, requestId))
+          body: await creativeProjects.listProjects(await context(headers, requestId))
         };
       }
 
@@ -200,7 +325,7 @@ export function createApp(options = {}) {
       if (method === "POST" && pathname === "/source-assets/upload") {
         return {
           status: 201,
-          body: await creativeProjects.uploadSourceAsset(context(headers, requestId), rawRequest)
+          body: await creativeProjects.uploadSourceAsset(await context(headers, requestId), rawRequest)
         };
       }
 
@@ -208,37 +333,64 @@ export function createApp(options = {}) {
       if (method === "GET" && creativeProjectMatch) {
         return {
           status: 200,
-          body: await creativeProjects.getBundle(context(headers, requestId), creativeProjectMatch[0])
+          body: await creativeProjects.getBundle(await context(headers, requestId), creativeProjectMatch[0])
         };
       }
 
+      const creativeProjectMetricsMatch = matchPath(pathname, /^\/creative-projects\/([^/]+)\/metrics$/);
+      if (method === "GET" && creativeProjectMetricsMatch) {
+        return {
+          status: 200,
+          body: await creativeProjects.getMetrics(await context(headers, requestId), creativeProjectMetricsMatch[0])
+        };
+      }
+
+      // Generation request endpoints
       if (method === "POST" && pathname === "/generation-requests") {
         return {
           status: 202,
-          body: await generationRequests.create(context(headers, requestId), body)
+          body: await generationRequests.create(await context(headers, requestId), body)
         };
       }
 
+      if (method === "POST" && pathname === "/generation-requests/estimate-cost") {
+        return {
+          status: 200,
+          body: await generationRequests.estimateCost(await context(headers, requestId), body)
+        };
+      }
+
+      // Video job endpoints
       const videoJobMatch = matchPath(pathname, /^\/video-jobs\/([^/]+)$/);
       if (method === "GET" && videoJobMatch) {
         return {
           status: 200,
-          body: await videoJobs.get(context(headers, requestId), videoJobMatch[0])
+          body: await videoJobs.get(await context(headers, requestId), videoJobMatch[0])
         };
       }
 
+      const videoJobFullMatch = matchPath(pathname, /^\/video-jobs\/([^/]+)\/full$/);
+      if (method === "GET" && videoJobFullMatch) {
+        return {
+          status: 200,
+          body: await videoJobs.getFull(await context(headers, requestId), videoJobFullMatch[0])
+        };
+      }
+
+      // Generated video endpoints
       const generatedVideoSelectMatch = matchPath(pathname, /^\/generated-videos\/([^/]+)\/select$/);
       if (method === "POST" && generatedVideoSelectMatch) {
         return {
           status: 200,
-          body: await generatedVideos.select(context(headers, requestId), generatedVideoSelectMatch[0], body)
+          body: await generatedVideos.select(await context(headers, requestId), generatedVideoSelectMatch[0], body)
         };
       }
 
+      // Ad publication endpoints
       if (method === "POST" && pathname === "/ad-publications") {
         return {
           status: 201,
-          body: await adPublications.create(context(headers, requestId), body)
+          body: await adPublications.create(await context(headers, requestId), body)
         };
       }
 
@@ -246,14 +398,15 @@ export function createApp(options = {}) {
       if (method === "POST" && metricSyncMatch) {
         return {
           status: 201,
-          body: await metrics.sync(context(headers, requestId), metricSyncMatch[0], body)
+          body: await metrics.sync(await context(headers, requestId), metricSyncMatch[0], body)
         };
       }
 
+      // Iteration suggestions endpoint
       if (method === "POST" && pathname === "/creative-iteration-suggestions") {
         return {
           status: 201,
-          body: await iterationSuggestions.create(context(headers, requestId), body)
+          body: await iterationSuggestions.create(await context(headers, requestId), body)
         };
       }
 

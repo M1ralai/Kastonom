@@ -7,6 +7,7 @@ import {
   requireObject,
   requireString
 } from "../domain/validation.js";
+import { ErrorCodes } from "../http/errors/error-codes.js";
 import { configurationMissing, notFound, validationError } from "../http/errors/api-error.js";
 import { createLogger } from "../logger/index.js";
 import * as pgStore from "../db/pg-store.js";
@@ -39,12 +40,12 @@ export function createAdPublicationService({ ids, clock, config }) {
 
       const project = await pgStore.getProjectById(input.project_id, context.tenant_id);
       if (!project) {
-        throw notFound("CREATIVE_PROJECT_NOT_FOUND", "Creative project was not found.");
+        throw notFound(ErrorCodes.CREATIVE_PROJECT_NOT_FOUND, "Creative project was not found.");
       }
 
       const generatedVideo = await pgStore.getGeneratedVideoById(input.generated_video_id, context.tenant_id);
       if (!generatedVideo || generatedVideo.project_id !== project.id) {
-        throw notFound("GENERATED_VIDEO_NOT_FOUND", "Generated video was not found.");
+        throw notFound(ErrorCodes.GENERATED_VIDEO_NOT_FOUND, "Generated video was not found.");
       }
 
       if (!generatedVideo.is_selected || project.selected_generated_video_id !== generatedVideo.id) {
@@ -56,14 +57,14 @@ export function createAdPublicationService({ ids, clock, config }) {
       const readiness = config.adPlatformReadiness[input.platform];
       if (!readiness?.ready) {
         throw configurationMissing(
-          "AD_PLATFORM_CONFIG_MISSING",
+          ErrorCodes.AD_PLATFORM_CONFIG_MISSING,
           `${input.platform} configuration is missing.`
         );
       }
 
       if (config.mode !== "mock") {
         throw configurationMissing(
-          "AD_PLATFORM_CONNECTION_NOT_READY",
+          ErrorCodes.AD_PLATFORM_CONNECTION_NOT_READY,
           "Live ad publishing is not enabled in this MVP backend."
         );
       }

@@ -1,199 +1,172 @@
-import { configurationMissing } from "../http/errors/api-error.js";
+import { VIDEO_JOB_STATUSES, VIDEO_PROVIDERS } from "../domain/constants.js";
+import { ApiError } from "../http/errors/api-error.js";
+import { ErrorCodes } from "../http/errors/error-codes.js";
 import { createLogger } from "../logger/index.js";
+import { createMcpNetworkClient } from "../integrations/mcp-network-client.js";
 import * as pgStore from "../db/pg-store.js";
 
 const log = createLogger("provider-orchestrator");
 
-function providerConfigError(provider, fallbackAvailable) {
-  return configurationMissing(
-    "PROVIDER_CONFIG_MISSING",
-    `${provider} provider configuration is missing.`,
-    { fallbackAvailable }
-  );
+function isObject(value) {
+  return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function requireNormalizedProviderResult(context, result) {
+  if (!isObject(result)) {
+    throw new ApiError(502, ErrorCodes.PROVIDER_UNAVAILABLE, "MCP provider result was not an object.");
+  }
+
+  if (result.tenant_id !== context.tenant_id) {
+    throw new ApiError(502, ErrorCodes.PROVIDER_UNAVAILABLE, "MCP provider result tenant did not match request tenant.");
+  }
+
+  if (!VIDEO_PROVIDERS.includes(result.provider)) {
+    throw new ApiError(502, ErrorCodes.PROVIDER_UNAVAILABLE, "MCP provider result used an unsupported provider.");
+  }
+
+  if (!VIDEO_JOB_STATUSES.includes(result.normalized_status)) {
+    throw new ApiError(502, ErrorCodes.PROVIDER_UNAVAILABLE, "MCP provider result used an unsupported status.");
+  }
+
+  if (!Array.isArray(result.result_urls) || !result.result_urls.every((url) => typeof url === "string")) {
+    throw new ApiError(502, ErrorCodes.PROVIDER_UNAVAILABLE, "MCP provider result URLs were invalid.");
+  }
+}
+
+function metadataValue(result, key) {
+  return isObject(result.redacted_metadata) ? result.redacted_metadata[key] : null;
+}
+
+function fallbackReasonFor(result, requestedProvider) {
+  const fallbackReason = metadataValue(result, "fallback_reason");
+  if (typeof fallbackReason === "string" && fallbackReason.trim() !== "") {
+    return fallbackReason;
+  }
+
+  if (result.provider === "mock" && requestedProvider !== "mock") {
+    return "provider_fallback_to_mock";
+  }
+
+  return null;
+}
+
+function isMockResult(result) {
+  return result.provider === "mock" || metadataValue(result, "is_mock") === true;
+}
+
+function terminalCompletedAt(status, now) {
+  return ["completed", "failed", "canceled"].includes(status) ? now : null;
 }
 
 export function createProviderOrchestratorService({ ids, clock, config }) {
-  async function createMockResult(context, { project, generationRequest, promptPayload, requestedProvider, fallbackReason }) {
-    const now = clock.now();
-    const providerJobId = `mock-job-${generationRequest.id}`;
+  const mcpNetwork = createMcpNetworkClient({ ids, clock, config });
 
-    const videoJob = {
+  async function persistMcpResult(context, {
+    project,
+    generationRequest,
+    promptPayload,
+    requestedProvider,
+    mcpResult
+  }) {
+    requireNormalizedProviderResult(context, mcpResult);
+
+    const now = clock.now();
+    const fallbackReason = fallbackReasonFor(mcpResult, requestedProvider);
+    const isMock = isMockResult(mcpResult);
+    const completedAt = terminalCompletedAt(mcpResult.normalized_status, now);
+
+    const createdVideoJob = await pgStore.createVideoJob({
       id: ids.uuid(),
       tenant_id: context.tenant_id,
       project_id: project.id,
       generation_request_id: generationRequest.id,
       prompt_payload_id: promptPayload.id,
-      provider: "mock",
-      status: "completed",
-      provider_job_id: providerJobId,
-      is_mock: true,
+      provider: mcpResult.provider,
+      status: mcpResult.normalized_status,
+      provider_job_id: mcpResult.provider_job_id,
+      is_mock: isMock,
       fallback_reason: fallbackReason,
-      error_code: null,
-      error_message: null,
+      error_code: mcpResult.error_code,
+      error_message: mcpResult.error_message,
+      attempt_count: 1
+    });
+
+    const videoJob = await pgStore.updateVideoJob(createdVideoJob.id, context.tenant_id, {
+      status: mcpResult.normalized_status,
+      provider_job_id: mcpResult.provider_job_id,
+      fallback_reason: fallbackReason,
+      error_code: mcpResult.error_code,
+      error_message: mcpResult.error_message,
       attempt_count: 1,
-      created_at: now,
       submitted_at: now,
-      completed_at: now,
-      updated_at: now
-    };
+      completed_at: completedAt
+    }) ?? createdVideoJob;
 
-    const providerResult = {
+    const providerResult = await pgStore.createProviderResult({
       id: ids.uuid(),
       tenant_id: context.tenant_id,
       video_job_id: videoJob.id,
-      provider: "mock",
-      provider_job_id: providerJobId,
-      raw_status: "mock_completed",
-      normalized_status: "completed",
-      result_urls: [config.mockPreviewUrl],
-      error_code: null,
-      error_message: null,
+      provider: mcpResult.provider,
+      provider_job_id: mcpResult.provider_job_id,
+      raw_status: mcpResult.raw_status,
+      normalized_status: mcpResult.normalized_status,
+      result_urls: mcpResult.result_urls,
+      error_code: mcpResult.error_code,
+      error_message: mcpResult.error_message,
       redacted_metadata: {
-        adapter: "mock",
+        ...(isObject(mcpResult.redacted_metadata) ? mcpResult.redacted_metadata : {}),
         requested_provider: requestedProvider,
-        is_mock: true
-      },
-      received_at: now
-    };
+        mcp_network: true
+      }
+    });
 
-    const generatedVideo = {
-      id: ids.uuid(),
+    const generatedVideos = [];
+    if (mcpResult.normalized_status === "completed") {
+      for (const url of mcpResult.result_urls) {
+        generatedVideos.push(await pgStore.createGeneratedVideo({
+          id: ids.uuid(),
+          tenant_id: context.tenant_id,
+          project_id: project.id,
+          generation_request_id: generationRequest.id,
+          video_job_id: videoJob.id,
+          provider_result_id: providerResult.id,
+          url,
+          thumbnail_url: null,
+          duration_seconds: generationRequest.duration_seconds,
+          aspect_ratio: generationRequest.aspect_ratio,
+          status: "generated",
+          is_selected: false,
+          is_mock: isMock
+        }));
+      }
+    }
+
+    log.info("MCP provider result persisted", {
       tenant_id: context.tenant_id,
-      project_id: project.id,
-      generation_request_id: generationRequest.id,
-      video_job_id: videoJob.id,
-      provider_result_id: providerResult.id,
-      url: config.mockPreviewUrl,
-      thumbnail_url: null,
-      duration_seconds: generationRequest.duration_seconds,
-      aspect_ratio: generationRequest.aspect_ratio,
-      status: "generated",
-      is_selected: false,
-      is_mock: true,
-      created_at: now,
-      selected_at: null
-    };
-
-    // Save to PostgreSQL
-    const createdVideoJob = await pgStore.createVideoJob(videoJob);
-    const createdProviderResult = await pgStore.createProviderResult(providerResult);
-    const createdVideo = await pgStore.createGeneratedVideo({
-      ...generatedVideo,
-      provider_result_id: createdProviderResult.id
+      provider: mcpResult.provider,
+      status: mcpResult.normalized_status,
+      is_mock: isMock,
+      generated_video_count: generatedVideos.length
     });
 
     return {
-      video_job: createdVideoJob,
-      provider_result: createdProviderResult,
-      generated_videos: [createdVideo],
+      video_job: videoJob,
+      provider_result: providerResult,
+      generated_videos: generatedVideos,
       fallback_reason: fallbackReason
-    };
-  }
-
-  async function createFailedResult(context, { project, generationRequest, promptPayload, provider, errorCode, message }) {
-    const now = clock.now();
-    const videoJob = {
-      id: ids.uuid(),
-      tenant_id: context.tenant_id,
-      project_id: project.id,
-      generation_request_id: generationRequest.id,
-      prompt_payload_id: promptPayload.id,
-      provider,
-      status: "failed",
-      provider_job_id: null,
-      is_mock: false,
-      fallback_reason: null,
-      error_code: errorCode,
-      error_message: message,
-      attempt_count: 1,
-      created_at: now,
-      submitted_at: null,
-      completed_at: now,
-      updated_at: now
-    };
-
-    const providerResult = {
-      id: ids.uuid(),
-      tenant_id: context.tenant_id,
-      video_job_id: videoJob.id,
-      provider,
-      provider_job_id: null,
-      raw_status: "failed",
-      normalized_status: "failed",
-      result_urls: [],
-      error_code: errorCode,
-      error_message: message,
-      redacted_metadata: {
-        adapter: provider,
-        redacted: true
-      },
-      received_at: now
-    };
-
-    // Save to PostgreSQL
-    const createdVideoJob = await pgStore.createVideoJob(videoJob);
-    const createdProviderResult = await pgStore.createProviderResult(providerResult);
-
-    return {
-      video_job: createdVideoJob,
-      provider_result: createdProviderResult,
-      generated_videos: []
     };
   }
 
   return {
     async createVideoJob(context, { project, generationRequest, promptPayload, requestedProvider }) {
-      const provider = promptPayload.provider;
+      const mcpResult = await mcpNetwork.executeSubmission(context, promptPayload);
 
-      if (provider === "mock") {
-        return createMockResult(context, {
-          project,
-          generationRequest,
-          promptPayload,
-          requestedProvider,
-          fallbackReason: requestedProvider === "mock" ? null : "provider_fallback_to_mock"
-        });
-      }
-
-      const readiness = config.videoProviderReadiness[provider];
-      if (!readiness?.ready) {
-        if (context.fallback_enabled) {
-          return createMockResult(context, {
-            project,
-            generationRequest,
-            promptPayload,
-            requestedProvider: provider,
-            fallbackReason: "provider_config_missing_fallback_to_mock"
-          });
-        }
-
-        return createFailedResult(context, {
-          project,
-          generationRequest,
-          promptPayload,
-          provider,
-          errorCode: "PROVIDER_CONFIG_MISSING",
-          message: `${provider} provider configuration is missing.`
-        });
-      }
-
-      if (context.fallback_enabled) {
-        return createMockResult(context, {
-          project,
-          generationRequest,
-          promptPayload,
-          requestedProvider: provider,
-          fallbackReason: "live_provider_not_enabled_fallback_to_mock"
-        });
-      }
-
-      return createFailedResult(context, {
+      return persistMcpResult(context, {
         project,
         generationRequest,
         promptPayload,
-        provider,
-        errorCode: "PROVIDER_UNAVAILABLE",
-        message: "Live provider submissions are not enabled in this MVP backend."
+        requestedProvider,
+        mcpResult
       });
     }
   };

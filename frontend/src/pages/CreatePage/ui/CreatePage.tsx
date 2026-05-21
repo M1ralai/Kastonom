@@ -1,11 +1,12 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
-  MOCK_PRODUCTS,
   createCreativeProject,
-  createGenerationRequest
+  createGenerationRequest,
+  getCreativeProject as fetchCreativeProject,
 } from "@/shared/api/kastonomApi";
-import type { CreativeProject, CreativeSubject, ProductDisplay } from "@/shared/types/api";
+import { getImageAssetPreviewUrl } from "@/shared/lib/assetPreview";
+import type { CreativeProject, CreativeSubject, Platform, SourceAsset } from "@/shared/types/api";
 
 export function CreatePage() {
   const navigate = useNavigate();
@@ -15,7 +16,7 @@ export function CreatePage() {
   // Selected project state
   const [project, setProject] = useState<CreativeProject | null>(null);
   const [subject, setSubject] = useState<CreativeSubject | null>(null);
-  const [selectedProduct, setSelectedProduct] = useState<ProductDisplay | null>(null);
+  const [assets, setAssets] = useState<SourceAsset[]>([]);
 
   // UI state
   const [platform, setPlatform] = useState("TikTok");
@@ -25,38 +26,35 @@ export function CreatePage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingProject, setIsLoadingProject] = useState(false);
+  const [imagePreviewFailed, setImagePreviewFailed] = useState(false);
 
   // Load project from URL param
   useEffect(() => {
     if (projectId) {
-      loadProject(projectId);
+      void loadProject(projectId);
+    } else {
+      setProject(null);
+      setSubject(null);
+      setAssets([]);
+      setError(null);
     }
   }, [projectId]);
 
+  useEffect(() => {
+    setImagePreviewFailed(false);
+  }, [assets]);
+
   async function loadProject(id: string) {
     setIsLoadingProject(true);
+    setError(null);
     try {
-      const bundle = await (await fetch(`/api/creative-projects/${id}`)).json();
+      const bundle = await fetchCreativeProject(id);
       setProject(bundle.creative_project);
       setSubject(bundle.creative_subject);
-
-      // Map subject to ProductDisplay
-      if (bundle.creative_subject) {
-        setSelectedProduct({
-          id: bundle.creative_subject.id,
-          name: bundle.creative_subject.name,
-          category: bundle.creative_subject.subject_type,
-          price: bundle.creative_subject.price,
-          currency: bundle.creative_subject.currency,
-          score: 0,
-          reasons: [],
-          img: "📦",
-          creative_subject_id: bundle.creative_subject.id,
-        });
-      }
+      setAssets(bundle.source_assets || []);
     } catch (err) {
       console.error("Failed to load project:", err);
-      setError("Proje yüklenemedi");
+      setError("Proje yüklenemedi: " + (err instanceof Error ? err.message : "Bilinmeyen hata"));
     } finally {
       setIsLoadingProject(false);
     }
@@ -89,6 +87,12 @@ export function CreatePage() {
     ],
   };
 
+  const subjectName = subject?.name || project?.name || "Yeni Ürün";
+  const productPreviewUrl = getImageAssetPreviewUrl(assets);
+  const getPlatformValue = (): Platform => (
+    opts.platform.find((option) => option.label === platform)?.value || "tiktok"
+  ) as Platform;
+
   const handleGenerate = async () => {
     if (!project) {
       // Create new project first
@@ -96,11 +100,11 @@ export function CreatePage() {
       setError(null);
       try {
         const projectResult = await createCreativeProject({
-          name: `${selectedProduct?.name || "Yeni Proje"} - Reklam`,
+          name: `${subjectName} - Reklam`,
           creative_subject: {
             subject_type: "product",
-            name: selectedProduct?.name || "Yeni Ürün",
-            description: `Reklam кампании для ${selectedProduct?.name}`,
+            name: subjectName,
+            description: `Reklam kampanyası için ${subjectName}`,
             allowed_claims: [],
             forbidden_claims: ["discount", "free shipping", "limited stock"],
             unknown_fields: ["price", "stock"],
@@ -120,7 +124,7 @@ export function CreatePage() {
           project_id: projectResult.creative_project.id,
           source_asset_ids: projectResult.source_assets.map(a => a.id),
           objective: "awareness",
-          platform: platform as any,
+          platform: getPlatformValue(),
           duration_seconds: 15,
           aspect_ratio: "9:16",
           language: "Turkish",
@@ -144,9 +148,9 @@ export function CreatePage() {
       try {
         const genResult = await createGenerationRequest({
           project_id: project.id,
-          source_asset_ids: [],
+          source_asset_ids: assets.map((asset) => asset.id),
           objective: "awareness",
-          platform: platform as any,
+          platform: getPlatformValue(),
           duration_seconds: 15,
           aspect_ratio: "9:16",
           language: "Turkish",
@@ -189,6 +193,18 @@ export function CreatePage() {
           </p>
         </div>
 
+        {isLoadingProject && (
+          <div className="mb-6 rounded-xl border px-4 py-3 text-sm" style={{ background: "#fff", borderColor: "#E2E8F0", color: "#64748B" }}>
+            Proje yükleniyor...
+          </div>
+        )}
+
+        {error && (
+          <div className="mb-6 rounded-xl border px-4 py-3 text-sm" style={{ background: "#FEF2F2", borderColor: "#FECACA", color: "#DC2626" }}>
+            {error}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left – product summary */}
           <div className="lg:col-span-3">
@@ -200,43 +216,51 @@ export function CreatePage() {
                 Seçilen Ürün
               </div>
               <div
-                className="w-full h-32 rounded-xl flex items-center justify-center text-6xl mb-4"
-                style={{ background: "linear-gradient(135deg,#EFF9FF,#F0FDE8)" }}
+                className="w-full h-32 rounded-xl flex items-center justify-center mb-4 overflow-hidden"
+                style={{ background: "#F1F5F9" }}
               >
-                {selectedProduct?.img || "📦"}
+                {productPreviewUrl && !imagePreviewFailed ? (
+                  <img
+                    src={productPreviewUrl}
+                    alt={`${subjectName} görseli`}
+                    className="h-full w-full object-cover"
+                    onError={() => setImagePreviewFailed(true)}
+                  />
+                ) : (
+                  <span className="text-xs font-semibold" style={{ color: "#94A3B8" }}>
+                    Görsel yok
+                  </span>
+                )}
               </div>
               <div className="font-black text-sm mb-1" style={{ color: "#1B365D" }}>
-                {selectedProduct?.name || "Ürün Adı"}
+                {project?.name || "Proje"}
               </div>
               <div className="text-xs mb-3" style={{ color: "#94A3B8" }}>
-                {selectedProduct?.sku || "SKU"} · {selectedProduct?.category || "Kategori"}
+                {subject?.name || "Ürün"} · {assets.length} görsel
               </div>
               <div className="space-y-2">
                 <div className="flex justify-between text-xs">
-                  <span style={{ color: "#64748B" }}>Kâr Marjı</span>
-                  <span className="font-bold" style={{ color: "#8CC63F" }}>
-                    {selectedProduct?.margin || "42%"}
+                  <span style={{ color: "#64748B" }}>Fiyat</span>
+                  <span className="font-bold" style={{ color: "#1B365D" }}>
+                    {subject?.price ? `${subject.price} ${subject.currency || "TRY"}` : "Belirtilmedi"}
                   </span>
                 </div>
                 <div className="flex justify-between text-xs">
-                  <span style={{ color: "#64748B" }}>AI Skoru</span>
+                  <span style={{ color: "#64748B" }}>Kaynak Görsel</span>
                   <span className="font-bold" style={{ color: "#1B365D" }}>
-                    {selectedProduct?.score || 87}/100
-                  </span>
-                </div>
-                <div className="flex justify-between text-xs">
-                  <span style={{ color: "#64748B" }}>Stok</span>
-                  <span className="font-bold" style={{ color: "#1B365D" }}>
-                    {selectedProduct?.stock || "248 adet"}
+                    {assets.length} adet
                   </span>
                 </div>
               </div>
               <div className="mt-4 pt-4 border-t" style={{ borderColor: "#F1F5F9" }}>
                 <div className="text-xs font-semibold mb-2" style={{ color: "#64748B" }}>
-                  AI Neden Önerdi?
+                  Proje Durumu
                 </div>
                 <div className="text-xs leading-relaxed" style={{ color: "#94A3B8" }}>
-                  {selectedProduct?.reasons?.[0] || "Arama hacminde %40 artış ve mevsimsel talep yüksekliği tespit edildi."}
+                  {project?.status === "draft" ? "Henüz video oluşturulmadı" :
+                   project?.status === "generating" ? "Video oluşturuluyor..." :
+                   project?.status === "ready" ? "Video hazır, yayınlanabilir" :
+                   project?.status === "published" ? "Video yayınlandı" : "Durum bilinmiyor"}
                 </div>
               </div>
             </div>
@@ -304,7 +328,7 @@ export function CreatePage() {
               </div>
               <div className="p-5 space-y-4">
                 {[
-                  { label: "Ürün", value: selectedProduct?.name || "Erkek Koşu Ayakkabısı Pro X" },
+                  { label: "Ürün", value: subjectName },
                   { label: "Platform", value: platform, color: "#00ADEF" },
                   { label: "Ton", value: tone, color: "#8CC63F" },
                   { label: "Stil", value: style, color: "#1B365D" },

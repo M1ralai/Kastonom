@@ -4,6 +4,19 @@
  * @file MCP-007: Real provider API implementations
  * @description Live API clients for Pollo, Kling, Runway
  */
+function normalizeClientStatus(value, fallback = "queued") {
+    const status = String(value ?? fallback).toLowerCase();
+    if (status === "completed" || status === "done" || status === "succeed") {
+        return "completed";
+    }
+    if (status === "failed" || status === "error") {
+        return "failed";
+    }
+    if (status === "processing" || status === "generating" || status === "running") {
+        return "processing";
+    }
+    return "queued";
+}
 /**
  * Pollo API client
  * @see https://docs.pollo.com
@@ -40,8 +53,8 @@ export class PolloAPIClient {
         }
         const data = await response.json();
         return {
-            jobId: data.id,
-            status: data.status || "queued"
+            jobId: String(data.id ?? ""),
+            status: String(data.status || "queued")
         };
     }
     /**
@@ -59,9 +72,9 @@ export class PolloAPIClient {
         }
         const data = await response.json();
         return {
-            status: data.status,
-            videoUrl: data.url,
-            error: data.error
+            status: normalizeClientStatus(data.status),
+            videoUrl: data.url ? String(data.url) : undefined,
+            error: data.error ? String(data.error) : undefined
         };
     }
 }
@@ -98,8 +111,8 @@ export class KlingAPIClient {
         }
         const data = await response.json();
         return {
-            jobId: data.task_id,
-            status: data.task_status
+            jobId: String(data.task_id ?? ""),
+            status: String(data.task_status || "queued")
         };
     }
     async getJobStatus(jobId) {
@@ -113,10 +126,11 @@ export class KlingAPIClient {
             throw new Error(`Kling API error: ${response.status} - ${error}`);
         }
         const data = await response.json();
+        const video = data.video;
         return {
-            status: data.task_status,
-            videoUrl: data.video?.url,
-            error: data.error
+            status: normalizeClientStatus(data.task_status),
+            videoUrl: video?.url ? String(video.url) : undefined,
+            error: data.error ? String(data.error) : undefined
         };
     }
 }
@@ -153,8 +167,8 @@ export class RunwayAPIClient {
         }
         const data = await response.json();
         return {
-            jobId: data.id,
-            status: data.status || "pending"
+            jobId: String(data.id ?? ""),
+            status: String(data.status || "pending")
         };
     }
     async getJobStatus(jobId) {
@@ -168,10 +182,11 @@ export class RunwayAPIClient {
             throw new Error(`Runway API error: ${response.status} - ${error}`);
         }
         const data = await response.json();
+        const output = data.output;
         return {
-            status: data.status,
-            videoUrl: data.output?.video_url,
-            error: data.error
+            status: normalizeClientStatus(data.status),
+            videoUrl: output?.video_url ? String(output.video_url) : undefined,
+            error: data.error ? String(data.error) : undefined
         };
     }
 }
