@@ -163,6 +163,12 @@ export class ProviderNetworkExecutor {
      */
     async executeSubmission(promptPayload, options = {}) {
         const provider = promptPayload.provider;
+        // PRETEND MODE: Always return mock result instantly
+        // This makes the video generation "instant" for demo purposes
+        const isMockRequest = promptPayload.is_mock === true;
+        if (isMockRequest) {
+            return this.generateMockResult(promptPayload, "pretend_mode_mock");
+        }
         // For live providers, check credentials
         const config = this.getProviderConfig(provider);
         if (!config) {

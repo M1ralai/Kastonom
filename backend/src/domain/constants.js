@@ -1,6 +1,6 @@
 export const MODES = ["demo", "live"];
 
-export const VIDEO_PROVIDERS = ["pollo", "kling", "runway"];
+export const VIDEO_PROVIDERS = ["pollo", "kling", "runway", "mock"];
 
 export const SUBJECT_TYPES = [
   "product",
