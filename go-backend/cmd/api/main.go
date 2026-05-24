@@ -3,8 +3,10 @@ package main
 import (
 	"time"
 
+	"github.com/M1ralai/Kastonom/backend/internal/infrastructure/validate"
 	"github.com/M1ralai/Kastonom/backend/internal/middleware"
 	"github.com/M1ralai/Kastonom/backend/internal/module/tenant/handler"
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -17,6 +19,9 @@ func main() {
 			WriteTimeout:  10 * time.Second,
 			IdleTimeout:   3 * time.Minute,
 			AppName:       "kastonom_dev",
+			StructValidator: &validate.StructValidator{
+				V: validator.New(),
+			},
 		},
 	)
 
