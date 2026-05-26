@@ -3,15 +3,15 @@ package dto
 import "github.com/M1ralai/Kastonom/backend/internal/shared/domain"
 
 type CreateGenerationRequestRequest struct {
-	ProjectID       string   `json:"project_id"`
-	SourceAssetIDs  []string `json:"source_asset_ids"`
-	Provider        string   `json:"provider"`
-	Objective       string   `json:"objective"`
+	ProjectID       string   `json:"project_id" validate:"required"`
+	SourceAssetIDs  []string `json:"source_asset_ids" validate:"required,dive,required"`
+	Provider        string   `json:"provider" validate:"omitempty,video_provider"`
+	Objective       string   `json:"objective" validate:"required,objective"`
 	TargetAudience  *string  `json:"target_audience"`
-	Platform        string   `json:"platform"`
-	DurationSeconds int      `json:"duration_seconds"`
-	AspectRatio     string   `json:"aspect_ratio"`
-	Language        string   `json:"language"`
+	Platform        string   `json:"platform" validate:"required,platform"`
+	DurationSeconds int      `json:"duration_seconds" validate:"required,gte=1"`
+	AspectRatio     string   `json:"aspect_ratio" validate:"required,aspect_ratio"`
+	Language        string   `json:"language" validate:"required,min=2,max=16"`
 	Tone            *string  `json:"tone"`
 	Style           *string  `json:"style"`
 	CallToAction    *string  `json:"call_to_action"`
@@ -28,9 +28,9 @@ type GenerationRequestResponse struct {
 }
 
 type EstimateCostRequest struct {
-	Platform        string `json:"platform"`
-	DurationSeconds int    `json:"duration_seconds"`
-	AspectRatio     string `json:"aspect_ratio"`
+	Platform        string `json:"platform" validate:"required,platform"`
+	DurationSeconds int    `json:"duration_seconds" validate:"required,gte=1"`
+	AspectRatio     string `json:"aspect_ratio" validate:"required,aspect_ratio"`
 }
 
 type EstimateCostResponse struct {

@@ -48,14 +48,18 @@ func (h *Handler) Login(c fiber.Ctx) error {
 
 func (h *Handler) Refresh(c fiber.Ctx) error {
 	var req dto.RefreshTokenRequest
-	_ = c.Bind().Body(&req)
+	if err := c.Bind().Body(&req); err != nil {
+		return httpx.BadRequest(c, "invalid refresh token body")
+	}
 	res, _ := h.service.RefreshToken(req)
 	return c.JSON(res)
 }
 
 func (h *Handler) Logout(c fiber.Ctx) error {
 	var req dto.LogoutRequest
-	_ = c.Bind().Body(&req)
+	if err := c.Bind().Body(&req); err != nil {
+		return httpx.BadRequest(c, "invalid logout body")
+	}
 	res, _ := h.service.Logout(req)
 	return c.JSON(res)
 }

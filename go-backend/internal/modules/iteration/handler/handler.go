@@ -21,7 +21,9 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 }
 func (h *Handler) Create(c fiber.Ctx) error {
 	var req dto.CreateIterationSuggestionRequest
-	_ = c.Bind().Body(&req)
+	if err := c.Bind().Body(&req); err != nil {
+		return httpx.BadRequest(c, "invalid iteration suggestion body")
+	}
 	res, err := h.service.Create(httpx.TenantContext(c, h.cfg), req)
 	if err != nil {
 		return httpx.BadRequest(c, err.Error())

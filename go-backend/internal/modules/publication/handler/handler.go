@@ -23,7 +23,9 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 }
 func (h *Handler) Create(c fiber.Ctx) error {
 	var req dto.CreateAdPublicationRequest
-	_ = c.Bind().Body(&req)
+	if err := c.Bind().Body(&req); err != nil {
+		return httpx.BadRequest(c, "invalid ad publication body")
+	}
 	res, ok, err := h.publications.Create(httpx.TenantContext(c, h.cfg), req)
 	if err != nil {
 		return httpx.BadRequest(c, err.Error())
@@ -35,7 +37,9 @@ func (h *Handler) Create(c fiber.Ctx) error {
 }
 func (h *Handler) SyncMetrics(c fiber.Ctx) error {
 	var req dto.SyncMetricsRequest
-	_ = c.Bind().Body(&req)
+	if err := c.Bind().Body(&req); err != nil {
+		return httpx.BadRequest(c, "invalid metrics sync body")
+	}
 	res, ok, err := h.metrics.Sync(httpx.TenantContext(c, h.cfg), c.Params("id"), req)
 	if err != nil {
 		return httpx.BadRequest(c, err.Error())

@@ -51,7 +51,7 @@ type GenerationRequestPreviewDTO struct {
 }
 
 type SelectGeneratedVideoRequest struct {
-	ProjectID string `json:"project_id"`
+	ProjectID string `json:"project_id" validate:"required"`
 }
 type SelectGeneratedVideoResponse struct {
 	CreativeProject domain.CreativeProject `json:"creative_project"`

@@ -1,23 +1,23 @@
 package dto
 
 type RegisterRequest struct {
-	Email       string `json:"email"`
-	Password    string `json:"password"`
-	Name        string `json:"name"`
-	CompanyName string `json:"company_name"`
+	Email       string `json:"email" validate:"required,email"`
+	Password    string `json:"password" validate:"required,min=8"`
+	Name        string `json:"name" validate:"required"`
+	CompanyName string `json:"company_name" validate:"required"`
 }
 
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" validate:"required,email"`
+	Password string `json:"password" validate:"required"`
 }
 
 type RefreshTokenRequest struct {
-	RefreshToken string `json:"refresh_token"`
+	RefreshToken string `json:"refresh_token" validate:"required"`
 }
 
 type LogoutRequest struct {
-	UserID string `json:"user_id"`
+	UserID string `json:"user_id" validate:"required"`
 }
 
 type AuthUserDTO struct {

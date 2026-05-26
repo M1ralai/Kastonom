@@ -44,7 +44,9 @@ func (h *Handler) GetFull(c fiber.Ctx) error {
 }
 func (h *Handler) Select(c fiber.Ctx) error {
 	var req dto.SelectGeneratedVideoRequest
-	_ = c.Bind().Body(&req)
+	if err := c.Bind().Body(&req); err != nil {
+		return httpx.BadRequest(c, "invalid generated video selection body")
+	}
 	res, ok, err := h.videos.Select(httpx.TenantContext(c, h.cfg), c.Params("id"), req)
 	if err != nil {
 		return httpx.BadRequest(c, err.Error())

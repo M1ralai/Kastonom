@@ -39,6 +39,8 @@ func (h *Handler) Create(c fiber.Ctx) error {
 
 func (h *Handler) EstimateCost(c fiber.Ctx) error {
 	var req dto.EstimateCostRequest
-	_ = c.Bind().Body(&req)
+	if err := c.Bind().Body(&req); err != nil {
+		return httpx.BadRequest(c, "invalid estimate cost body")
+	}
 	return c.JSON(h.service.EstimateCost(httpx.TenantContext(c, h.cfg), req))
 }

@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/M1ralai/Kastonom/backend/internal/bootstrap"
+	"github.com/M1ralai/Kastonom/backend/internal/shared/logging"
 )
 
 func main() {
@@ -16,6 +17,9 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer func() {
+		_ = logging.Sync()
+	}()
 	if err := app.Listen(":" + port); err != nil {
 		log.Fatal(err)
 	}

@@ -32,6 +32,8 @@ import (
 	videorepo "github.com/M1ralai/Kastonom/backend/internal/modules/video/repository"
 	videoservice "github.com/M1ralai/Kastonom/backend/internal/modules/video/service"
 	"github.com/M1ralai/Kastonom/backend/internal/shared/domain"
+	"github.com/M1ralai/Kastonom/backend/internal/shared/logging"
+	"github.com/M1ralai/Kastonom/backend/internal/shared/validation"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -42,13 +44,16 @@ func NewApp() (*fiber.App, error) {
 		return nil, err
 	}
 	app := fiber.New(fiber.Config{
-		StrictRouting: true,
-		CaseSensitive: true,
-		ReadTimeout:   5 * time.Second,
-		WriteTimeout:  10 * time.Second,
-		IdleTimeout:   3 * time.Minute,
-		AppName:       "kastonom-go",
+		StrictRouting:   true,
+		CaseSensitive:   true,
+		ReadTimeout:     5 * time.Second,
+		WriteTimeout:    10 * time.Second,
+		IdleTimeout:     3 * time.Minute,
+		AppName:         "kastonom-go",
+		StructValidator: validation.NewStructValidator(),
 	})
+
+	app.Use(logging.ErrorMiddleware())
 
 	app.Use(func(c fiber.Ctx) error {
 		c.Set("access-control-allow-origin", "*")

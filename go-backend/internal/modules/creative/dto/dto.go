@@ -3,29 +3,29 @@ package dto
 import "github.com/M1ralai/Kastonom/backend/internal/shared/domain"
 
 type CreativeSubjectInput struct {
-	SubjectType     string   `json:"subject_type"`
-	Name            string   `json:"name"`
+	SubjectType     string   `json:"subject_type" validate:"required,subject_type"`
+	Name            string   `json:"name" validate:"required"`
 	Description     *string  `json:"description"`
-	LandingURL      *string  `json:"landing_url"`
-	Price           *float64 `json:"price"`
+	LandingURL      *string  `json:"landing_url" validate:"omitempty,url"`
+	Price           *float64 `json:"price" validate:"omitempty,gte=0"`
 	Currency        *string  `json:"currency"`
-	AllowedClaims   []string `json:"allowed_claims"`
-	ForbiddenClaims []string `json:"forbidden_claims"`
-	UnknownFields   []string `json:"unknown_fields"`
-	Source          string   `json:"source"`
+	AllowedClaims   []string `json:"allowed_claims" validate:"required"`
+	ForbiddenClaims []string `json:"forbidden_claims" validate:"required"`
+	UnknownFields   []string `json:"unknown_fields" validate:"required"`
+	Source          string   `json:"source" validate:"required,subject_source"`
 }
 
 type SourceAssetInput struct {
-	AssetType string         `json:"asset_type"`
-	Source    string         `json:"source"`
-	URL       string         `json:"url"`
+	AssetType string         `json:"asset_type" validate:"required,asset_type"`
+	Source    string         `json:"source" validate:"required,asset_source"`
+	URL       string         `json:"url" validate:"required,url"`
 	Metadata  map[string]any `json:"metadata"`
 }
 
 type CreateCreativeProjectRequest struct {
-	Name            string               `json:"name"`
-	CreativeSubject CreativeSubjectInput `json:"creative_subject"`
-	SourceAssets    []SourceAssetInput   `json:"source_assets"`
+	Name            string               `json:"name" validate:"required"`
+	CreativeSubject CreativeSubjectInput `json:"creative_subject" validate:"required"`
+	SourceAssets    []SourceAssetInput   `json:"source_assets" validate:"required,dive"`
 }
 
 type CreateCreativeProjectResponse struct {
