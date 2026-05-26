@@ -12,7 +12,11 @@ func main() {
 	if port == "" {
 		port = "3001"
 	}
-	if err := bootstrap.NewApp().Listen(":" + port); err != nil {
+	app, err := bootstrap.NewApp()
+	if err != nil {
+		log.Fatal(err)
+	}
+	if err := app.Listen(":" + port); err != nil {
 		log.Fatal(err)
 	}
 }

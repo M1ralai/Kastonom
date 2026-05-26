@@ -3,22 +3,44 @@ package bootstrap
 import (
 	"time"
 
-	"github.com/M1ralai/Kastonom/backend/internal/modules/auth"
-	"github.com/M1ralai/Kastonom/backend/internal/modules/creative"
-	"github.com/M1ralai/Kastonom/backend/internal/modules/dashboard"
-	"github.com/M1ralai/Kastonom/backend/internal/modules/demo"
-	"github.com/M1ralai/Kastonom/backend/internal/modules/generation"
-	"github.com/M1ralai/Kastonom/backend/internal/modules/iteration"
-	"github.com/M1ralai/Kastonom/backend/internal/modules/publication"
-	"github.com/M1ralai/Kastonom/backend/internal/modules/tenant"
-	"github.com/M1ralai/Kastonom/backend/internal/modules/video"
+	"github.com/M1ralai/Kastonom/backend/internal/infrastructure/postgres"
+	authhandler "github.com/M1ralai/Kastonom/backend/internal/modules/auth/handler"
+	authrepo "github.com/M1ralai/Kastonom/backend/internal/modules/auth/repository"
+	authservice "github.com/M1ralai/Kastonom/backend/internal/modules/auth/service"
+	creativehandler "github.com/M1ralai/Kastonom/backend/internal/modules/creative/handler"
+	creativerepo "github.com/M1ralai/Kastonom/backend/internal/modules/creative/repository"
+	creativeservice "github.com/M1ralai/Kastonom/backend/internal/modules/creative/service"
+	dashboardhandler "github.com/M1ralai/Kastonom/backend/internal/modules/dashboard/handler"
+	dashboardrepo "github.com/M1ralai/Kastonom/backend/internal/modules/dashboard/repository"
+	dashboardservice "github.com/M1ralai/Kastonom/backend/internal/modules/dashboard/service"
+	demohandler "github.com/M1ralai/Kastonom/backend/internal/modules/demo/handler"
+	demorepo "github.com/M1ralai/Kastonom/backend/internal/modules/demo/repository"
+	demoservice "github.com/M1ralai/Kastonom/backend/internal/modules/demo/service"
+	generationhandler "github.com/M1ralai/Kastonom/backend/internal/modules/generation/handler"
+	generationrepo "github.com/M1ralai/Kastonom/backend/internal/modules/generation/repository"
+	generationservice "github.com/M1ralai/Kastonom/backend/internal/modules/generation/service"
+	iterationhandler "github.com/M1ralai/Kastonom/backend/internal/modules/iteration/handler"
+	iterationrepo "github.com/M1ralai/Kastonom/backend/internal/modules/iteration/repository"
+	iterationservice "github.com/M1ralai/Kastonom/backend/internal/modules/iteration/service"
+	publicationhandler "github.com/M1ralai/Kastonom/backend/internal/modules/publication/handler"
+	publicationrepo "github.com/M1ralai/Kastonom/backend/internal/modules/publication/repository"
+	publicationservice "github.com/M1ralai/Kastonom/backend/internal/modules/publication/service"
+	tenanthandler "github.com/M1ralai/Kastonom/backend/internal/modules/tenant/handler"
+	tenantrepo "github.com/M1ralai/Kastonom/backend/internal/modules/tenant/repository"
+	tenantservice "github.com/M1ralai/Kastonom/backend/internal/modules/tenant/service"
+	videohandler "github.com/M1ralai/Kastonom/backend/internal/modules/video/handler"
+	videorepo "github.com/M1ralai/Kastonom/backend/internal/modules/video/repository"
+	videoservice "github.com/M1ralai/Kastonom/backend/internal/modules/video/service"
 	"github.com/M1ralai/Kastonom/backend/internal/shared/domain"
-	"github.com/M1ralai/Kastonom/backend/internal/shared/store"
 	"github.com/gofiber/fiber/v3"
 )
 
-func NewApp() *fiber.App {
+func NewApp() (*fiber.App, error) {
 	cfg := domain.DefaultConfig()
+	db, err := postgres.Open()
+	if err != nil {
+		return nil, err
+	}
 	app := fiber.New(fiber.Config{
 		StrictRouting: true,
 		CaseSensitive: true,
@@ -48,6 +70,10 @@ func NewApp() *fiber.App {
 		})
 	})
 	app.Get("/health/ready", func(c fiber.Ctx) error {
+		err := db.Ping()
+		if err != nil {
+			return c.Status(fiber.StatusServiceUnavailable).JSON(fiber.Map{"status": "degraded", "checks": fiber.Map{"database": fiber.Map{"healthy": false, "error": err.Error()}}})
+		}
 		return c.JSON(fiber.Map{"status": "ok", "checks": fiber.Map{"database": fiber.Map{"healthy": true}}})
 	})
 	app.Get("/openapi.json", func(c fiber.Ctx) error {
@@ -58,37 +84,35 @@ func NewApp() *fiber.App {
 		return c.SendString("<!doctype html><title>Kastonom API</title><h1>Kastonom Go Backend</h1><p>OpenAPI: /openapi.json</p>")
 	})
 
-	memory := store.New()
+	authRepo := authrepo.New(db)
+	authhandler.New(authservice.New(authRepo)).RegisterRoutes(app)
 
-	authRepo := auth.NewRepository(memory)
-	auth.NewHandler(auth.NewService(authRepo)).RegisterRoutes(app)
+	tenantRepo := tenantrepo.New(db)
+	tenanthandler.New(cfg, tenantservice.New(tenantRepo)).RegisterRoutes(app)
 
-	tenantRepo := tenant.NewRepository(memory)
-	tenant.NewHandler(cfg, tenant.NewService(tenantRepo)).RegisterRoutes(app)
+	creativeRepo := creativerepo.New(db)
+	creativehandler.New(cfg, creativeservice.New(creativeRepo)).RegisterRoutes(app)
 
-	creativeRepo := creative.NewRepository(memory)
-	creative.NewHandler(cfg, creative.NewService(creativeRepo)).RegisterRoutes(app)
+	generationRepo := generationrepo.New(db)
+	generationhandler.New(cfg, generationservice.New(cfg, generationRepo)).RegisterRoutes(app)
 
-	generationRepo := generation.NewRepository(memory)
-	generation.NewHandler(cfg, generation.NewService(cfg, generationRepo)).RegisterRoutes(app)
+	videoRepo := videorepo.New(db)
+	videoService := videoservice.New(videoRepo)
+	videohandler.New(cfg, videoService, videoService).RegisterRoutes(app)
 
-	videoRepo := video.NewRepository(memory)
-	videoService := video.NewService(videoRepo)
-	video.NewHandler(cfg, videoService, videoService).RegisterRoutes(app)
+	publicationRepo := publicationrepo.New(db)
+	publicationService := publicationservice.New(publicationRepo)
+	publicationhandler.New(cfg, publicationService, publicationService).RegisterRoutes(app)
 
-	publicationRepo := publication.NewRepository(memory)
-	publicationService := publication.NewService(publicationRepo)
-	publication.NewHandler(cfg, publicationService, publicationService).RegisterRoutes(app)
+	dashboardRepo := dashboardrepo.New(db)
+	dashboardService := dashboardservice.New(dashboardRepo)
+	dashboardhandler.New(cfg, dashboardService, dashboardService).RegisterRoutes(app)
 
-	dashboardRepo := dashboard.NewRepository(memory)
-	dashboardService := dashboard.NewService(dashboardRepo)
-	dashboard.NewHandler(cfg, dashboardService, dashboardService).RegisterRoutes(app)
+	iterationRepo := iterationrepo.New(db)
+	iterationhandler.New(cfg, iterationservice.New(iterationRepo)).RegisterRoutes(app)
 
-	iterationRepo := iteration.NewRepository(memory)
-	iteration.NewHandler(cfg, iteration.NewService(iterationRepo)).RegisterRoutes(app)
+	demoRepo := demorepo.New(db)
+	demohandler.New(cfg, demoservice.New(demoRepo)).RegisterRoutes(app)
 
-	demoRepo := demo.NewRepository(memory)
-	demo.NewHandler(cfg, demo.NewService(demoRepo)).RegisterRoutes(app)
-
-	return app
+	return app, nil
 }
