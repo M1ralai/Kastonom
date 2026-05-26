@@ -1,0 +1,195 @@
+package "internal/module/generation" as GenerationModule {
+  class GenerationRequest <<Entity>> {
+    +ID: GenerationRequestID
+    +TenantID: TenantID
+    +ProjectID: ProjectID
+    +CreativeSubjectID: CreativeSubjectID
+    +SourceAssetIDs: []SourceAssetID
+    +Status: GenerationStatus
+    +Objective: Objective
+    +TargetAudience: string?
+    +Platform: Platform
+    +Language: string
+    +Tone: string?
+    +Style: string?
+    +CallToAction: string?
+    +DurationSeconds: int
+    +AspectRatio: AspectRatio
+    +UserNotes: string?
+    +FallbackNotes: []string
+    +CreatedAt: time.Time
+    +UpdatedAt: time.Time
+  }
+
+  class PromptPayload <<Entity>> {
+    +ID: PromptPayloadID
+    +TenantID: TenantID
+    +ProjectID: ProjectID
+    +GenerationRequestID: GenerationRequestID
+    +Provider: VideoProvider
+    +PromptText: string
+    +NegativePrompt: string
+    +Language: string
+    +DurationSeconds: int
+    +AspectRatio: AspectRatio
+    +SourceAssetIDs: []SourceAssetID
+    +ProviderOptions: map[string]any?
+    +IsMock: bool
+    +FallbackNotes: []string
+    +CreatedAt: time.Time
+  }
+
+  class ProviderResult <<Entity>> {
+    +ID: ProviderResultID
+    +TenantID: TenantID
+    +VideoJobID: VideoJobID
+    +Provider: VideoProvider
+    +ProviderJobID: string?
+    +RawStatus: string?
+    +NormalizedStatus: VideoJobStatus
+    +ResultURLs: []string
+    +ErrorCode: string?
+    +ErrorMessage: string?
+    +RedactedMetadata: map[string]any?
+    +ReceivedAt: time.Time
+  }
+
+  class GenerationInputBundle <<Read Model>> {
+    +Project: CreativeProject
+    +Subject: CreativeSubject
+    +SelectedAssets: []SourceAsset
+  }
+
+  class ProviderExecutionResultDTO <<DTO>> {
+    +tenant_id: string
+    +provider: string
+    +provider_job_id: string?
+    +raw_status: string?
+    +normalized_status: string
+    +result_urls: []string
+    +error_code: string?
+    +error_message: string?
+    +redacted_metadata: map[string]any?
+  }
+
+  class CreateGenerationRequestRequest <<DTO>> {
+    +project_id: string
+    +source_asset_ids: []string
+    +provider: string?
+    +objective: string
+    +target_audience: string?
+    +platform: string
+    +duration_seconds: int
+    +aspect_ratio: string
+    +language: string
+    +tone: string?
+    +style: string?
+    +call_to_action: string?
+    +user_notes: string?
+  }
+
+  class GenerationRequestResponse <<DTO>> {
+    +generation_request: GenerationRequest
+    +prompt_payload: PromptPayload
+    +video_job: VideoJob
+    +provider_result: ProviderResult?
+    +generated_videos: []GeneratedVideo
+    +fallback_reason: string?
+  }
+
+  class EstimateCostRequest <<DTO>> {
+    +platform: string
+    +duration_seconds: int
+    +aspect_ratio: string
+  }
+
+  class EstimateCostResponse <<DTO>> {
+    +estimated_credits: int
+    +estimated_cost: EstimatedCostDTO
+  }
+
+  class EstimatedCostDTO <<DTO>> {
+    +amount: int
+    +currency: string
+    +max_amount: int
+  }
+
+  class GenerationRequestHandler <<Handler>> {
+    +Create(ctx: HTTPContext): GenerationRequestResponse
+    +EstimateCost(ctx: HTTPContext): EstimateCostResponse
+  }
+
+  interface GenerationRequestService <<Service Interface>> {
+    +Create(ctx: TenantContext, req: CreateGenerationRequestRequest): GenerationRequestResponse
+    +EstimateCost(ctx: TenantContext, req: EstimateCostRequest): EstimateCostResponse
+  }
+
+  class GenerationRequestServiceImpl <<Service Implementation>> {
+    -projectReader: GenerationProjectReader
+    -requests: GenerationRequestRepository
+    -prompts: PromptPayloadRepository
+    -compiler: PromptCompiler
+    -provider: ProviderExecutionPort
+    -videoWriter: GenerationVideoWriter
+  }
+
+  interface GenerationProjectReader <<Module Port>> {
+    +GetInputBundle(tenantID: TenantID, projectID: ProjectID, assetIDs: []SourceAssetID): GenerationInputBundle
+  }
+
+  interface GenerationRequestRepository <<Module Repository Port>> {
+    +Create(req: GenerationRequest): GenerationRequest
+    +SetStatus(tenantID: TenantID, id: GenerationRequestID, status: GenerationStatus): GenerationRequest
+  }
+
+  interface PromptPayloadRepository <<Module Repository Port>> {
+    +Create(payload: PromptPayload): PromptPayload
+  }
+
+  interface PromptCompiler <<Module Port>> {
+    +Compile(ctx: TenantContext, input: GenerationInputBundle, req: GenerationRequest, provider: VideoProvider): PromptPayload
+  }
+
+  interface ProviderExecutionPort <<External Port>> {
+    +Submit(ctx: TenantContext, payload: PromptPayload): ProviderExecutionResultDTO
+    +GetJobStatus(ctx: TenantContext, provider: VideoProvider, providerJobID: string): ProviderStatusDTO
+  }
+
+  interface GenerationVideoWriter <<Module Port>> {
+    +PersistResult(tenantID: TenantID, req: GenerationRequest, payload: PromptPayload, result: ProviderExecutionResultDTO): GenerationRequestResponse
+  }
+
+  class PgGenerationProjectReader <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +GetInputBundle(tenantID: TenantID, projectID: ProjectID, assetIDs: []SourceAssetID): GenerationInputBundle
+  }
+
+  class PgGenerationRequestRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Create(req: GenerationRequest): GenerationRequest
+    +SetStatus(tenantID: TenantID, id: GenerationRequestID, status: GenerationStatus): GenerationRequest
+  }
+
+  class PgPromptPayloadRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Create(payload: PromptPayload): PromptPayload
+  }
+
+  class PgGenerationVideoWriter <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +PersistResult(tenantID: TenantID, req: GenerationRequest, payload: PromptPayload, result: ProviderExecutionResultDTO): GenerationRequestResponse
+  }
+}
+
+GenerationRequestServiceImpl ..|> GenerationRequestService
+GenerationRequestServiceImpl --> GenerationProjectReader
+GenerationRequestServiceImpl --> GenerationRequestRepository
+GenerationRequestServiceImpl --> PromptPayloadRepository
+GenerationRequestServiceImpl --> PromptCompiler
+GenerationRequestServiceImpl --> ProviderExecutionPort
+GenerationRequestServiceImpl --> GenerationVideoWriter
+GenerationRequest "1" o-- "1..*" PromptPayload
+PgGenerationProjectReader ..|> GenerationProjectReader
+PgGenerationRequestRepository ..|> GenerationRequestRepository
+PgPromptPayloadRepository ..|> PromptPayloadRepository
+PgGenerationVideoWriter ..|> GenerationVideoWriter

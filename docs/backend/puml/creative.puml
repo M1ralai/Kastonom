@@ -1,0 +1,185 @@
+package "internal/module/creative" as CreativeModule {
+  class CreativeProject <<Aggregate Root>> {
+    +ID: ProjectID
+    +TenantID: TenantID
+    +Name: string
+    +Status: ProjectStatus
+    +SelectedGeneratedVideoID: GeneratedVideoID?
+    +LatestGenerationRequestID: GenerationRequestID?
+    +CreatedAt: time.Time
+    +UpdatedAt: time.Time
+  }
+
+  class CreativeSubject <<Entity>> {
+    +ID: CreativeSubjectID
+    +TenantID: TenantID
+    +ProjectID: ProjectID
+    +SubjectType: SubjectType
+    +Name: string
+    +Description: string?
+    +LandingURL: string?
+    +Price: decimal.Decimal?
+    +Currency: string?
+    +AllowedClaims: []string
+    +ForbiddenClaims: []string
+    +UnknownFields: []string
+    +Source: SubjectSource
+    +CreatedAt: time.Time
+    +UpdatedAt: time.Time
+  }
+
+  class SourceAsset <<Entity>> {
+    +ID: SourceAssetID
+    +TenantID: TenantID
+    +ProjectID: ProjectID?
+    +AssetType: AssetType
+    +Source: AssetSource
+    +URL: string
+    +StorageKey: string?
+    +MimeType: string?
+    +Width: int?
+    +Height: int?
+    +DurationSeconds: float64?
+    +Checksum: string?
+    +Metadata: map[string]any?
+    +CreatedAt: time.Time
+  }
+
+  class CreativeProjectBundle <<Read Model>> {
+    +Project: CreativeProject
+    +Subject: CreativeSubject?
+    +Assets: []SourceAsset
+    +GenerationRequests: []GenerationRequest
+    +GeneratedVideos: []GeneratedVideo
+  }
+
+  class CreativeSubjectInput <<DTO>> {
+    +subject_type: string
+    +name: string
+    +description: string?
+    +landing_url: string?
+    +price: float64?
+    +currency: string?
+    +allowed_claims: []string
+    +forbidden_claims: []string
+    +unknown_fields: []string
+    +source: string
+  }
+
+  class SourceAssetInput <<DTO>> {
+    +asset_type: string
+    +source: string
+    +url: string
+    +metadata: map[string]any?
+  }
+
+  class CreateCreativeProjectRequest <<DTO>> {
+    +name: string
+    +creative_subject: CreativeSubjectInput
+    +source_assets: []SourceAssetInput
+  }
+
+  class CreateCreativeProjectResponse <<DTO>> {
+    +creative_project: CreativeProject
+    +creative_subject: CreativeSubject
+    +source_assets: []SourceAsset
+    +fallback_reason: string?
+  }
+
+  class CreativeProjectBundleResponse <<DTO>> {
+    +creative_project: CreativeProject
+    +creative_subject: CreativeSubject?
+    +source_assets: []SourceAsset
+    +generation_requests: []GenerationRequest
+    +generated_videos: []GeneratedVideo
+  }
+
+  class SourceAssetUploadResponse <<DTO>> {
+    +source_asset: SourceAsset
+    +upload_url: string
+  }
+
+  class ProjectMetricsResponse <<DTO>> {
+    +project_id: string
+    +creative_subject: ProjectMetricsSubjectDTO
+    +erp_data: ERPDataDTO
+  }
+
+  class ProjectMetricsSubjectDTO <<DTO>> {
+    +id: string
+    +name: string
+    +price: float64?
+    +currency: string?
+    +margin_percent: int?
+    +stock_count: int?
+    +ai_score: int
+    +ai_reasons: []string
+  }
+
+  class ERPDataDTO <<DTO>> {
+    +stock_available: int?
+    +stock_reserved: int?
+    +last_sync_at: string?
+  }
+
+  class CreativeProjectHandler <<Handler>> {
+    +Create(ctx: HTTPContext): CreateCreativeProjectResponse
+    +List(ctx: HTTPContext): []CreativeProjectBundleResponse
+    +GetBundle(ctx: HTTPContext): CreativeProjectBundleResponse
+    +UploadSourceAsset(ctx: HTTPContext): SourceAssetUploadResponse
+    +GetMetrics(ctx: HTTPContext): ProjectMetricsResponse
+  }
+
+  interface CreativeProjectService <<Service Interface>> {
+    +Create(ctx: TenantContext, req: CreateCreativeProjectRequest): CreateCreativeProjectResponse
+    +List(ctx: TenantContext): []CreativeProjectBundleResponse
+    +GetBundle(ctx: TenantContext, projectID: ProjectID): CreativeProjectBundleResponse
+    +UploadSourceAsset(ctx: TenantContext, file: MultipartFile): SourceAssetUploadResponse
+    +GetMetrics(ctx: TenantContext, projectID: ProjectID): ProjectMetricsResponse
+  }
+
+  class CreativeProjectServiceImpl <<Service Implementation>> {
+    -repo: CreativeProjectRepository
+    -storage: CreativeAssetStorage
+    -audit: CreativeAuditWriter
+  }
+
+  interface CreativeProjectRepository <<Module Repository Port>> {
+    +CreateBundle(bundle: CreativeProjectBundle): CreativeProjectBundle
+    +ListBundles(tenantID: TenantID): []CreativeProjectBundle
+    +GetBundle(tenantID: TenantID, projectID: ProjectID): CreativeProjectBundle?
+    +SaveUnattachedAsset(asset: SourceAsset): SourceAsset
+    +GetProjectMetrics(tenantID: TenantID, projectID: ProjectID): ProjectMetricsResponse
+  }
+
+  interface CreativeAssetStorage <<Module Port>> {
+    +Save(file: MultipartFile): StoredAsset
+  }
+
+  interface CreativeAuditWriter <<Module Port>> {
+    +Write(log: AuditLog): error
+  }
+
+  class PgCreativeProjectRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +CreateBundle(bundle: CreativeProjectBundle): CreativeProjectBundle
+    +ListBundles(tenantID: TenantID): []CreativeProjectBundle
+    +GetBundle(tenantID: TenantID, projectID: ProjectID): CreativeProjectBundle?
+    +SaveUnattachedAsset(asset: SourceAsset): SourceAsset
+    +GetProjectMetrics(tenantID: TenantID, projectID: ProjectID): ProjectMetricsResponse
+  }
+
+  class PgCreativeAuditWriter <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Write(log: AuditLog): error
+  }
+}
+
+CreativeProject "1" *-- "1" CreativeSubject
+CreativeProject "1" o-- "0..*" SourceAsset
+CreativeProjectServiceImpl ..|> CreativeProjectService
+CreativeProjectServiceImpl --> CreativeProjectRepository
+CreativeProjectServiceImpl --> CreativeAssetStorage
+CreativeProjectServiceImpl --> CreativeAuditWriter
+PgCreativeProjectRepository ..|> CreativeProjectRepository
+PgCreativeAuditWriter ..|> CreativeAuditWriter

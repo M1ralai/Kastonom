@@ -1,0 +1,203 @@
+package "internal/module/publication" as PublicationModule {
+  class AdPlatformConnection <<Entity>> {
+    +ID: AdPlatformConnectionID
+    +TenantID: TenantID
+    +Platform: AdPlatform
+    +ExternalAccountID: string?
+    +ExternalAccountName: string?
+    +Status: string
+    +Scopes: []string
+    +LastCheckedAt: time.Time?
+    +CreatedAt: time.Time
+    +UpdatedAt: time.Time
+  }
+
+  class AdPublication <<Entity>> {
+    +ID: AdPublicationID
+    +TenantID: TenantID
+    +ProjectID: ProjectID
+    +GeneratedVideoID: GeneratedVideoID
+    +AdPlatformConnectionID: AdPlatformConnectionID?
+    +Platform: AdPlatform
+    +Status: PublicationStatus
+    +ExternalCampaignID: string?
+    +ExternalAdGroupID: string?
+    +ExternalAdID: string?
+    +DestinationURL: string?
+    +PublishedAt: time.Time?
+    +PausedAt: time.Time?
+    +ErrorCode: string?
+    +ErrorMessage: string?
+    +CreatedAt: time.Time
+    +UpdatedAt: time.Time
+  }
+
+  class AdMetricsSnapshot <<Entity>> {
+    +ID: AdMetricsSnapshotID
+    +TenantID: TenantID
+    +AdPublicationID: AdPublicationID
+    +Platform: AdPlatform
+    +DateStart: time.Time
+    +DateEnd: time.Time
+    +Impressions: int64?
+    +Clicks: int64?
+    +Spend: decimal.Decimal?
+    +Currency: string?
+    +CTR: float64?
+    +CPC: decimal.Decimal?
+    +Conversions: float64?
+    +ConversionValue: decimal.Decimal?
+    +ROAS: float64?
+    +VideoViews: int64?
+    +VideoViewRate: float64?
+    +CostPerVideoView: decimal.Decimal?
+    +Source: MetricSource
+    +RedactedMetadata: map[string]any?
+    +FetchedAt: time.Time
+  }
+
+  class PublishableVideo <<Read Model>> {
+    +Project: CreativeProject
+    +GeneratedVideo: GeneratedVideo
+    +Connection: AdPlatformConnection?
+  }
+
+  class CreateAdPublicationRequest <<DTO>> {
+    +project_id: string
+    +generated_video_id: string
+    +platform: string
+    +ad_platform_connection_id: string?
+    +destination_url: string?
+    +user_confirmed_publish: bool
+  }
+
+  class CreateAdPublicationResponse <<DTO>> {
+    +ad_publication: AdPublication
+    +fallback_reason: string?
+  }
+
+  class SyncMetricsRequest <<DTO>> {
+    +source: string
+    +date_start: string
+    +date_end: string
+    +metrics: MetricInputDTO?
+  }
+
+  class MetricInputDTO <<DTO>> {
+    +impressions: int64?
+    +clicks: int64?
+    +spend: float64?
+    +currency: string?
+    +ctr: float64?
+    +cpc: float64?
+    +conversions: float64?
+    +conversion_value: float64?
+    +roas: float64?
+    +video_views: int64?
+    +video_view_rate: float64?
+    +cost_per_video_view: float64?
+  }
+
+  class SyncMetricsResponse <<DTO>> {
+    +metrics_snapshot: AdMetricsSnapshot
+  }
+
+  class AdPublicationHandler <<Handler>> {
+    +Create(ctx: HTTPContext): CreateAdPublicationResponse
+  }
+
+  class MetricsHandler <<Handler>> {
+    +Sync(ctx: HTTPContext): SyncMetricsResponse
+  }
+
+  interface AdPublicationService <<Service Interface>> {
+    +Create(ctx: TenantContext, req: CreateAdPublicationRequest): CreateAdPublicationResponse
+  }
+
+  interface MetricsService <<Service Interface>> {
+    +Sync(ctx: TenantContext, publicationID: AdPublicationID, req: SyncMetricsRequest): SyncMetricsResponse
+  }
+
+  class AdPublicationServiceImpl <<Service Implementation>> {
+    -videos: PublicationVideoReader
+    -publications: AdPublicationRepository
+    -publisher: AdPlatformPublisher
+    -audit: PublicationAuditWriter
+  }
+
+  class MetricsServiceImpl <<Service Implementation>> {
+    -publications: MetricsPublicationReader
+    -metrics: AdMetricsRepository
+    -audit: PublicationAuditWriter
+  }
+
+  interface PublicationVideoReader <<Module Port>> {
+    +GetPublishableVideo(tenantID: TenantID, projectID: ProjectID, videoID: GeneratedVideoID, platform: AdPlatform, connectionID: AdPlatformConnectionID?): PublishableVideo
+  }
+
+  interface AdPublicationRepository <<Module Repository Port>> {
+    +Create(publication: AdPublication): AdPublication
+    +MarkProjectPublished(tenantID: TenantID, projectID: ProjectID, videoID: GeneratedVideoID): error
+  }
+
+  interface MetricsPublicationReader <<Module Port>> {
+    +GetPublication(tenantID: TenantID, publicationID: AdPublicationID): AdPublication
+  }
+
+  interface AdMetricsRepository <<Module Repository Port>> {
+    +Create(snapshot: AdMetricsSnapshot): AdMetricsSnapshot
+  }
+
+  interface AdPlatformPublisher <<External Port>> {
+    +Publish(ctx: TenantContext, publication: AdPublication, video: GeneratedVideo): AdPublication
+    +Readiness(ctx: TenantContext, platform: AdPlatform): ReadinessStatus
+  }
+
+  interface PublicationAuditWriter <<Module Port>> {
+    +Write(log: AuditLog): error
+  }
+
+  class PgPublicationVideoReader <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +GetPublishableVideo(tenantID: TenantID, projectID: ProjectID, videoID: GeneratedVideoID, platform: AdPlatform, connectionID: AdPlatformConnectionID?): PublishableVideo
+  }
+
+  class PgAdPublicationRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Create(publication: AdPublication): AdPublication
+    +MarkProjectPublished(tenantID: TenantID, projectID: ProjectID, videoID: GeneratedVideoID): error
+  }
+
+  class PgMetricsPublicationReader <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +GetPublication(tenantID: TenantID, publicationID: AdPublicationID): AdPublication
+  }
+
+  class PgAdMetricsRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Create(snapshot: AdMetricsSnapshot): AdMetricsSnapshot
+  }
+
+  class PgPublicationAuditWriter <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Write(log: AuditLog): error
+  }
+}
+
+AdPublication "1" --> "1" GeneratedVideo
+AdPublication "0..*" --> "0..1" AdPlatformConnection
+AdPublication "1" o-- "0..*" AdMetricsSnapshot
+AdPublicationServiceImpl ..|> AdPublicationService
+AdPublicationServiceImpl --> PublicationVideoReader
+AdPublicationServiceImpl --> AdPublicationRepository
+AdPublicationServiceImpl --> AdPlatformPublisher
+AdPublicationServiceImpl --> PublicationAuditWriter
+MetricsServiceImpl ..|> MetricsService
+MetricsServiceImpl --> MetricsPublicationReader
+MetricsServiceImpl --> AdMetricsRepository
+MetricsServiceImpl --> PublicationAuditWriter
+PgPublicationVideoReader ..|> PublicationVideoReader
+PgAdPublicationRepository ..|> AdPublicationRepository
+PgMetricsPublicationReader ..|> MetricsPublicationReader
+PgAdMetricsRepository ..|> AdMetricsRepository
+PgPublicationAuditWriter ..|> PublicationAuditWriter

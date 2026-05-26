@@ -1,0 +1,261 @@
+hide empty members
+skinparam shadowing false
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+
+package "internal/shared/domain" as SharedDomain {
+  class TenantContext <<Application Context>> {
+    +RequestID: RequestID
+    +TenantID: TenantID
+    +Mode: RuntimeMode
+    +FallbackEnabled: bool
+    +IsDemoTenant: bool
+    +UserID: UserID?
+  }
+
+  class RequestID <<Value Object>> {
+    +Value: string
+  }
+
+  class ReadinessStatus <<Value Object>> {
+    +Ready: bool
+    +Mode: RuntimeMode
+    +IsMock: bool
+    +Missing: []string
+  }
+
+  class Money <<Value Object>> {
+    +Amount: decimal.Decimal
+    +Currency: string
+  }
+
+  enum RuntimeMode {
+    demo
+    live
+    mock
+    degraded
+  }
+
+  enum TenantMode {
+    demo
+    live
+  }
+
+  enum TenantStatus {
+    active
+    disabled
+  }
+
+  enum ProjectStatus {
+    draft
+    generating
+    ready
+    published
+    archived
+    failed
+  }
+
+  enum SubjectType {
+    product
+    service
+    brand
+    offer
+    event
+    place
+    other
+    unknown
+  }
+
+  enum SubjectSource {
+    user_input
+    import
+    mock
+    unknown
+  }
+
+  enum AssetType {
+    image
+    video
+    url
+  }
+
+  enum AssetSource {
+    upload
+    external_url
+    generated
+    mock
+  }
+
+  enum Objective {
+    awareness
+    traffic
+    conversions
+    engagement
+    app_promotion
+    lead_generation
+    unknown
+  }
+
+  enum Platform {
+    meta_ads
+    google_ads
+    tiktok
+    reels
+    youtube_shorts
+    generic_vertical
+    unknown
+  }
+
+  enum VideoProvider {
+    pollo
+    kling
+    runway
+    mock
+  }
+
+  enum AspectRatio {
+    "9:16"
+    "1:1"
+    "4:5"
+    "16:9"
+    unknown
+  }
+
+  enum GenerationStatus {
+    draft
+    prompt_compiled
+    generating
+    completed
+    failed
+    canceled
+  }
+
+  enum VideoJobStatus {
+    queued
+    submitted
+    processing
+    completed
+    failed
+    canceled
+  }
+
+  enum GeneratedVideoStatus {
+    generated
+    selected
+    rejected
+    published
+    unavailable
+  }
+
+  enum AdPlatform {
+    meta_ads
+    google_ads
+  }
+
+  enum PublicationStatus {
+    draft
+    publishing
+    published
+    failed
+    paused
+    archived
+  }
+
+  enum MetricSource {
+    meta_ads_api
+    google_ads_api
+    mock
+    manual
+    unknown
+  }
+
+  enum SuggestionStatus {
+    suggested
+    accepted
+    dismissed
+    generated
+    failed
+  }
+
+  enum SuggestionConfidence {
+    low
+    medium
+    high
+  }
+}
+
+package "internal/shared/app" as SharedApp {
+  class AppConfig <<Config>> {
+    +Version: string
+    +Mode: RuntimeMode
+    +FallbackEnabled: bool
+    +DemoTenantID: TenantID
+    +DefaultVideoProvider: VideoProvider
+    +DefaultLanguage: string
+    +DefaultPlatform: Platform
+    +DefaultDurationSeconds: int
+    +DefaultAspectRatio: AspectRatio
+    +PublicBaseURL: string
+    +MockPreviewURL: string
+    +VideoProviderReadiness: map[VideoProvider]ReadinessStatus
+    +AdPlatformReadiness: map[AdPlatform]ReadinessStatus
+  }
+
+  class IDFactory <<Shared Service>> {
+    +NewUUID(): UUID
+  }
+
+  class Clock <<Shared Service>> {
+    +Now(): time.Time
+  }
+
+  interface Logger <<Shared Port>> {
+    +Info(message: string, fields: map[string]any)
+    +Warn(message: string, fields: map[string]any)
+    +Error(message: string, fields: map[string]any)
+  }
+}
+
+package "internal/shared/http" as SharedHTTP {
+  class RequestContextMiddleware <<Middleware>> {
+    +Resolve(headers: HTTPHeaders, tenantRequired: bool): TenantContext
+  }
+
+  class SecurityMiddleware <<Middleware>> {
+    +ApplySecureHeaders()
+    +ApplyCORS()
+    +EnforceBodyLimit(maxBytes: int)
+  }
+
+  class ApiError <<Error Model>> {
+    +Status: int
+    +Code: string
+    +Message: string
+    +RequestID: RequestID?
+    +FallbackAvailable: bool?
+  }
+
+  class ApiErrorResponse <<DTO>> {
+    +error: string
+    +message: string
+    +request_id: string?
+    +fallback_available: bool?
+    +details: []FieldErrorDTO?
+  }
+
+  class FieldErrorDTO <<DTO>> {
+    +field: string
+    +message: string
+    +code: string
+  }
+
+  class HealthResponse <<DTO>> {
+    +status: string
+    +mode: string
+    +version: string
+    +video_provider_readiness: map[string]ReadinessStatus
+    +ad_platform_readiness: map[string]ReadinessStatus
+  }
+}

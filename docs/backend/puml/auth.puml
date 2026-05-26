@@ -1,0 +1,191 @@
+package "internal/module/auth" as AuthModule {
+  class User <<Entity>> {
+    +ID: UserID
+    +TenantID: TenantID
+    +Email: string
+    +PasswordHash: string
+    +Name: string?
+    +Status: TenantStatus
+    +CreatedAt: time.Time
+    +UpdatedAt: time.Time
+  }
+
+  class RefreshToken <<Entity>> {
+    +ID: RefreshTokenID
+    +UserID: UserID
+    +TokenHash: string
+    +Family: string
+    +ExpiresAt: time.Time
+    +RevokedAt: time.Time?
+    +IPAddress: string?
+    +UserAgent: string?
+    +CreatedAt: time.Time
+  }
+
+  class AuditLog <<Entity>> {
+    +ID: AuditLogID
+    +TenantID: TenantID?
+    +UserID: UserID?
+    +Action: string
+    +Entity: string
+    +EntityID: UUID?
+    +IPAddress: string?
+    +UserAgent: string?
+    +RequestID: RequestID?
+    +BeforeData: map[string]any?
+    +AfterData: map[string]any?
+    +CreatedAt: time.Time
+  }
+
+  class RegisterRequest <<DTO>> {
+    +email: string
+    +password: string
+    +name: string?
+    +company_name: string?
+  }
+
+  class LoginRequest <<DTO>> {
+    +email: string
+    +password: string
+  }
+
+  class RefreshTokenRequest <<DTO>> {
+    +refresh_token: string
+  }
+
+  class LogoutRequest <<DTO>> {
+    +user_id: string
+  }
+
+  class AuthUserDTO <<DTO>> {
+    +id: string
+    +email: string
+    +name: string
+    +tenant_id: string
+  }
+
+  class RegisterResponse <<DTO>> {
+    +user: AuthUserDTO
+    +token: string
+    +tenant: AuthTenantDTO
+  }
+
+  class LoginResponse <<DTO>> {
+    +user: AuthUserDTO
+    +access_token: string
+    +refresh_token: string
+    +expires_in: int
+  }
+
+  class AuthTenantDTO <<DTO>> {
+    +id: string
+    +name: string
+  }
+
+  class LogoutResponse <<DTO>> {
+    +success: bool
+  }
+
+  class AuthClaims <<Value Object>> {
+    +Subject: UserID
+    +TenantID: TenantID
+    +Email: string
+    +IssuedAt: time.Time
+    +ExpiresAt: time.Time
+  }
+
+  class AuthHandler <<Handler>> {
+    +Register(ctx: HTTPContext): RegisterResponse
+    +Login(ctx: HTTPContext): LoginResponse
+    +Refresh(ctx: HTTPContext): LoginResponse
+    +Logout(ctx: HTTPContext): LogoutResponse
+  }
+
+  interface AuthService <<Service Interface>> {
+    +Register(req: RegisterRequest): RegisterResponse
+    +Login(req: LoginRequest): LoginResponse
+    +RefreshToken(req: RefreshTokenRequest): LoginResponse
+    +Logout(req: LogoutRequest): LogoutResponse
+    +VerifyToken(token: string): AuthClaims?
+  }
+
+  class AuthServiceImpl <<Service Implementation>> {
+    -users: AuthUserStore
+    -refreshTokens: AuthRefreshTokenStore
+    -tenants: AuthTenantProvisioner
+    -audit: AuthAuditWriter
+    -passwords: PasswordHasher
+    -tokens: TokenSigner
+  }
+
+  interface AuthUserStore <<Module Repository Port>> {
+    +FindByEmail(email: string): User?
+    +FindByID(id: UserID): User?
+    +Save(user: User): User
+  }
+
+  interface AuthRefreshTokenStore <<Module Repository Port>> {
+    +Save(token: RefreshToken): RefreshToken
+    +FindByHash(tokenHash: string): RefreshToken?
+    +Revoke(tokenHash: string): error
+    +RevokeFamily(family: string): error
+    +RevokeAllForUser(userID: UserID): error
+  }
+
+  interface AuthTenantProvisioner <<Module Port>> {
+    +CreateTenantForRegistration(name: string): AuthTenantDTO
+  }
+
+  interface AuthAuditWriter <<Module Port>> {
+    +Write(log: AuditLog): error
+  }
+
+  interface PasswordHasher <<Module Port>> {
+    +Hash(password: string): string
+    +Verify(password: string, hash: string): bool
+  }
+
+  interface TokenSigner <<Module Port>> {
+    +Sign(user: User): string
+    +Verify(token: string): AuthClaims?
+  }
+
+  class PgAuthUserStore <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +FindByEmail(email: string): User?
+    +FindByID(id: UserID): User?
+    +Save(user: User): User
+  }
+
+  class PgAuthRefreshTokenStore <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Save(token: RefreshToken): RefreshToken
+    +FindByHash(tokenHash: string): RefreshToken?
+    +Revoke(tokenHash: string): error
+    +RevokeFamily(family: string): error
+    +RevokeAllForUser(userID: UserID): error
+  }
+
+  class PgAuthTenantProvisioner <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +CreateTenantForRegistration(name: string): AuthTenantDTO
+  }
+
+  class PgAuthAuditWriter <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Write(log: AuditLog): error
+  }
+}
+
+User "1" o-- "0..*" RefreshToken
+AuthServiceImpl ..|> AuthService
+AuthServiceImpl --> AuthUserStore
+AuthServiceImpl --> AuthRefreshTokenStore
+AuthServiceImpl --> AuthTenantProvisioner
+AuthServiceImpl --> AuthAuditWriter
+AuthServiceImpl --> PasswordHasher
+AuthServiceImpl --> TokenSigner
+PgAuthUserStore ..|> AuthUserStore
+PgAuthRefreshTokenStore ..|> AuthRefreshTokenStore
+PgAuthTenantProvisioner ..|> AuthTenantProvisioner
+PgAuthAuditWriter ..|> AuthAuditWriter

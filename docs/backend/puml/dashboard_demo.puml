@@ -1,0 +1,110 @@
+package "internal/module/dashboard" as DashboardModule {
+  class KpiSummaryResponse <<DTO>> {
+    +monthly_video_count: int
+    +monthly_video_change: int
+    +remaining_credits: int
+    +credit_currency: string
+    +average_ctr: float64
+    +sector_average_ctr: float64
+    +ctr_change_percent: int
+  }
+
+  class RecentActivitiesResponse <<DTO>> {
+    +activities: []RecentActivityDTO
+  }
+
+  class RecentActivityDTO <<DTO>> {
+    +id: string
+    +project_id: string
+    +project_name: string
+    +status: string
+    +icon: string
+    +generated_video: ActivityGeneratedVideoDTO?
+    +updated_at: string
+  }
+
+  class ActivityGeneratedVideoDTO <<DTO>> {
+    +impressions: int64
+    +ctr: float64
+  }
+
+  class DashboardHandler <<Handler>> {
+    +GetKpiSummary(ctx: HTTPContext): KpiSummaryResponse
+    +GetRecentActivities(ctx: HTTPContext): RecentActivitiesResponse
+  }
+
+  interface KpiSummaryService <<Service Interface>> {
+    +GetSummary(ctx: TenantContext): KpiSummaryResponse
+  }
+
+  interface RecentActivitiesService <<Service Interface>> {
+    +GetActivities(ctx: TenantContext, limit: int): RecentActivitiesResponse
+  }
+
+  class KpiSummaryServiceImpl <<Service Implementation>> {
+    -reads: DashboardReadRepository
+  }
+
+  class RecentActivitiesServiceImpl <<Service Implementation>> {
+    -reads: DashboardReadRepository
+  }
+
+  interface DashboardReadRepository <<Module Repository Port>> {
+    +GetKpiSummary(tenantID: TenantID): KpiSummaryResponse
+    +GetRecentActivities(tenantID: TenantID, limit: int): RecentActivitiesResponse
+  }
+
+  class PgDashboardReadRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +GetKpiSummary(tenantID: TenantID): KpiSummaryResponse
+    +GetRecentActivities(tenantID: TenantID, limit: int): RecentActivitiesResponse
+  }
+}
+
+package "internal/module/demo" as DemoModule {
+  class DemoFallbackResponse <<DTO>> {
+    +creative_project: CreativeProject
+    +creative_subject: CreativeSubject
+    +source_assets: []SourceAsset
+    +generation_request: GenerationRequest
+    +prompt_payload: PromptPayload
+    +video_job: VideoJob
+    +provider_result: ProviderResult
+    +generated_videos: []GeneratedVideo
+    +selected_generated_video: GeneratedVideo?
+    +ad_publication: AdPublication?
+    +metrics_snapshot: AdMetricsSnapshot?
+    +creative_iteration_suggestion: CreativeIterationSuggestion?
+    +fallback_reason: string
+  }
+
+  class DemoHandler <<Handler>> {
+    +Fallback(ctx: HTTPContext): DemoFallbackResponse
+  }
+
+  interface DemoReplayService <<Service Interface>> {
+    +Fallback(ctx: TenantContext): DemoFallbackResponse
+  }
+
+  class DemoReplayServiceImpl <<Service Implementation>> {
+    -repo: DemoReplayRepository
+  }
+
+  interface DemoReplayRepository <<Module Repository Port>> {
+    +GetReplay(tenantID: TenantID): DemoFallbackResponse
+  }
+
+  class PgDemoReplayRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +GetReplay(tenantID: TenantID): DemoFallbackResponse
+  }
+}
+
+KpiSummaryServiceImpl ..|> KpiSummaryService
+KpiSummaryServiceImpl --> DashboardReadRepository
+RecentActivitiesServiceImpl ..|> RecentActivitiesService
+RecentActivitiesServiceImpl --> DashboardReadRepository
+DemoReplayServiceImpl ..|> DemoReplayService
+DemoReplayServiceImpl --> DemoReplayRepository
+PgDashboardReadRepository ..|> DashboardReadRepository
+PgDemoReplayRepository ..|> DemoReplayRepository

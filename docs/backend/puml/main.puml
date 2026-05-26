@@ -1,0 +1,234 @@
+@startuml KastonomBackendBootstrap
+' Backend PUML index / bootstrap.
+' Source docs read:
+' - docs/backend/README.md
+' - docs/backend/backend-system-plan.md
+' - docs/backend/backend-subtask-plan.md
+' - docs/backend/tasks/BE-000..BE-013*.contract.yaml
+' - docs/contracts/api.contract.yaml
+' - docs/contracts/data-model.contract.yaml
+' - docs/layers/backend.contract.md
+' - docs/layers/integration-flow.md
+' - docs/prompts/prompt-compiler.contract.md
+' - docs/MISSING_ENDPOINTS.md
+' - backend/src/**
+' - go-backend/internal/**
+
+!include shared.puml
+!include auth.puml
+!include tenant.puml
+!include creative.puml
+!include generation.puml
+!include video.puml
+!include publication.puml
+!include iteration.puml
+!include dashboard_demo.puml
+!include infrastructure.puml
+
+title Kastonom Backend - Go Modular Monolith Bootstrap (DDD, MCP excluded)
+
+legend right
+  Bootstrap shows dependency injection only.
+  Modules do not receive the whole database, whole repository set,
+  or another module's full service implementation.
+
+  Every module defines narrow local service and repository interfaces
+  for its own use-cases. Concrete implementations are wired here only.
+
+  Repository ports are model/id based. TenantContext is application
+  boundary data; timeout/cancellation belongs to the sqlx driver layer.
+
+  A single *sqlx.DB pool is opened at bootstrap and passed to each
+  module's concrete Pg repository. Queries live inside those repositories.
+
+  MCP classes are excluded. Backend consumes only normalized provider
+  execution DTOs through ProviderExecutionPort.
+endlegend
+
+package "cmd/api bootstrap" as Bootstrap {
+  class ApiMain <<Composition Root>> {
+    +main()
+    +loadConfig()
+    +openDB()
+    +wireShared()
+    +wireAuthModule()
+    +wireTenantModule()
+    +wireCreativeModule()
+    +wireGenerationModule()
+    +wireVideoModule()
+    +wirePublicationModule()
+    +wireIterationModule()
+    +wireDashboardModule()
+    +wireDemoModule()
+    +registerRoutes()
+  }
+
+  class HTTPRouter <<Fiber Router>> {
+    +UseSecurity()
+    +UseRequestContext()
+    +MountAuth(handler: AuthHandler)
+    +MountTenant(handler: TenantHandler)
+    +MountCreative(handler: CreativeProjectHandler)
+    +MountGeneration(handler: GenerationRequestHandler)
+    +MountVideo(handler: VideoJobHandler, selectHandler: GeneratedVideoHandler)
+    +MountPublication(handler: AdPublicationHandler, metricsHandler: MetricsHandler)
+    +MountIteration(handler: IterationSuggestionHandler)
+    +MountDashboard(handler: DashboardHandler)
+    +MountDemo(handler: DemoHandler)
+  }
+}
+
+' Composition root owns concrete wiring.
+ApiMain --> AppConfig
+ApiMain --> SqlxDB
+ApiMain --> HTTPRouter
+ApiMain --> RequestContextMiddleware
+ApiMain --> SecurityMiddleware
+
+' Auth module wiring: no tenant repository leak.
+ApiMain --> AuthHandler
+AuthHandler --> AuthService
+AuthServiceImpl ..|> AuthService
+AuthServiceImpl --> AuthUserStore
+AuthServiceImpl --> AuthRefreshTokenStore
+AuthServiceImpl --> AuthTenantProvisioner
+AuthServiceImpl --> AuthAuditWriter
+AuthServiceImpl --> PasswordHasher
+AuthServiceImpl --> TokenSigner
+PgAuthUserStore ..|> AuthUserStore
+PgAuthRefreshTokenStore ..|> AuthRefreshTokenStore
+PgAuthTenantProvisioner ..|> AuthTenantProvisioner
+PgAuthAuditWriter ..|> AuthAuditWriter
+BCryptPasswordHasher ..|> PasswordHasher
+JWTTokenSigner ..|> TokenSigner
+
+' Tenant module wiring: tenant module only gets tenant-specific query port.
+ApiMain --> TenantHandler
+TenantHandler --> TenantService
+TenantServiceImpl ..|> TenantService
+TenantServiceImpl --> TenantReadRepository
+PgTenantReadRepository ..|> TenantReadRepository
+
+' Creative module wiring: only creative-owned persistence and storage.
+ApiMain --> CreativeProjectHandler
+CreativeProjectHandler --> CreativeProjectService
+CreativeProjectServiceImpl ..|> CreativeProjectService
+CreativeProjectServiceImpl --> CreativeProjectRepository
+CreativeProjectServiceImpl --> CreativeAssetStorage
+CreativeProjectServiceImpl --> CreativeAuditWriter
+PgCreativeProjectRepository ..|> CreativeProjectRepository
+LocalCreativeAssetStorage ..|> CreativeAssetStorage
+PgCreativeAuditWriter ..|> CreativeAuditWriter
+
+' Generation module wiring: generation receives exact read/write ports, not creative/video services.
+ApiMain --> GenerationRequestHandler
+GenerationRequestHandler --> GenerationRequestService
+GenerationRequestServiceImpl ..|> GenerationRequestService
+GenerationRequestServiceImpl --> GenerationProjectReader
+GenerationRequestServiceImpl --> GenerationRequestRepository
+GenerationRequestServiceImpl --> PromptPayloadRepository
+GenerationRequestServiceImpl --> PromptCompiler
+GenerationRequestServiceImpl --> ProviderExecutionPort
+GenerationRequestServiceImpl --> GenerationVideoWriter
+PgGenerationProjectReader ..|> GenerationProjectReader
+PgGenerationRequestRepository ..|> GenerationRequestRepository
+PgPromptPayloadRepository ..|> PromptPayloadRepository
+RuleBasedPromptCompiler ..|> PromptCompiler
+MCPProviderExecutionClient ..|> ProviderExecutionPort
+PgGenerationVideoWriter ..|> GenerationVideoWriter
+
+' Video module wiring.
+ApiMain --> VideoJobHandler
+ApiMain --> GeneratedVideoHandler
+VideoJobHandler --> VideoJobService
+GeneratedVideoHandler --> GeneratedVideoService
+VideoJobServiceImpl ..|> VideoJobService
+VideoJobServiceImpl --> VideoJobReadRepository
+VideoJobServiceImpl --> ProviderExecutionPort
+GeneratedVideoServiceImpl ..|> GeneratedVideoService
+GeneratedVideoServiceImpl --> GeneratedVideoSelectionRepository
+GeneratedVideoServiceImpl --> VideoAuditWriter
+PgVideoJobReadRepository ..|> VideoJobReadRepository
+PgGeneratedVideoSelectionRepository ..|> GeneratedVideoSelectionRepository
+PgVideoAuditWriter ..|> VideoAuditWriter
+
+' Publication and metrics wiring.
+ApiMain --> AdPublicationHandler
+ApiMain --> MetricsHandler
+AdPublicationHandler --> AdPublicationService
+MetricsHandler --> MetricsService
+AdPublicationServiceImpl ..|> AdPublicationService
+AdPublicationServiceImpl --> PublicationVideoReader
+AdPublicationServiceImpl --> AdPublicationRepository
+AdPublicationServiceImpl --> AdPlatformPublisher
+AdPublicationServiceImpl --> PublicationAuditWriter
+MetricsServiceImpl ..|> MetricsService
+MetricsServiceImpl --> MetricsPublicationReader
+MetricsServiceImpl --> AdMetricsRepository
+MetricsServiceImpl --> PublicationAuditWriter
+PgPublicationVideoReader ..|> PublicationVideoReader
+PgAdPublicationRepository ..|> AdPublicationRepository
+MockAdPlatformPublisher ..|> AdPlatformPublisher
+PgMetricsPublicationReader ..|> MetricsPublicationReader
+PgAdMetricsRepository ..|> AdMetricsRepository
+PgPublicationAuditWriter ..|> PublicationAuditWriter
+
+' Iteration wiring.
+ApiMain --> IterationSuggestionHandler
+IterationSuggestionHandler --> IterationSuggestionService
+IterationSuggestionServiceImpl ..|> IterationSuggestionService
+IterationSuggestionServiceImpl --> IterationReferenceReader
+IterationSuggestionServiceImpl --> IterationSuggestionRepository
+IterationSuggestionServiceImpl --> IterationAuditWriter
+PgIterationReferenceReader ..|> IterationReferenceReader
+PgIterationSuggestionRepository ..|> IterationSuggestionRepository
+PgIterationAuditWriter ..|> IterationAuditWriter
+
+' Dashboard and demo read models.
+ApiMain --> DashboardHandler
+DashboardHandler --> KpiSummaryService
+DashboardHandler --> RecentActivitiesService
+KpiSummaryServiceImpl ..|> KpiSummaryService
+KpiSummaryServiceImpl --> DashboardReadRepository
+RecentActivitiesServiceImpl ..|> RecentActivitiesService
+RecentActivitiesServiceImpl --> DashboardReadRepository
+PgDashboardReadRepository ..|> DashboardReadRepository
+
+ApiMain --> DemoHandler
+DemoHandler --> DemoReplayService
+DemoReplayServiceImpl ..|> DemoReplayService
+DemoReplayServiceImpl --> DemoReplayRepository
+PgDemoReplayRepository ..|> DemoReplayRepository
+
+' A single sqlx.DB is constructor-injected into concrete module repositories.
+ApiMain ..> PgAuthUserStore : New(db)
+ApiMain ..> PgAuthRefreshTokenStore : New(db)
+ApiMain ..> PgAuthTenantProvisioner : New(db)
+ApiMain ..> PgAuthAuditWriter : New(db)
+ApiMain ..> PgTenantReadRepository : New(db)
+ApiMain ..> PgCreativeProjectRepository : New(db)
+ApiMain ..> PgCreativeAuditWriter : New(db)
+ApiMain ..> PgGenerationProjectReader : New(db)
+ApiMain ..> PgGenerationRequestRepository : New(db)
+ApiMain ..> PgPromptPayloadRepository : New(db)
+ApiMain ..> PgGenerationVideoWriter : New(db)
+ApiMain ..> PgVideoJobReadRepository : New(db)
+ApiMain ..> PgGeneratedVideoSelectionRepository : New(db)
+ApiMain ..> PgVideoAuditWriter : New(db)
+ApiMain ..> PgPublicationVideoReader : New(db)
+ApiMain ..> PgAdPublicationRepository : New(db)
+ApiMain ..> PgMetricsPublicationReader : New(db)
+ApiMain ..> PgAdMetricsRepository : New(db)
+ApiMain ..> PgPublicationAuditWriter : New(db)
+ApiMain ..> PgIterationReferenceReader : New(db)
+ApiMain ..> PgIterationSuggestionRepository : New(db)
+ApiMain ..> PgIterationAuditWriter : New(db)
+ApiMain ..> PgDashboardReadRepository : New(db)
+ApiMain ..> PgDemoReplayRepository : New(db)
+
+note bottom of Bootstrap
+  Deprecated commerce objects are intentionally excluded:
+  Product, ProductMetric, AudienceSegment, Campaign, CreativeBrief.
+end note
+
+@enduml

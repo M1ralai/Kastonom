@@ -1,0 +1,65 @@
+package "internal/module/tenant" as TenantModule {
+  class Tenant <<Aggregate Root>> {
+    +ID: TenantID
+    +Name: string
+    +Mode: TenantMode
+    +Status: TenantStatus
+    +CreatedAt: time.Time
+    +UpdatedAt: time.Time
+  }
+
+  class TenantCredits <<Read Model>> {
+    +TenantID: TenantID
+    +CurrentCredits: int
+    +CreditCurrency: string
+    +MonthlyAllowance: int
+    +UsedThisMonth: int
+    +VideosPerCredit: int
+  }
+
+  class TenantDetailsResponse <<DTO>> {
+    +id: string
+    +name: string
+    +mode: string
+    +status: string
+    +created_at: string
+  }
+
+  class TenantCreditsResponse <<DTO>> {
+    +tenant_id: string
+    +current_credits: int
+    +credit_currency: string
+    +monthly_allowance: int
+    +used_this_month: int
+    +videos_per_credit: int
+  }
+
+  class TenantHandler <<Handler>> {
+    +GetDetails(ctx: HTTPContext): TenantDetailsResponse
+    +GetCredits(ctx: HTTPContext): TenantCreditsResponse
+  }
+
+  interface TenantService <<Service Interface>> {
+    +GetDetails(ctx: TenantContext): TenantDetailsResponse
+    +GetCredits(ctx: TenantContext): TenantCreditsResponse
+  }
+
+  class TenantServiceImpl <<Service Implementation>> {
+    -repo: TenantReadRepository
+  }
+
+  interface TenantReadRepository <<Module Repository Port>> {
+    +GetDetails(tenantID: TenantID): Tenant
+    +GetCredits(tenantID: TenantID): TenantCredits
+  }
+
+  class PgTenantReadRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +GetDetails(tenantID: TenantID): Tenant
+    +GetCredits(tenantID: TenantID): TenantCredits
+  }
+}
+
+TenantServiceImpl ..|> TenantService
+TenantServiceImpl --> TenantReadRepository
+PgTenantReadRepository ..|> TenantReadRepository

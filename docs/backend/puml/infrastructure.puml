@@ -1,0 +1,43 @@
+package "internal/infrastructure/postgres" as PostgresInfra {
+  class SqlxDB <<*sqlx.DB Connection Pool>> {
+    +DSN: string
+    +MaxOpenConns: int
+    +MaxIdleConns: int
+  }
+
+  class MigrationRunner <<Infrastructure Service>> {
+    +Run(): error
+    +Rollback(): error
+    +Status(): MigrationStatus
+  }
+}
+
+package "internal/infrastructure/external" as ExternalInfra {
+  class LocalCreativeAssetStorage <<Adapter>> {
+    +Save(file: MultipartFile): StoredAsset
+  }
+
+  class RuleBasedPromptCompiler <<Adapter>> {
+    +Compile(ctx: TenantContext, input: GenerationInputBundle, req: GenerationRequest, provider: VideoProvider): PromptPayload
+  }
+
+  class MCPProviderExecutionClient <<Adapter>> {
+    +Submit(ctx: TenantContext, payload: PromptPayload): ProviderExecutionResultDTO
+    +GetJobStatus(ctx: TenantContext, provider: VideoProvider, providerJobID: string): ProviderStatusDTO
+  }
+
+  class MockAdPlatformPublisher <<Adapter>> {
+    +Publish(ctx: TenantContext, publication: AdPublication, video: GeneratedVideo): AdPublication
+    +Readiness(ctx: TenantContext, platform: AdPlatform): ReadinessStatus
+  }
+
+  class JWTTokenSigner <<Adapter>> {
+    +Sign(user: User): string
+    +Verify(token: string): AuthClaims?
+  }
+
+  class BCryptPasswordHasher <<Adapter>> {
+    +Hash(password: string): string
+    +Verify(password: string, hash: string): bool
+  }
+}

@@ -1,0 +1,97 @@
+package "internal/module/iteration" as IterationModule {
+  class CreativeIterationSuggestion <<Entity>> {
+    +ID: CreativeIterationSuggestionID
+    +TenantID: TenantID
+    +ProjectID: ProjectID
+    +AdPublicationID: AdPublicationID?
+    +MetricsSnapshotID: AdMetricsSnapshotID?
+    +BaseGenerationRequestID: GenerationRequestID?
+    +NewGenerationRequestID: GenerationRequestID?
+    +Status: SuggestionStatus
+    +Reason: string
+    +MetricDrivers: []string
+    +SuggestedChanges: map[string]any
+    +Confidence: SuggestionConfidence
+    +FallbackNotes: []string
+    +CreatedAt: time.Time
+    +UpdatedAt: time.Time
+  }
+
+  class IterationReferences <<Read Model>> {
+    +ProjectExists: bool
+    +PublicationExists: bool
+    +MetricsSnapshotExists: bool
+  }
+
+  class CreateIterationSuggestionRequest <<DTO>> {
+    +project_id: string
+    +ad_publication_id: string?
+    +metrics_snapshot_id: string?
+    +base_generation_request_id: string?
+    +suggestion_payload: IterationSuggestionPayloadDTO
+  }
+
+  class IterationSuggestionPayloadDTO <<DTO>> {
+    +status: string?
+    +reason: string
+    +metric_drivers: []string
+    +suggested_changes: map[string]any
+    +confidence: string
+    +fallback_notes: []string
+  }
+
+  class CreateIterationSuggestionResponse <<DTO>> {
+    +creative_iteration_suggestion: CreativeIterationSuggestion
+  }
+
+  class IterationSuggestionHandler <<Handler>> {
+    +Create(ctx: HTTPContext): CreateIterationSuggestionResponse
+  }
+
+  interface IterationSuggestionService <<Service Interface>> {
+    +Create(ctx: TenantContext, req: CreateIterationSuggestionRequest): CreateIterationSuggestionResponse
+  }
+
+  class IterationSuggestionServiceImpl <<Service Implementation>> {
+    -references: IterationReferenceReader
+    -suggestions: IterationSuggestionRepository
+    -audit: IterationAuditWriter
+  }
+
+  interface IterationReferenceReader <<Module Port>> {
+    +Resolve(tenantID: TenantID, projectID: ProjectID, publicationID: AdPublicationID?, snapshotID: AdMetricsSnapshotID?): IterationReferences
+  }
+
+  interface IterationSuggestionRepository <<Module Repository Port>> {
+    +Create(suggestion: CreativeIterationSuggestion): CreativeIterationSuggestion
+  }
+
+  interface IterationAuditWriter <<Module Port>> {
+    +Write(log: AuditLog): error
+  }
+
+  class PgIterationReferenceReader <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Resolve(tenantID: TenantID, projectID: ProjectID, publicationID: AdPublicationID?, snapshotID: AdMetricsSnapshotID?): IterationReferences
+  }
+
+  class PgIterationSuggestionRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Create(suggestion: CreativeIterationSuggestion): CreativeIterationSuggestion
+  }
+
+  class PgIterationAuditWriter <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Write(log: AuditLog): error
+  }
+}
+
+CreativeIterationSuggestion "0..*" --> "0..1" AdPublication
+CreativeIterationSuggestion "0..*" --> "0..1" AdMetricsSnapshot
+IterationSuggestionServiceImpl ..|> IterationSuggestionService
+IterationSuggestionServiceImpl --> IterationReferenceReader
+IterationSuggestionServiceImpl --> IterationSuggestionRepository
+IterationSuggestionServiceImpl --> IterationAuditWriter
+PgIterationReferenceReader ..|> IterationReferenceReader
+PgIterationSuggestionRepository ..|> IterationSuggestionRepository
+PgIterationAuditWriter ..|> IterationAuditWriter

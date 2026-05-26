@@ -1,0 +1,171 @@
+package "internal/module/video" as VideoModule {
+  class VideoJob <<Entity>> {
+    +ID: VideoJobID
+    +TenantID: TenantID
+    +ProjectID: ProjectID
+    +GenerationRequestID: GenerationRequestID
+    +PromptPayloadID: PromptPayloadID
+    +Provider: VideoProvider
+    +Status: VideoJobStatus
+    +ProviderJobID: string?
+    +IsMock: bool
+    +FallbackReason: string?
+    +ErrorCode: string?
+    +ErrorMessage: string?
+    +AttemptCount: int
+    +CreatedAt: time.Time
+    +SubmittedAt: time.Time?
+    +CompletedAt: time.Time?
+    +UpdatedAt: time.Time
+  }
+
+  class GeneratedVideo <<Entity>> {
+    +ID: GeneratedVideoID
+    +TenantID: TenantID
+    +ProjectID: ProjectID
+    +GenerationRequestID: GenerationRequestID
+    +VideoJobID: VideoJobID
+    +ProviderResultID: ProviderResultID?
+    +URL: string
+    +ThumbnailURL: string?
+    +DurationSeconds: int?
+    +AspectRatio: AspectRatio
+    +Status: GeneratedVideoStatus
+    +IsSelected: bool
+    +IsMock: bool
+    +CreatedAt: time.Time
+    +SelectedAt: time.Time?
+  }
+
+  class VideoJobResponse <<DTO>> {
+    +video_job: VideoJob
+    +provider_result: ProviderResult?
+    +generated_videos: []GeneratedVideo
+    +fallback_reason: string?
+  }
+
+  class FullVideoJobResponse <<DTO>> {
+    +video_job: FullVideoJobDTO
+    +generated_videos: []GeneratedVideoPreviewDTO
+    +project: ProjectSummaryDTO
+    +creative_subject: CreativeSubjectPreviewDTO?
+    +generation_request: GenerationRequestPreviewDTO?
+  }
+
+  class FullVideoJobDTO <<DTO>> {
+    +id: string
+    +status: string
+    +provider: string
+    +is_mock: bool
+    +fallback_reason: string?
+    +created_at: string
+  }
+
+  class GeneratedVideoPreviewDTO <<DTO>> {
+    +id: string
+    +url: string
+    +thumbnail_url: string?
+    +duration_seconds: int?
+    +aspect_ratio: string
+    +status: string
+    +is_selected: bool
+  }
+
+  class ProjectSummaryDTO <<DTO>> {
+    +id: string
+    +name: string
+  }
+
+  class CreativeSubjectPreviewDTO <<DTO>> {
+    +id: string
+    +name: string
+    +img: string?
+  }
+
+  class GenerationRequestPreviewDTO <<DTO>> {
+    +platform: string
+    +tone: string?
+    +style: string?
+    +call_to_action: string?
+  }
+
+  class SelectGeneratedVideoRequest <<DTO>> {
+    +project_id: string
+  }
+
+  class SelectGeneratedVideoResponse <<DTO>> {
+    +creative_project: CreativeProject
+    +generated_video: GeneratedVideo
+  }
+
+  class VideoJobHandler <<Handler>> {
+    +Get(ctx: HTTPContext): VideoJobResponse
+    +GetFull(ctx: HTTPContext): FullVideoJobResponse
+  }
+
+  class GeneratedVideoHandler <<Handler>> {
+    +Select(ctx: HTTPContext): SelectGeneratedVideoResponse
+  }
+
+  interface VideoJobService <<Service Interface>> {
+    +Get(ctx: TenantContext, id: VideoJobID): VideoJobResponse
+    +GetFull(ctx: TenantContext, id: VideoJobID): FullVideoJobResponse
+  }
+
+  interface GeneratedVideoService <<Service Interface>> {
+    +Select(ctx: TenantContext, id: GeneratedVideoID, req: SelectGeneratedVideoRequest): SelectGeneratedVideoResponse
+  }
+
+  class VideoJobServiceImpl <<Service Implementation>> {
+    -jobs: VideoJobReadRepository
+    -provider: ProviderExecutionPort
+  }
+
+  class GeneratedVideoServiceImpl <<Service Implementation>> {
+    -selection: GeneratedVideoSelectionRepository
+    -audit: VideoAuditWriter
+  }
+
+  interface VideoJobReadRepository <<Module Repository Port>> {
+    +GetJobView(tenantID: TenantID, id: VideoJobID): VideoJobResponse
+    +GetFullView(tenantID: TenantID, id: VideoJobID): FullVideoJobResponse
+    +UpdateFromProviderStatus(tenantID: TenantID, id: VideoJobID, status: ProviderStatusDTO): VideoJobResponse
+  }
+
+  interface GeneratedVideoSelectionRepository <<Module Repository Port>> {
+    +SelectOne(tenantID: TenantID, projectID: ProjectID, videoID: GeneratedVideoID): SelectGeneratedVideoResponse
+  }
+
+  interface VideoAuditWriter <<Module Port>> {
+    +Write(log: AuditLog): error
+  }
+
+  class PgVideoJobReadRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +GetJobView(tenantID: TenantID, id: VideoJobID): VideoJobResponse
+    +GetFullView(tenantID: TenantID, id: VideoJobID): FullVideoJobResponse
+    +UpdateFromProviderStatus(tenantID: TenantID, id: VideoJobID, status: ProviderStatusDTO): VideoJobResponse
+  }
+
+  class PgGeneratedVideoSelectionRepository <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +SelectOne(tenantID: TenantID, projectID: ProjectID, videoID: GeneratedVideoID): SelectGeneratedVideoResponse
+  }
+
+  class PgVideoAuditWriter <<Repository Implementation>> {
+    -db: *sqlx.DB
+    +Write(log: AuditLog): error
+  }
+}
+
+VideoJob "1" o-- "0..*" GeneratedVideo
+VideoJob "1" o-- "0..1" ProviderResult
+VideoJobServiceImpl ..|> VideoJobService
+VideoJobServiceImpl --> VideoJobReadRepository
+VideoJobServiceImpl --> ProviderExecutionPort
+GeneratedVideoServiceImpl ..|> GeneratedVideoService
+GeneratedVideoServiceImpl --> GeneratedVideoSelectionRepository
+GeneratedVideoServiceImpl --> VideoAuditWriter
+PgVideoJobReadRepository ..|> VideoJobReadRepository
+PgGeneratedVideoSelectionRepository ..|> GeneratedVideoSelectionRepository
+PgVideoAuditWriter ..|> VideoAuditWriter
