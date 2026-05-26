@@ -22,6 +22,18 @@ func (h *Handler) RegisterRoutes(app *fiber.App) {
 	app.Get("/video-jobs/:id/full", h.GetFull)
 	app.Post("/generated-videos/:id/select", h.Select)
 }
+
+// Get returns video job status and generated videos.
+// @Summary Get a video job
+// @Tags Video Jobs
+// @Produce json
+// @Param x-tenant-id header string false "Tenant ID"
+// @Param id path string true "Video job ID"
+// @Success 200 {object} dto.VideoJobResponse
+// @Failure 400 {object} httpx.ErrorResponse
+// @Failure 404 {object} httpx.ErrorResponse
+// @Security TenantID
+// @Router /video-jobs/{id} [get]
 func (h *Handler) Get(c fiber.Ctx) error {
 	res, ok, err := h.jobs.Get(httpx.TenantContext(c, h.cfg), c.Params("id"))
 	if err != nil {
@@ -32,6 +44,18 @@ func (h *Handler) Get(c fiber.Ctx) error {
 	}
 	return c.JSON(res)
 }
+
+// GetFull returns expanded video job context.
+// @Summary Get full video job details
+// @Tags Video Jobs
+// @Produce json
+// @Param x-tenant-id header string false "Tenant ID"
+// @Param id path string true "Video job ID"
+// @Success 200 {object} dto.FullVideoJobResponse
+// @Failure 400 {object} httpx.ErrorResponse
+// @Failure 404 {object} httpx.ErrorResponse
+// @Security TenantID
+// @Router /video-jobs/{id}/full [get]
 func (h *Handler) GetFull(c fiber.Ctx) error {
 	res, ok, err := h.jobs.GetFull(httpx.TenantContext(c, h.cfg), c.Params("id"))
 	if err != nil {
@@ -42,6 +66,20 @@ func (h *Handler) GetFull(c fiber.Ctx) error {
 	}
 	return c.JSON(res)
 }
+
+// Select marks a generated video as selected for a project.
+// @Summary Select a generated video
+// @Tags Generated Videos
+// @Accept json
+// @Produce json
+// @Param x-tenant-id header string false "Tenant ID"
+// @Param id path string true "Generated video ID"
+// @Param request body dto.SelectGeneratedVideoRequest true "Generated video selection payload"
+// @Success 200 {object} dto.SelectGeneratedVideoResponse
+// @Failure 400 {object} httpx.ErrorResponse
+// @Failure 404 {object} httpx.ErrorResponse
+// @Security TenantID
+// @Router /generated-videos/{id}/select [post]
 func (h *Handler) Select(c fiber.Ctx) error {
 	var req dto.SelectGeneratedVideoRequest
 	if err := c.Bind().Body(&req); err != nil {

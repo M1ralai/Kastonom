@@ -3,6 +3,7 @@ package bootstrap
 import (
 	"time"
 
+	_ "github.com/M1ralai/Kastonom/backend/docs"
 	"github.com/M1ralai/Kastonom/backend/internal/infrastructure/postgres"
 	authhandler "github.com/M1ralai/Kastonom/backend/internal/modules/auth/handler"
 	authrepo "github.com/M1ralai/Kastonom/backend/internal/modules/auth/repository"
@@ -34,6 +35,7 @@ import (
 	"github.com/M1ralai/Kastonom/backend/internal/shared/domain"
 	"github.com/M1ralai/Kastonom/backend/internal/shared/logging"
 	"github.com/M1ralai/Kastonom/backend/internal/shared/validation"
+	swaggo "github.com/gofiber/contrib/v3/swaggo"
 	"github.com/gofiber/fiber/v3"
 )
 
@@ -85,9 +87,12 @@ func NewApp() (*fiber.App, error) {
 		return c.JSON(fiber.Map{"openapi": "3.1.0", "info": fiber.Map{"title": "Kastonom Backend API", "version": cfg.Version}})
 	})
 	app.Get("/docs", func(c fiber.Ctx) error {
-		c.Set("content-type", "text/html; charset=utf-8")
-		return c.SendString("<!doctype html><title>Kastonom API</title><h1>Kastonom Go Backend</h1><p>OpenAPI: /openapi.json</p>")
+		return c.Redirect().To("/swagger/index.html")
 	})
+	app.Get("/swagger/*", swaggo.New(swaggo.Config{
+		Title: "Kastonom Backend API",
+		URL:   "/swagger/doc.json",
+	}))
 
 	authRepo := authrepo.New(db)
 	authhandler.New(authservice.New(authRepo)).RegisterRoutes(app)

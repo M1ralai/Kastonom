@@ -1,6 +1,11 @@
 package domain
 
-import "time"
+import (
+	"os"
+	"strconv"
+	"strings"
+	"time"
+)
 
 type TenantContext struct {
 	RequestID       string
@@ -35,18 +40,50 @@ type AppConfig struct {
 
 func DefaultConfig() AppConfig {
 	return AppConfig{
-		Version:                "0.1.0-go",
-		Mode:                   "mock",
-		FallbackEnabled:        true,
-		DemoTenantID:           "demo-tenant",
-		DefaultVideoProvider:   "mock",
-		DefaultLanguage:        "tr",
-		DefaultPlatform:        "reels",
-		DefaultDurationSeconds: 15,
-		DefaultAspectRatio:     "9:16",
-		PublicBaseURL:          "http://localhost:3001",
-		MockPreviewURL:         "/demo-assets/mock-ad-preview.mp4",
+		Version:                envString("KASTONOM_VERSION", "0.1.0-go"),
+		Mode:                   envString("KASTONOM_MODE", "mock"),
+		FallbackEnabled:        envBool("KASTONOM_FALLBACK_ENABLED", true),
+		DemoTenantID:           envString("KASTONOM_DEMO_TENANT_ID", "demo-tenant"),
+		DefaultVideoProvider:   envString("KASTONOM_DEFAULT_VIDEO_PROVIDER", "mock"),
+		DefaultLanguage:        envString("KASTONOM_DEFAULT_LANGUAGE", "tr"),
+		DefaultPlatform:        envString("KASTONOM_DEFAULT_PLATFORM", "reels"),
+		DefaultDurationSeconds: envInt("KASTONOM_DEFAULT_DURATION_SECONDS", 15),
+		DefaultAspectRatio:     envString("KASTONOM_DEFAULT_ASPECT_RATIO", "9:16"),
+		PublicBaseURL:          envString("KASTONOM_PUBLIC_BASE_URL", "http://localhost:3001"),
+		MockPreviewURL:         envString("KASTONOM_MOCK_PREVIEW_URL", "/demo-assets/mock-ad-preview.mp4"),
 	}
+}
+
+func envString(key, fallback string) string {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	return value
+}
+
+func envBool(key string, fallback bool) bool {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.ParseBool(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
+}
+
+func envInt(key string, fallback int) int {
+	value := strings.TrimSpace(os.Getenv(key))
+	if value == "" {
+		return fallback
+	}
+	parsed, err := strconv.Atoi(value)
+	if err != nil {
+		return fallback
+	}
+	return parsed
 }
 
 type Tenant struct {

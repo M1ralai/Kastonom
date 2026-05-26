@@ -1,0 +1,1692 @@
+basePath: /
+definitions:
+  github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthTenantDTO:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthUserDTO:
+    properties:
+      email:
+        type: string
+      id:
+        type: string
+      name:
+        type: string
+      tenant_id:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginRequest:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    required:
+    - email
+    - password
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginResponse:
+    properties:
+      access_token:
+        type: string
+      expires_in:
+        type: integer
+      refresh_token:
+        type: string
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthUserDTO'
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutRequest:
+    properties:
+      user_id:
+        type: string
+    required:
+    - user_id
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutResponse:
+    properties:
+      success:
+        type: boolean
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RefreshTokenRequest:
+    properties:
+      refresh_token:
+        type: string
+    required:
+    - refresh_token
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterRequest:
+    properties:
+      company_name:
+        type: string
+      email:
+        type: string
+      name:
+        type: string
+      password:
+        minLength: 8
+        type: string
+    required:
+    - company_name
+    - email
+    - name
+    - password
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterResponse:
+    properties:
+      tenant:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthTenantDTO'
+      token:
+        type: string
+      user:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthUserDTO'
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectRequest:
+    properties:
+      creative_subject:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeSubjectInput'
+      name:
+        type: string
+      source_assets:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetInput'
+        type: array
+    required:
+    - creative_subject
+    - name
+    - source_assets
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectResponse:
+    properties:
+      creative_project:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject'
+      creative_subject:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject'
+      fallback_reason:
+        type: string
+      source_assets:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset'
+        type: array
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeProjectBundleResponse:
+    properties:
+      creative_project:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject'
+      creative_subject:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject'
+      generated_videos:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo'
+        type: array
+      generation_requests:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest'
+        type: array
+      source_assets:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset'
+        type: array
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeSubjectInput:
+    properties:
+      allowed_claims:
+        items:
+          type: string
+        type: array
+      currency:
+        type: string
+      description:
+        type: string
+      forbidden_claims:
+        items:
+          type: string
+        type: array
+      landing_url:
+        type: string
+      name:
+        type: string
+      price:
+        minimum: 0
+        type: number
+      source:
+        type: string
+      subject_type:
+        type: string
+      unknown_fields:
+        items:
+          type: string
+        type: array
+    required:
+    - allowed_claims
+    - forbidden_claims
+    - name
+    - source
+    - subject_type
+    - unknown_fields
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ERPDataDTO:
+    properties:
+      last_sync_at:
+        type: string
+      stock_available:
+        type: integer
+      stock_reserved:
+        type: integer
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsResponse:
+    properties:
+      creative_subject:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsSubjectDTO'
+      erp_data:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ERPDataDTO'
+      project_id:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsSubjectDTO:
+    properties:
+      ai_reasons:
+        items:
+          type: string
+        type: array
+      ai_score:
+        type: integer
+      currency:
+        type: string
+      id:
+        type: string
+      margin_percent:
+        type: integer
+      name:
+        type: string
+      price:
+        type: number
+      stock_count:
+        type: integer
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetInput:
+    properties:
+      asset_type:
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+      source:
+        type: string
+      url:
+        type: string
+    required:
+    - asset_type
+    - source
+    - url
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetUploadResponse:
+    properties:
+      source_asset:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset'
+      upload_url:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.ActivityGeneratedVideoDTO:
+    properties:
+      ctr:
+        type: number
+      impressions:
+        type: integer
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.RecentActivityDTO:
+    properties:
+      generated_video:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.ActivityGeneratedVideoDTO'
+      icon:
+        type: string
+      id:
+        type: string
+      project_id:
+        type: string
+      project_name:
+        type: string
+      status:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.CreateGenerationRequestRequest:
+    properties:
+      aspect_ratio:
+        type: string
+      call_to_action:
+        type: string
+      duration_seconds:
+        minimum: 1
+        type: integer
+      language:
+        maxLength: 16
+        minLength: 2
+        type: string
+      objective:
+        type: string
+      platform:
+        type: string
+      project_id:
+        type: string
+      provider:
+        type: string
+      source_asset_ids:
+        items:
+          type: string
+        type: array
+      style:
+        type: string
+      target_audience:
+        type: string
+      tone:
+        type: string
+      user_notes:
+        type: string
+    required:
+    - aspect_ratio
+    - duration_seconds
+    - language
+    - objective
+    - platform
+    - project_id
+    - source_asset_ids
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostRequest:
+    properties:
+      aspect_ratio:
+        type: string
+      duration_seconds:
+        minimum: 1
+        type: integer
+      platform:
+        type: string
+    required:
+    - aspect_ratio
+    - duration_seconds
+    - platform
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostResponse:
+    properties:
+      estimated_cost:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimatedCostDTO'
+      estimated_credits:
+        type: integer
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimatedCostDTO:
+    properties:
+      amount:
+        type: integer
+      currency:
+        type: string
+      max_amount:
+        type: integer
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.GenerationRequestResponse:
+    properties:
+      fallback_reason:
+        type: string
+      generated_videos:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo'
+        type: array
+      generation_request:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest'
+      prompt_payload:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.PromptPayload'
+      provider_result:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult'
+      video_job:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob'
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionRequest:
+    properties:
+      ad_metrics_snapshot_id:
+        type: string
+      generated_video_id:
+        type: string
+      project_id:
+        type: string
+      reason:
+        type: string
+    required:
+    - generated_video_id
+    - project_id
+    - reason
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionResponse:
+    properties:
+      creative_iteration_suggestion:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeIterationSuggestion'
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationRequest:
+    properties:
+      ad_platform_connection_id:
+        type: string
+      destination_url:
+        type: string
+      generated_video_id:
+        type: string
+      platform:
+        type: string
+      project_id:
+        type: string
+      user_confirmed_publish:
+        type: boolean
+    required:
+    - generated_video_id
+    - platform
+    - project_id
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationResponse:
+    properties:
+      ad_publication:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdPublication'
+      fallback_reason:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.MetricInputDTO:
+    properties:
+      clicks:
+        minimum: 0
+        type: integer
+      conversion_value:
+        minimum: 0
+        type: number
+      conversions:
+        minimum: 0
+        type: number
+      cost_per_video_view:
+        minimum: 0
+        type: number
+      cpc:
+        minimum: 0
+        type: number
+      ctr:
+        minimum: 0
+        type: number
+      currency:
+        type: string
+      impressions:
+        minimum: 0
+        type: integer
+      roas:
+        minimum: 0
+        type: number
+      spend:
+        minimum: 0
+        type: number
+      video_view_rate:
+        minimum: 0
+        type: number
+      video_views:
+        minimum: 0
+        type: integer
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsRequest:
+    properties:
+      date_end:
+        type: string
+      date_start:
+        type: string
+      metrics:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.MetricInputDTO'
+      source:
+        type: string
+    required:
+    - date_end
+    - date_start
+    - source
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsResponse:
+    properties:
+      metrics_snapshot:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdMetricsSnapshot'
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.CreativeSubjectPreviewDTO:
+    properties:
+      id:
+        type: string
+      img:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobDTO:
+    properties:
+      created_at:
+        type: string
+      fallback_reason:
+        type: string
+      id:
+        type: string
+      is_mock:
+        type: boolean
+      provider:
+        type: string
+      status:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobResponse:
+    properties:
+      creative_subject:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.CreativeSubjectPreviewDTO'
+      generated_videos:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GeneratedVideoPreviewDTO'
+        type: array
+      generation_request:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GenerationRequestPreviewDTO'
+      project:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.ProjectSummaryDTO'
+      video_job:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobDTO'
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GeneratedVideoPreviewDTO:
+    properties:
+      aspect_ratio:
+        type: string
+      duration_seconds:
+        type: integer
+      id:
+        type: string
+      is_selected:
+        type: boolean
+      status:
+        type: string
+      thumbnail_url:
+        type: string
+      url:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GenerationRequestPreviewDTO:
+    properties:
+      call_to_action:
+        type: string
+      platform:
+        type: string
+      style:
+        type: string
+      tone:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.ProjectSummaryDTO:
+    properties:
+      id:
+        type: string
+      name:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoRequest:
+    properties:
+      project_id:
+        type: string
+    required:
+    - project_id
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoResponse:
+    properties:
+      creative_project:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject'
+      generated_video:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo'
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.VideoJobResponse:
+    properties:
+      fallback_reason:
+        type: string
+      generated_videos:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo'
+        type: array
+      provider_result:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult'
+      video_job:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob'
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdMetricsSnapshot:
+    properties:
+      ad_publication_id:
+        type: string
+      clicks:
+        type: integer
+      conversion_value:
+        type: number
+      conversions:
+        type: number
+      cost_per_video_view:
+        type: number
+      cpc:
+        type: number
+      ctr:
+        type: number
+      currency:
+        type: string
+      date_end:
+        type: string
+      date_start:
+        type: string
+      fetched_at:
+        type: string
+      id:
+        type: string
+      impressions:
+        type: integer
+      platform:
+        type: string
+      redacted_metadata:
+        additionalProperties: {}
+        type: object
+      roas:
+        type: number
+      source:
+        type: string
+      spend:
+        type: number
+      tenant_id:
+        type: string
+      video_view_rate:
+        type: number
+      video_views:
+        type: integer
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdPublication:
+    properties:
+      ad_platform_connection_id:
+        type: string
+      created_at:
+        type: string
+      destination_url:
+        type: string
+      error_code:
+        type: string
+      error_message:
+        type: string
+      external_ad_group_id:
+        type: string
+      external_ad_id:
+        type: string
+      external_campaign_id:
+        type: string
+      generated_video_id:
+        type: string
+      id:
+        type: string
+      paused_at:
+        type: string
+      platform:
+        type: string
+      project_id:
+        type: string
+      published_at:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeIterationSuggestion:
+    properties:
+      ad_metrics_snapshot_id:
+        type: string
+      confidence:
+        type: string
+      created_at:
+        type: string
+      generated_video_id:
+        type: string
+      id:
+        type: string
+      project_id:
+        type: string
+      reason:
+        type: string
+      status:
+        type: string
+      suggested_changes:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      latest_generation_request_id:
+        type: string
+      name:
+        type: string
+      selected_generated_video_id:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject:
+    properties:
+      allowed_claims:
+        items:
+          type: string
+        type: array
+      created_at:
+        type: string
+      currency:
+        type: string
+      description:
+        type: string
+      forbidden_claims:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      landing_url:
+        type: string
+      name:
+        type: string
+      price:
+        type: number
+      project_id:
+        type: string
+      source:
+        type: string
+      subject_type:
+        type: string
+      tenant_id:
+        type: string
+      unknown_fields:
+        items:
+          type: string
+        type: array
+      updated_at:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo:
+    properties:
+      aspect_ratio:
+        type: string
+      created_at:
+        type: string
+      duration_seconds:
+        type: integer
+      generation_request_id:
+        type: string
+      id:
+        type: string
+      is_mock:
+        type: boolean
+      is_selected:
+        type: boolean
+      project_id:
+        type: string
+      provider_result_id:
+        type: string
+      selected_at:
+        type: string
+      status:
+        type: string
+      tenant_id:
+        type: string
+      thumbnail_url:
+        type: string
+      url:
+        type: string
+      video_job_id:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest:
+    properties:
+      aspect_ratio:
+        type: string
+      call_to_action:
+        type: string
+      created_at:
+        type: string
+      creative_subject_id:
+        type: string
+      duration_seconds:
+        type: integer
+      fallback_notes:
+        items:
+          type: string
+        type: array
+      id:
+        type: string
+      language:
+        type: string
+      objective:
+        type: string
+      platform:
+        type: string
+      project_id:
+        type: string
+      source_asset_ids:
+        items:
+          type: string
+        type: array
+      status:
+        type: string
+      style:
+        type: string
+      target_audience:
+        type: string
+      tenant_id:
+        type: string
+      tone:
+        type: string
+      updated_at:
+        type: string
+      user_notes:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.PromptPayload:
+    properties:
+      aspect_ratio:
+        type: string
+      created_at:
+        type: string
+      duration_seconds:
+        type: integer
+      fallback_notes:
+        items:
+          type: string
+        type: array
+      generation_request_id:
+        type: string
+      id:
+        type: string
+      is_mock:
+        type: boolean
+      language:
+        type: string
+      negative_prompt:
+        type: string
+      project_id:
+        type: string
+      prompt_text:
+        type: string
+      provider:
+        type: string
+      provider_options:
+        additionalProperties: {}
+        type: object
+      source_asset_ids:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult:
+    properties:
+      error_code:
+        type: string
+      error_message:
+        type: string
+      id:
+        type: string
+      normalized_status:
+        type: string
+      provider:
+        type: string
+      provider_job_id:
+        type: string
+      raw_status:
+        type: string
+      received_at:
+        type: string
+      redacted_metadata:
+        additionalProperties: {}
+        type: object
+      result_urls:
+        items:
+          type: string
+        type: array
+      tenant_id:
+        type: string
+      video_job_id:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset:
+    properties:
+      asset_type:
+        type: string
+      checksum:
+        type: string
+      created_at:
+        type: string
+      duration_seconds:
+        type: number
+      height:
+        type: integer
+      id:
+        type: string
+      metadata:
+        additionalProperties: {}
+        type: object
+      mime_type:
+        type: string
+      project_id:
+        type: string
+      source:
+        type: string
+      storage_key:
+        type: string
+      tenant_id:
+        type: string
+      url:
+        type: string
+      width:
+        type: integer
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob:
+    properties:
+      attempt_count:
+        type: integer
+      completed_at:
+        type: string
+      created_at:
+        type: string
+      error_code:
+        type: string
+      error_message:
+        type: string
+      fallback_reason:
+        type: string
+      generation_request_id:
+        type: string
+      id:
+        type: string
+      is_mock:
+        type: boolean
+      project_id:
+        type: string
+      prompt_payload_id:
+        type: string
+      provider:
+        type: string
+      provider_job_id:
+        type: string
+      status:
+        type: string
+      submitted_at:
+        type: string
+      tenant_id:
+        type: string
+      updated_at:
+        type: string
+    type: object
+  github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse:
+    properties:
+      error:
+        type: string
+      fallback_available:
+        type: boolean
+      message:
+        type: string
+    type: object
+  internal_modules_dashboard_handler.KpiSummaryResponse:
+    properties:
+      average_ctr:
+        type: number
+      credit_currency:
+        type: string
+      ctr_change_percent:
+        type: integer
+      monthly_video_change:
+        type: integer
+      monthly_video_count:
+        type: integer
+      remaining_credits:
+        type: integer
+      sector_average_ctr:
+        type: number
+    type: object
+  internal_modules_dashboard_handler.RecentActivitiesResponse:
+    properties:
+      activities:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.RecentActivityDTO'
+        type: array
+    type: object
+  internal_modules_demo_handler.DemoFallbackResponse:
+    properties:
+      ad_publication:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdPublication'
+      creative_iteration_suggestion:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeIterationSuggestion'
+      creative_project:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject'
+      creative_subject:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject'
+      fallback_reason:
+        type: string
+      generated_videos:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo'
+        type: array
+      generation_request:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest'
+      metrics_snapshot:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdMetricsSnapshot'
+      prompt_payload:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.PromptPayload'
+      provider_result:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult'
+      selected_generated_video:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo'
+      source_assets:
+        items:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset'
+        type: array
+      video_job:
+        $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob'
+    type: object
+  internal_modules_tenant_handler.TenantCreditsResponse:
+    properties:
+      credit_currency:
+        type: string
+      current_credits:
+        type: integer
+      monthly_allowance:
+        type: integer
+      tenant_id:
+        type: string
+      used_this_month:
+        type: integer
+      videos_per_credit:
+        type: integer
+    type: object
+  internal_modules_tenant_handler.TenantDetailsResponse:
+    properties:
+      created_at:
+        type: string
+      id:
+        type: string
+      mode:
+        type: string
+      name:
+        type: string
+      status:
+        type: string
+    type: object
+info:
+  contact: {}
+  description: Kastonom Go backend API documentation.
+  title: Kastonom Backend API
+  version: "1.0"
+paths:
+  /ad-publications:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Ad publication payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Create an ad publication
+      tags:
+      - Ad Publications
+  /ad-publications/{id}/metrics/sync:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Ad publication ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Metrics sync payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Sync ad publication metrics
+      tags:
+      - Ad Publications
+  /auth/login:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Login payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      summary: Login with email and password
+      tags:
+      - Auth
+  /auth/logout:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Logout payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      summary: Logout a user
+      tags:
+      - Auth
+  /auth/refresh:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Refresh token payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RefreshTokenRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      summary: Refresh an auth token
+      tags:
+      - Auth
+  /auth/register:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Registration payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      summary: Register a new user
+      tags:
+      - Auth
+  /creative-iteration-suggestions:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Iteration suggestion payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Create a creative iteration suggestion
+      tags:
+      - Iteration Suggestions
+  /creative-projects:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: List creative projects
+      tags:
+      - Creative Projects
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Creative project payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectRequest'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Create a creative project
+      tags:
+      - Creative Projects
+  /creative-projects/{id}:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Creative project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeProjectBundleResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Get a creative project bundle
+      tags:
+      - Creative Projects
+  /creative-projects/{id}/metrics:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Creative project ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Get creative project metrics
+      tags:
+      - Creative Projects
+  /dashboard/kpi-summary:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_dashboard_handler.KpiSummaryResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Get dashboard KPI summary
+      tags:
+      - Dashboard
+  /dashboard/recent-activities:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - default: 10
+        description: Maximum activity count
+        in: query
+        name: limit
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_dashboard_handler.RecentActivitiesResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Get recent dashboard activities
+      tags:
+      - Dashboard
+  /demo/fallback:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_demo_handler.DemoFallbackResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Get demo fallback payload
+      tags:
+      - Demo
+  /generated-videos/{id}/select:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Generated video ID
+        in: path
+        name: id
+        required: true
+        type: string
+      - description: Generated video selection payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Select a generated video
+      tags:
+      - Generated Videos
+  /generation-requests:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Generation request payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.CreateGenerationRequestRequest'
+      produces:
+      - application/json
+      responses:
+        "202":
+          description: Accepted
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.GenerationRequestResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Create a generation request
+      tags:
+      - Generation Requests
+  /generation-requests/estimate-cost:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Cost estimate payload
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Estimate generation cost
+      tags:
+      - Generation Requests
+  /source-assets/upload:
+    post:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetUploadResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Create a source asset upload
+      tags:
+      - Source Assets
+  /tenant:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_tenant_handler.TenantDetailsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Get tenant details
+      tags:
+      - Tenant
+  /tenant/credits:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/internal_modules_tenant_handler.TenantCreditsResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Get tenant credits
+      tags:
+      - Tenant
+  /video-jobs/{id}:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Video job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.VideoJobResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Get a video job
+      tags:
+      - Video Jobs
+  /video-jobs/{id}/full:
+    get:
+      parameters:
+      - description: Tenant ID
+        in: header
+        name: x-tenant-id
+        type: string
+      - description: Video job ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobResponse'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse'
+      security:
+      - TenantID: []
+      summary: Get full video job details
+      tags:
+      - Video Jobs
+schemes:
+- http
+- https
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+  TenantID:
+    in: header
+    name: x-tenant-id
+    type: apiKey
+swagger: "2.0"

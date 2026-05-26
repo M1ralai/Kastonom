@@ -1,0 +1,2606 @@
+{
+    "schemes": [
+        "http",
+        "https"
+    ],
+    "swagger": "2.0",
+    "info": {
+        "description": "Kastonom Go backend API documentation.",
+        "title": "Kastonom Backend API",
+        "contact": {},
+        "version": "1.0"
+    },
+    "basePath": "/",
+    "paths": {
+        "/ad-publications": {
+            "post": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ad Publications"
+                ],
+                "summary": "Create an ad publication",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Ad publication payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/ad-publications/{id}/metrics/sync": {
+            "post": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Ad Publications"
+                ],
+                "summary": "Sync ad publication metrics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Ad publication ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Metrics sync payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/login": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Login with email and password",
+                "parameters": [
+                    {
+                        "description": "Login payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/logout": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Logout a user",
+                "parameters": [
+                    {
+                        "description": "Logout payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/refresh": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Refresh an auth token",
+                "parameters": [
+                    {
+                        "description": "Refresh token payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RefreshTokenRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/auth/register": {
+            "post": {
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Auth"
+                ],
+                "summary": "Register a new user",
+                "parameters": [
+                    {
+                        "description": "Registration payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/creative-iteration-suggestions": {
+            "post": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Iteration Suggestions"
+                ],
+                "summary": "Create a creative iteration suggestion",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Iteration suggestion payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/creative-projects": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Creative Projects"
+                ],
+                "summary": "List creative projects",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            },
+            "post": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Creative Projects"
+                ],
+                "summary": "Create a creative project",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Creative project payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/creative-projects/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Creative Projects"
+                ],
+                "summary": "Get a creative project bundle",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Creative project ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeProjectBundleResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/creative-projects/{id}/metrics": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Creative Projects"
+                ],
+                "summary": "Get creative project metrics",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Creative project ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dashboard/kpi-summary": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get dashboard KPI summary",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_dashboard_handler.KpiSummaryResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/dashboard/recent-activities": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Dashboard"
+                ],
+                "summary": "Get recent dashboard activities",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "type": "integer",
+                        "default": 10,
+                        "description": "Maximum activity count",
+                        "name": "limit",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_dashboard_handler.RecentActivitiesResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/demo/fallback": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Demo"
+                ],
+                "summary": "Get demo fallback payload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_demo_handler.DemoFallbackResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/generated-videos/{id}/select": {
+            "post": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Generated Videos"
+                ],
+                "summary": "Select a generated video",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Generated video ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "Generated video selection payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/generation-requests": {
+            "post": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Generation Requests"
+                ],
+                "summary": "Create a generation request",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Generation request payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.CreateGenerationRequestRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "202": {
+                        "description": "Accepted",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.GenerationRequestResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/generation-requests/estimate-cost": {
+            "post": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Generation Requests"
+                ],
+                "summary": "Estimate generation cost",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "description": "Cost estimate payload",
+                        "name": "request",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostRequest"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/source-assets/upload": {
+            "post": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Source Assets"
+                ],
+                "summary": "Create a source asset upload",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "201": {
+                        "description": "Created",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetUploadResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tenant": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant"
+                ],
+                "summary": "Get tenant details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_tenant_handler.TenantDetailsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/tenant/credits": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Tenant"
+                ],
+                "summary": "Get tenant credits",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/internal_modules_tenant_handler.TenantCreditsResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/video-jobs/{id}": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Video Jobs"
+                ],
+                "summary": "Get a video job",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Video job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.VideoJobResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/video-jobs/{id}/full": {
+            "get": {
+                "security": [
+                    {
+                        "TenantID": []
+                    }
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Video Jobs"
+                ],
+                "summary": "Get full video job details",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Tenant ID",
+                        "name": "x-tenant-id",
+                        "in": "header"
+                    },
+                    {
+                        "type": "string",
+                        "description": "Video job ID",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobResponse"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "definitions": {
+        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthTenantDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthUserDTO": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_in": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthUserDTO"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutResponse": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "company_name",
+                "email",
+                "name",
+                "password"
+            ],
+            "properties": {
+                "company_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterResponse": {
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthTenantDTO"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthUserDTO"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectRequest": {
+            "type": "object",
+            "required": [
+                "creative_subject",
+                "name",
+                "source_assets"
+            ],
+            "properties": {
+                "creative_subject": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeSubjectInput"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "source_assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetInput"
+                    }
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectResponse": {
+            "type": "object",
+            "properties": {
+                "creative_project": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
+                },
+                "creative_subject": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject"
+                },
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "source_assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset"
+                    }
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeProjectBundleResponse": {
+            "type": "object",
+            "properties": {
+                "creative_project": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
+                },
+                "creative_subject": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
+                    }
+                },
+                "generation_requests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest"
+                    }
+                },
+                "source_assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset"
+                    }
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeSubjectInput": {
+            "type": "object",
+            "required": [
+                "allowed_claims",
+                "forbidden_claims",
+                "name",
+                "source",
+                "subject_type",
+                "unknown_fields"
+            ],
+            "properties": {
+                "allowed_claims": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "forbidden_claims": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "landing_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "source": {
+                    "type": "string"
+                },
+                "subject_type": {
+                    "type": "string"
+                },
+                "unknown_fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ERPDataDTO": {
+            "type": "object",
+            "properties": {
+                "last_sync_at": {
+                    "type": "string"
+                },
+                "stock_available": {
+                    "type": "integer"
+                },
+                "stock_reserved": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsResponse": {
+            "type": "object",
+            "properties": {
+                "creative_subject": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsSubjectDTO"
+                },
+                "erp_data": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ERPDataDTO"
+                },
+                "project_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsSubjectDTO": {
+            "type": "object",
+            "properties": {
+                "ai_reasons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ai_score": {
+                    "type": "integer"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "margin_percent": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "stock_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetInput": {
+            "type": "object",
+            "required": [
+                "asset_type",
+                "source",
+                "url"
+            ],
+            "properties": {
+                "asset_type": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "source": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetUploadResponse": {
+            "type": "object",
+            "properties": {
+                "source_asset": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset"
+                },
+                "upload_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.ActivityGeneratedVideoDTO": {
+            "type": "object",
+            "properties": {
+                "ctr": {
+                    "type": "number"
+                },
+                "impressions": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.RecentActivityDTO": {
+            "type": "object",
+            "properties": {
+                "generated_video": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.ActivityGeneratedVideoDTO"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "project_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.CreateGenerationRequestRequest": {
+            "type": "object",
+            "required": [
+                "aspect_ratio",
+                "duration_seconds",
+                "language",
+                "objective",
+                "platform",
+                "project_id",
+                "source_asset_ids"
+            ],
+            "properties": {
+                "aspect_ratio": {
+                    "type": "string"
+                },
+                "call_to_action": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "language": {
+                    "type": "string",
+                    "maxLength": 16,
+                    "minLength": 2
+                },
+                "objective": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "source_asset_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "style": {
+                    "type": "string"
+                },
+                "target_audience": {
+                    "type": "string"
+                },
+                "tone": {
+                    "type": "string"
+                },
+                "user_notes": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostRequest": {
+            "type": "object",
+            "required": [
+                "aspect_ratio",
+                "duration_seconds",
+                "platform"
+            ],
+            "properties": {
+                "aspect_ratio": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "platform": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostResponse": {
+            "type": "object",
+            "properties": {
+                "estimated_cost": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimatedCostDTO"
+                },
+                "estimated_credits": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimatedCostDTO": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "max_amount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.GenerationRequestResponse": {
+            "type": "object",
+            "properties": {
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
+                    }
+                },
+                "generation_request": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest"
+                },
+                "prompt_payload": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.PromptPayload"
+                },
+                "provider_result": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult"
+                },
+                "video_job": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionRequest": {
+            "type": "object",
+            "required": [
+                "generated_video_id",
+                "project_id",
+                "reason"
+            ],
+            "properties": {
+                "ad_metrics_snapshot_id": {
+                    "type": "string"
+                },
+                "generated_video_id": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionResponse": {
+            "type": "object",
+            "properties": {
+                "creative_iteration_suggestion": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeIterationSuggestion"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationRequest": {
+            "type": "object",
+            "required": [
+                "generated_video_id",
+                "platform",
+                "project_id"
+            ],
+            "properties": {
+                "ad_platform_connection_id": {
+                    "type": "string"
+                },
+                "destination_url": {
+                    "type": "string"
+                },
+                "generated_video_id": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "user_confirmed_publish": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationResponse": {
+            "type": "object",
+            "properties": {
+                "ad_publication": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdPublication"
+                },
+                "fallback_reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.MetricInputDTO": {
+            "type": "object",
+            "properties": {
+                "clicks": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "conversion_value": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "conversions": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "cost_per_video_view": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "cpc": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "ctr": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "impressions": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "roas": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "spend": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "video_view_rate": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "video_views": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsRequest": {
+            "type": "object",
+            "required": [
+                "date_end",
+                "date_start",
+                "source"
+            ],
+            "properties": {
+                "date_end": {
+                    "type": "string"
+                },
+                "date_start": {
+                    "type": "string"
+                },
+                "metrics": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.MetricInputDTO"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsResponse": {
+            "type": "object",
+            "properties": {
+                "metrics_snapshot": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdMetricsSnapshot"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.CreativeSubjectPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "img": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_mock": {
+                    "type": "boolean"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobResponse": {
+            "type": "object",
+            "properties": {
+                "creative_subject": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.CreativeSubjectPreviewDTO"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GeneratedVideoPreviewDTO"
+                    }
+                },
+                "generation_request": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GenerationRequestPreviewDTO"
+                },
+                "project": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.ProjectSummaryDTO"
+                },
+                "video_job": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobDTO"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GeneratedVideoPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "aspect_ratio": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_selected": {
+                    "type": "boolean"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "thumbnail_url": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GenerationRequestPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "call_to_action": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "style": {
+                    "type": "string"
+                },
+                "tone": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.ProjectSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoRequest": {
+            "type": "object",
+            "required": [
+                "project_id"
+            ],
+            "properties": {
+                "project_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoResponse": {
+            "type": "object",
+            "properties": {
+                "creative_project": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
+                },
+                "generated_video": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.VideoJobResponse": {
+            "type": "object",
+            "properties": {
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
+                    }
+                },
+                "provider_result": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult"
+                },
+                "video_job": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdMetricsSnapshot": {
+            "type": "object",
+            "properties": {
+                "ad_publication_id": {
+                    "type": "string"
+                },
+                "clicks": {
+                    "type": "integer"
+                },
+                "conversion_value": {
+                    "type": "number"
+                },
+                "conversions": {
+                    "type": "number"
+                },
+                "cost_per_video_view": {
+                    "type": "number"
+                },
+                "cpc": {
+                    "type": "number"
+                },
+                "ctr": {
+                    "type": "number"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "date_end": {
+                    "type": "string"
+                },
+                "date_start": {
+                    "type": "string"
+                },
+                "fetched_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "impressions": {
+                    "type": "integer"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "redacted_metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "roas": {
+                    "type": "number"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "spend": {
+                    "type": "number"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "video_view_rate": {
+                    "type": "number"
+                },
+                "video_views": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdPublication": {
+            "type": "object",
+            "properties": {
+                "ad_platform_connection_id": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "destination_url": {
+                    "type": "string"
+                },
+                "error_code": {
+                    "type": "string"
+                },
+                "error_message": {
+                    "type": "string"
+                },
+                "external_ad_group_id": {
+                    "type": "string"
+                },
+                "external_ad_id": {
+                    "type": "string"
+                },
+                "external_campaign_id": {
+                    "type": "string"
+                },
+                "generated_video_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "paused_at": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "published_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeIterationSuggestion": {
+            "type": "object",
+            "properties": {
+                "ad_metrics_snapshot_id": {
+                    "type": "string"
+                },
+                "confidence": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "generated_video_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "suggested_changes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "latest_generation_request_id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "selected_generated_video_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject": {
+            "type": "object",
+            "properties": {
+                "allowed_claims": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "forbidden_claims": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "landing_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "subject_type": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "unknown_fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo": {
+            "type": "object",
+            "properties": {
+                "aspect_ratio": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "integer"
+                },
+                "generation_request_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_mock": {
+                    "type": "boolean"
+                },
+                "is_selected": {
+                    "type": "boolean"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "provider_result_id": {
+                    "type": "string"
+                },
+                "selected_at": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "thumbnail_url": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "video_job_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest": {
+            "type": "object",
+            "properties": {
+                "aspect_ratio": {
+                    "type": "string"
+                },
+                "call_to_action": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "creative_subject_id": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "integer"
+                },
+                "fallback_notes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "id": {
+                    "type": "string"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "objective": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "source_asset_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "status": {
+                    "type": "string"
+                },
+                "style": {
+                    "type": "string"
+                },
+                "target_audience": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "tone": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                },
+                "user_notes": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.PromptPayload": {
+            "type": "object",
+            "properties": {
+                "aspect_ratio": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "integer"
+                },
+                "fallback_notes": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "generation_request_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_mock": {
+                    "type": "boolean"
+                },
+                "language": {
+                    "type": "string"
+                },
+                "negative_prompt": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "prompt_text": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "provider_options": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "source_asset_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult": {
+            "type": "object",
+            "properties": {
+                "error_code": {
+                    "type": "string"
+                },
+                "error_message": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "normalized_status": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "provider_job_id": {
+                    "type": "string"
+                },
+                "raw_status": {
+                    "type": "string"
+                },
+                "received_at": {
+                    "type": "string"
+                },
+                "redacted_metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "result_urls": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "video_job_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset": {
+            "type": "object",
+            "properties": {
+                "asset_type": {
+                    "type": "string"
+                },
+                "checksum": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "number"
+                },
+                "height": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "mime_type": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "source": {
+                    "type": "string"
+                },
+                "storage_key": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "width": {
+                    "type": "integer"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob": {
+            "type": "object",
+            "properties": {
+                "attempt_count": {
+                    "type": "integer"
+                },
+                "completed_at": {
+                    "type": "string"
+                },
+                "created_at": {
+                    "type": "string"
+                },
+                "error_code": {
+                    "type": "string"
+                },
+                "error_message": {
+                    "type": "string"
+                },
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "generation_request_id": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_mock": {
+                    "type": "boolean"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "prompt_payload_id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "provider_job_id": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "submitted_at": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "fallback_available": {
+                    "type": "boolean"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
+        },
+        "internal_modules_dashboard_handler.KpiSummaryResponse": {
+            "type": "object",
+            "properties": {
+                "average_ctr": {
+                    "type": "number"
+                },
+                "credit_currency": {
+                    "type": "string"
+                },
+                "ctr_change_percent": {
+                    "type": "integer"
+                },
+                "monthly_video_change": {
+                    "type": "integer"
+                },
+                "monthly_video_count": {
+                    "type": "integer"
+                },
+                "remaining_credits": {
+                    "type": "integer"
+                },
+                "sector_average_ctr": {
+                    "type": "number"
+                }
+            }
+        },
+        "internal_modules_dashboard_handler.RecentActivitiesResponse": {
+            "type": "object",
+            "properties": {
+                "activities": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.RecentActivityDTO"
+                    }
+                }
+            }
+        },
+        "internal_modules_demo_handler.DemoFallbackResponse": {
+            "type": "object",
+            "properties": {
+                "ad_publication": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdPublication"
+                },
+                "creative_iteration_suggestion": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeIterationSuggestion"
+                },
+                "creative_project": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
+                },
+                "creative_subject": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject"
+                },
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
+                    }
+                },
+                "generation_request": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest"
+                },
+                "metrics_snapshot": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdMetricsSnapshot"
+                },
+                "prompt_payload": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.PromptPayload"
+                },
+                "provider_result": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult"
+                },
+                "selected_generated_video": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
+                },
+                "source_assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset"
+                    }
+                },
+                "video_job": {
+                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob"
+                }
+            }
+        },
+        "internal_modules_tenant_handler.TenantCreditsResponse": {
+            "type": "object",
+            "properties": {
+                "credit_currency": {
+                    "type": "string"
+                },
+                "current_credits": {
+                    "type": "integer"
+                },
+                "monthly_allowance": {
+                    "type": "integer"
+                },
+                "tenant_id": {
+                    "type": "string"
+                },
+                "used_this_month": {
+                    "type": "integer"
+                },
+                "videos_per_credit": {
+                    "type": "integer"
+                }
+            }
+        },
+        "internal_modules_tenant_handler.TenantDetailsResponse": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        }
+    },
+    "securityDefinitions": {
+        "BearerAuth": {
+            "type": "apiKey",
+            "name": "Authorization",
+            "in": "header"
+        },
+        "TenantID": {
+            "type": "apiKey",
+            "name": "x-tenant-id",
+            "in": "header"
+        }
+    }
+}
