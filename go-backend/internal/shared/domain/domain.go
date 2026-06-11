@@ -36,21 +36,55 @@ type AppConfig struct {
 	DefaultAspectRatio     string
 	PublicBaseURL          string
 	MockPreviewURL         string
+	// Pollo core provider (unified video generation entry per docs.pollo.ai).
+	PolloAPIKey        string
+	PolloBaseURL       string
+	PolloTimeoutMs     int
+	PolloWebhookSecret string
+	// Kling direct provider (Pollo routes through this for some models).
+	KlingAPIKey  string
+	KlingBaseURL string
+	// Meta Ads reachability (read by the health probe). Adding these does
+	// NOT change the public AppConfig surface; they are read by internal/
+	// shared/health.Probe at /health time. Existing fields are preserved.
+	MetaAdsBaseURL     string
+	MetaAdsAccountID   string
+	MetaAdsAccessToken string
+	// Google Ads reachability (read by the health probe).
+	GoogleAdsBaseURL        string
+	GoogleAdsAccountID      string
+	GoogleAdsDeveloperToken string
+	// UploadDir is the on-disk directory served at GET /uploads/* by
+	// bootstrap.NewApp. Default "./uploads". Override via UPLOAD_DIR.
+	UploadDir string
 }
 
 func DefaultConfig() AppConfig {
 	return AppConfig{
-		Version:                envString("KASTONOM_VERSION", "0.1.0-go"),
-		Mode:                   envString("KASTONOM_MODE", "mock"),
-		FallbackEnabled:        envBool("KASTONOM_FALLBACK_ENABLED", true),
-		DemoTenantID:           envString("KASTONOM_DEMO_TENANT_ID", "demo-tenant"),
-		DefaultVideoProvider:   envString("KASTONOM_DEFAULT_VIDEO_PROVIDER", "mock"),
-		DefaultLanguage:        envString("KASTONOM_DEFAULT_LANGUAGE", "tr"),
-		DefaultPlatform:        envString("KASTONOM_DEFAULT_PLATFORM", "reels"),
-		DefaultDurationSeconds: envInt("KASTONOM_DEFAULT_DURATION_SECONDS", 15),
-		DefaultAspectRatio:     envString("KASTONOM_DEFAULT_ASPECT_RATIO", "9:16"),
-		PublicBaseURL:          envString("KASTONOM_PUBLIC_BASE_URL", "http://localhost:3001"),
-		MockPreviewURL:         envString("KASTONOM_MOCK_PREVIEW_URL", "/demo-assets/mock-ad-preview.mp4"),
+		Version:                 envString("KASTONOM_VERSION", "0.1.0-go"),
+		Mode:                    envString("KASTONOM_MODE", "mock"),
+		FallbackEnabled:         envBool("KASTONOM_FALLBACK_ENABLED", true),
+		DemoTenantID:            envString("KASTONOM_DEMO_TENANT_ID", "demo-tenant"),
+		DefaultVideoProvider:    envString("KASTONOM_DEFAULT_VIDEO_PROVIDER", "mock"),
+		DefaultLanguage:         envString("KASTONOM_DEFAULT_LANGUAGE", "tr"),
+		DefaultPlatform:         envString("KASTONOM_DEFAULT_PLATFORM", "reels"),
+		DefaultDurationSeconds:  envInt("KASTONOM_DEFAULT_DURATION_SECONDS", 15),
+		DefaultAspectRatio:      envString("KASTONOM_DEFAULT_ASPECT_RATIO", "9:16"),
+		PublicBaseURL:           envString("KASTONOM_PUBLIC_BASE_URL", "http://localhost:3001"),
+		MockPreviewURL:          envString("KASTONOM_MOCK_PREVIEW_URL", "/demo-assets/mock-ad-preview.mp4"),
+		PolloAPIKey:             envString("POLLO_API_KEY", ""),
+		PolloBaseURL:            envString("POLLO_API_BASE_URL", "https://pollo.ai"),
+		PolloTimeoutMs:          envInt("POLLO_TIMEOUT_MS", 30000),
+		PolloWebhookSecret:      envString("POLLO_WEBHOOK_SECRET", ""),
+		KlingAPIKey:             envString("KLING_API_KEY", ""),
+		KlingBaseURL:            envString("KLING_API_BASE_URL", ""),
+		MetaAdsBaseURL:          envString("META_ADS_BASE_URL", "https://graph.facebook.com"),
+		MetaAdsAccountID:        envString("META_ADS_ACCOUNT_ID", ""),
+		MetaAdsAccessToken:      envString("META_ADS_ACCESS_TOKEN", ""),
+		GoogleAdsBaseURL:        envString("GOOGLE_ADS_BASE_URL", "https://googleads.googleapis.com"),
+		GoogleAdsAccountID:      envString("GOOGLE_ADS_ACCOUNT_ID", ""),
+		GoogleAdsDeveloperToken: envString("GOOGLE_ADS_DEVELOPER_TOKEN", ""),
+		UploadDir:               envString("UPLOAD_DIR", "./uploads"),
 	}
 }
 

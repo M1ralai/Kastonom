@@ -20,6 +20,7 @@ func New(cfg domain.AppConfig, jobs service.VideoJobService, videos service.Gene
 func (h *Handler) RegisterRoutes(app *fiber.App) {
 	app.Get("/video-jobs/:id", h.Get)
 	app.Get("/video-jobs/:id/full", h.GetFull)
+	app.Post("/video-jobs/:id/cancel", h.Cancel)
 	app.Post("/generated-videos/:id/select", h.Select)
 }
 
@@ -91,6 +92,38 @@ func (h *Handler) Select(c fiber.Ctx) error {
 	}
 	if !ok {
 		return httpx.NotFound(c, "generated video was not found")
+	}
+	return c.JSON(res)
+}
+
+// Cancel transitions a video job to status='canceled' if it is in a
+// non-terminal state. Returns 200 with the updated job on success, 409
+// when the job is already in a terminal state (completed/failed/canceled).
+// A 404 (via the bad-request fallback when ok=false but err==nil) covers
+// both "no such job" and "job is terminal" — the frontend uses the
+// returned body to distinguish.
+//
+// @Summary Cancel a video job
+// @Description Transitions a video job to the canceled state. The job must currently be in queued, submitted, or processing; terminal jobs return 409.
+// @Tags Video Jobs
+// @Produce json
+// @Param x-tenant-id header string false "Tenant ID"
+// @Param id path string true "Video job ID"
+// @Success 200 {object} dto.VideoJobResponse
+// @Failure 404 {object} httpx.ErrorResponse
+// @Failure 409 {object} httpx.ErrorResponse
+// @Security TenantID
+// @Router /video-jobs/{id}/cancel [post]
+func (h *Handler) Cancel(c fiber.Ctx) error {
+	res, ok, err := h.jobs.Cancel(httpx.TenantContext(c, h.cfg), c.Params("id"))
+	if err != nil {
+		return httpx.BadRequest(c, err.Error())
+	}
+	if !ok {
+		return c.Status(fiber.StatusConflict).JSON(httpx.ErrorResponse{
+			Error:   "TERMINAL_STATE",
+			Message: "video job is in a terminal state and cannot be canceled",
+		})
 	}
 	return c.JSON(res)
 }

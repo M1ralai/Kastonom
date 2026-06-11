@@ -13,6 +13,7 @@ type VideoJobReadRepository interface {
 	GetJobView(tenantID, id string) (dto.VideoJobResponse, bool, error)
 	GetFullView(tenantID, id string) (dto.FullVideoJobResponse, bool, error)
 	SelectOne(tenantID, projectID, videoID string) (dto.SelectGeneratedVideoResponse, bool, error)
+	CancelJob(tenantID, id string) (dto.VideoJobResponse, bool, error)
 }
 
 type Repository struct{ db *sqlx.DB }
@@ -71,4 +72,29 @@ func (r *Repository) SelectOne(tenantID, projectID, videoID string) (dto.SelectG
 		return dto.SelectGeneratedVideoResponse{}, false, err
 	}
 	return dto.SelectGeneratedVideoResponse{CreativeProject: project, GeneratedVideo: video}, true, tx.Commit()
+}
+
+// CancelJob transitions a video_job row to status='canceled' if it is in
+// a non-terminal state (queued, submitted, processing). Terminal states
+// (completed, failed, canceled) are returned with ok=false so the caller
+// can surface a 409 — the frontend distinguishes "cancelling" from
+// "already done". The returned VideoJobResponse carries the same shape
+// as Get so the frontend can render the new state without a follow-up
+// poll. The associated Pollo job is NOT proactively cancelled by the
+// provider call; webhook reconciliation will detect the local 'canceled'
+// state and skip the result on arrival.
+func (r *Repository) CancelJob(tenantID, id string) (dto.VideoJobResponse, bool, error) {
+	var job domain.VideoJob
+	err := r.db.Get(&job, `UPDATE video_jobs SET status='canceled', updated_at=now() WHERE tenant_id=$1 AND id=$2 AND status IN ('queued','submitted','processing') RETURNING id, tenant_id AS tenantid, project_id AS projectid, generation_request_id AS generationrequestid, prompt_payload_id AS promptpayloadid, provider, status, provider_job_id AS providerjobid, is_mock AS ismock, fallback_reason AS fallbackreason, error_code AS errorcode, error_message AS errormessage, attempt_count AS attemptcount, created_at AS createdat, submitted_at AS submittedat, completed_at AS completedat, updated_at AS updatedat`, tenantID, id)
+	if err == sql.ErrNoRows {
+		return dto.VideoJobResponse{}, false, nil
+	}
+	if err != nil {
+		return dto.VideoJobResponse{}, false, err
+	}
+	videos := []domain.GeneratedVideo{}
+	if err := r.db.Select(&videos, `SELECT id, tenant_id AS tenantid, project_id AS projectid, generation_request_id AS generationrequestid, video_job_id AS videojobid, provider_result_id AS providerresultid, url, thumbnail_url AS thumbnailurl, duration_seconds AS durationseconds, aspect_ratio AS aspectratio, status, is_selected AS isselected, is_mock AS ismock, created_at AS createdat, selected_at AS selectedat FROM generated_videos WHERE tenant_id=$1 AND video_job_id=$2`, tenantID, id); err != nil {
+		return dto.VideoJobResponse{}, false, err
+	}
+	return dto.VideoJobResponse{VideoJob: job, GeneratedVideos: videos, FallbackReason: job.FallbackReason}, true, nil
 }

@@ -1,3 +1,21 @@
+// Package handler implements the demo-fallback HTTP handler.
+//
+// INTENT (Phase 3 migration, domain: demo-fallback):
+//
+//	This module is INTENTIONALLY PRESERVED as the offline/Pollo-down
+//	replay path. The /demo/fallback route is the last-resort endpoint
+//	that the dashboard/publication layers call when the real provider
+//	flow is unavailable. The module is scheduled for later deletion,
+//	but its interface contract must remain stable so that:
+//	  - RegisterRoutes registers /demo/fallback as a GET on the supplied
+//	    *fiber.App,
+//	  - Fallback(c fiber.Ctx) error remains the only entry point,
+//	  - New(cfg, service) signature is unchanged for bootstrap wiring.
+//
+// DO NOT:
+//   - Swap Fallback's body for a real Pollo HTTP call.
+//   - Change New's signature or RegisterRoutes' semantics.
+//   - Change the HTTP method or path.
 package handler
 
 import (

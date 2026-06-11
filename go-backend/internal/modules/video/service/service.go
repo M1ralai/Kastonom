@@ -9,6 +9,7 @@ import (
 type VideoJobService interface {
 	Get(ctx domain.TenantContext, id string) (dto.VideoJobResponse, bool, error)
 	GetFull(ctx domain.TenantContext, id string) (dto.FullVideoJobResponse, bool, error)
+	Cancel(ctx domain.TenantContext, id string) (dto.VideoJobResponse, bool, error)
 }
 type GeneratedVideoService interface {
 	Select(ctx domain.TenantContext, id string, req dto.SelectGeneratedVideoRequest) (dto.SelectGeneratedVideoResponse, bool, error)
@@ -24,6 +25,9 @@ func (s *Service) Get(ctx domain.TenantContext, id string) (dto.VideoJobResponse
 }
 func (s *Service) GetFull(ctx domain.TenantContext, id string) (dto.FullVideoJobResponse, bool, error) {
 	return s.repo.GetFullView(ctx.TenantID, id)
+}
+func (s *Service) Cancel(ctx domain.TenantContext, id string) (dto.VideoJobResponse, bool, error) {
+	return s.repo.CancelJob(ctx.TenantID, id)
 }
 func (s *Service) Select(ctx domain.TenantContext, id string, req dto.SelectGeneratedVideoRequest) (dto.SelectGeneratedVideoResponse, bool, error) {
 	return s.repo.SelectOne(ctx.TenantID, req.ProjectID, id)

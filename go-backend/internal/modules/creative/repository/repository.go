@@ -1,14 +1,19 @@
 package repository
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
+	"fmt"
 
 	"github.com/M1ralai/Kastonom/backend/internal/modules/creative/dto"
+	"github.com/M1ralai/Kastonom/backend/internal/provider/pollo"
 	"github.com/M1ralai/Kastonom/backend/internal/shared/domain"
+	"github.com/M1ralai/Kastonom/backend/internal/shared/logging"
 	"github.com/google/uuid"
 	"github.com/jmoiron/sqlx"
 	"github.com/lib/pq"
+	"go.uber.org/zap"
 )
 
 type CreativeProjectRepository interface {
@@ -19,9 +24,26 @@ type CreativeProjectRepository interface {
 	GetProjectMetrics(tenantID string, projectID string) (dto.ProjectMetricsResponse, bool, error)
 }
 
-type Repository struct{ db *sqlx.DB }
+// Repository is the creative-project storage + provider façade. The
+// optional *pollo.Client is the real Pollo AI integration used by
+// GetProjectMetrics when KASTONOM_MODE != "mock" and the client is
+// enabled (POLLO_API_KEY is set). When nil, GetProjectMetrics falls
+// through to the existing demoOrMockProjectMetrics helper exactly.
+type Repository struct {
+	db    *sqlx.DB
+	pollo *pollo.Client
+	mode  string
+}
 
+// New builds a Repository with no Pollo integration. Use NewWithPollo in
+// production to wire the real provider.
 func New(db *sqlx.DB) *Repository { return &Repository{db: db} }
+
+// NewWithPollo wires the Pollo client and the runtime mode so
+// GetProjectMetrics can decide between real and mock paths.
+func NewWithPollo(db *sqlx.DB, polloClient *pollo.Client, mode string) *Repository {
+	return &Repository{db: db, pollo: polloClient, mode: mode}
+}
 
 func (r *Repository) CreateBundle(project domain.CreativeProject, subject domain.CreativeSubject, assets []domain.SourceAsset) (domain.CreativeProjectBundle, error) {
 	tx, err := r.db.Beginx()
@@ -109,7 +131,76 @@ func (r *Repository) GetProjectMetrics(tenantID string, projectID string) (dto.P
 	if !ok {
 		return dto.ProjectMetricsResponse{}, false, nil
 	}
-	return demoOrMockProjectMetrics(projectID, *subject), true, nil
+
+	// KASTONOM_MODE=mock and missing Pollo client: preserve the original
+	// demo-or-mock contract byte-for-byte. The brief explicitly says: when
+	// mock, fall through to the existing helpers exactly.
+	if r.mode == "mock" || r.pollo == nil || !r.pollo.Enabled() {
+		return demoOrMockProjectMetrics(projectID, *subject), true, nil
+	}
+
+	// Real path: call Pollo POST /v1/insights/project-score. We derive a
+	// request_id from the project so logs are correlatable; in a Fiber
+	// handler the request id comes from the TenantContext but the repo
+	// signature is frozen as (tenantID, projectID) -> (DTO, bool, error).
+	// We do not have request_id here, so we generate a stable key from
+	// projectID (still deterministic and dedupe-safe on retry).
+	reqID := "metrics-" + projectID
+	ctx := pollo.WithRequestID(context.Background(), reqID)
+	ctx = pollo.WithTenantID(ctx, tenantID)
+	idemKey := pollo.ProjectScoreIdempotencyKey(tenantID, projectID, reqID)
+
+	psReq := pollo.ProjectScoreRequest{
+		TenantID:        tenantID,
+		ProjectID:       projectID,
+		SubjectID:       subject.ID,
+		SubjectName:     subject.Name,
+		SubjectType:     subject.SubjectType,
+		Price:           subject.Price,
+		Currency:        subject.Currency,
+		LandingURL:      subject.LandingURL,
+		AllowedClaims:   subject.AllowedClaims,
+		ForbiddenClaims: subject.ForbiddenClaims,
+		UnknownFields:   subject.UnknownFields,
+		Description:     subject.Description,
+	}
+
+	psResp, err := r.pollo.ProjectScore(ctx, psReq, idemKey)
+	if err != nil {
+		logging.L().Error("creative: pollo project-score failed; returning demo fallback",
+			zap.String("tenant_id", tenantID),
+			zap.String("project_id", projectID),
+			zap.Error(err),
+		)
+		// Brief says "when mock, fall through" — explicit mock is the
+		// contract; a real Pollo failure should NOT silently swap in a
+		// fake score. Surface the error so the handler returns 502.
+		return dto.ProjectMetricsResponse{}, true, fmt.Errorf("creative: project-score: %w", err)
+	}
+
+	return dto.ProjectMetricsResponse{
+		ProjectID: projectID,
+		CreativeSubject: dto.ProjectMetricsSubjectDTO{
+			ID:            subject.ID,
+			Name:          subject.Name,
+			Price:         subject.Price,
+			Currency:      subject.Currency,
+			MarginPercent: psResp.MarginPercent,
+			StockCount:    psResp.StockCount,
+			AIScore:       derefInt(psResp.AIScore, 0),
+			AIReasons:     psResp.AIReasons,
+		},
+		ERPData: dto.ERPDataDTO{
+			StockAvailable: psResp.StockCount,
+		},
+	}, true, nil
+}
+
+func derefInt(p *int, fallback int) int {
+	if p == nil {
+		return fallback
+	}
+	return *p
 }
 
 func (r *Repository) getSubject(tenantID, projectID string) (*domain.CreativeSubject, bool) {

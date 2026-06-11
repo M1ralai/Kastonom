@@ -45,7 +45,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationRequest"
+                            "$ref": "#/definitions/dto.CreateAdPublicationRequest"
                         }
                     }
                 ],
@@ -53,19 +53,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationResponse"
+                            "$ref": "#/definitions/dto.CreateAdPublicationResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -108,7 +108,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsRequest"
+                            "$ref": "#/definitions/dto.SyncMetricsRequest"
                         }
                     }
                 ],
@@ -116,19 +116,19 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsResponse"
+                            "$ref": "#/definitions/dto.SyncMetricsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -153,7 +153,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginRequest"
+                            "$ref": "#/definitions/dto.LoginRequest"
                         }
                     }
                 ],
@@ -161,19 +161,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginResponse"
+                            "$ref": "#/definitions/dto.LoginResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "401": {
                         "description": "Unauthorized",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -198,7 +198,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutRequest"
+                            "$ref": "#/definitions/dto.LogoutRequest"
                         }
                     }
                 ],
@@ -206,13 +206,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutResponse"
+                            "$ref": "#/definitions/dto.LogoutResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -237,7 +237,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RefreshTokenRequest"
+                            "$ref": "#/definitions/dto.RefreshTokenRequest"
                         }
                     }
                 ],
@@ -245,13 +245,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginResponse"
+                            "$ref": "#/definitions/dto.LoginResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -276,7 +276,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterRequest"
+                            "$ref": "#/definitions/dto.RegisterRequest"
                         }
                     }
                 ],
@@ -284,13 +284,13 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterResponse"
+                            "$ref": "#/definitions/dto.RegisterResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -326,7 +326,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionRequest"
+                            "$ref": "#/definitions/dto.CreateIterationSuggestionRequest"
                         }
                     }
                 ],
@@ -334,13 +334,13 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionResponse"
+                            "$ref": "#/definitions/dto.CreateIterationSuggestionResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -374,14 +374,14 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
+                                "$ref": "#/definitions/domain.CreativeProject"
                             }
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -415,7 +415,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectRequest"
+                            "$ref": "#/definitions/dto.CreateCreativeProjectRequest"
                         }
                     }
                 ],
@@ -423,13 +423,13 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectResponse"
+                            "$ref": "#/definitions/dto.CreateCreativeProjectResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -468,19 +468,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeProjectBundleResponse"
+                            "$ref": "#/definitions/dto.CreativeProjectBundleResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -519,19 +519,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsResponse"
+                            "$ref": "#/definitions/dto.ProjectMetricsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -563,13 +563,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_modules_dashboard_handler.KpiSummaryResponse"
+                            "$ref": "#/definitions/handler.KpiSummaryResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -608,13 +608,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_modules_dashboard_handler.RecentActivitiesResponse"
+                            "$ref": "#/definitions/handler.RecentActivitiesResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -646,13 +646,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_modules_demo_handler.DemoFallbackResponse"
+                            "$ref": "#/definitions/handler.DemoFallbackResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -695,7 +695,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoRequest"
+                            "$ref": "#/definitions/dto.SelectGeneratedVideoRequest"
                         }
                     }
                 ],
@@ -703,19 +703,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoResponse"
+                            "$ref": "#/definitions/dto.SelectGeneratedVideoResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -751,7 +751,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.CreateGenerationRequestRequest"
+                            "$ref": "#/definitions/dto.CreateGenerationRequestRequest"
                         }
                     }
                 ],
@@ -759,19 +759,19 @@ const docTemplate = `{
                     "202": {
                         "description": "Accepted",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.GenerationRequestResponse"
+                            "$ref": "#/definitions/dto.GenerationRequestResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -807,7 +807,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostRequest"
+                            "$ref": "#/definitions/dto.EstimateCostRequest"
                         }
                     }
                 ],
@@ -815,13 +815,89 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostResponse"
+                            "$ref": "#/definitions/dto.EstimateCostResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
+                        }
+                    }
+                }
+            }
+        },
+        "/health": {
+            "get": {
+                "description": "Returns the readiness state of the video provider and every configured ad platform. The probe performs a real Pollo auth-key ping and a transport-level reachability check for each platform; in mock mode every component is reported as ready with is_mock=true.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Aggregate readiness probe",
+                "responses": {
+                    "200": {
+                        "description": "Readiness report",
+                        "schema": {
+                            "$ref": "#/definitions/health.Report"
+                        }
+                    }
+                }
+            }
+        },
+        "/health/ready": {
+            "get": {
+                "description": "Pings the database and returns 200 with status=ok when reachable, or 503 with a diagnostic payload when not. Intended for Kubernetes liveness/readiness probes.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Health"
+                ],
+                "summary": "Liveness/readiness check for the database",
+                "responses": {
+                    "200": {
+                        "description": "status=ok",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "503": {
+                        "description": "status=degraded, db error attached",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    }
+                }
+            }
+        },
+        "/openapi.json": {
+            "get": {
+                "description": "Serves docs/swagger.json (the file produced by ` + "`" + `swag init` + "`" + `) under the conventional /openapi.json path. Returns 404 with a remediation hint when the spec is missing so operators do not silently serve a stale document.",
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Docs"
+                ],
+                "summary": "Serve the generated OpenAPI spec",
+                "responses": {
+                    "200": {
+                        "description": "OpenAPI 2.0 spec",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
+                        }
+                    },
+                    "404": {
+                        "description": "Spec missing - run swag init",
+                        "schema": {
+                            "type": "object",
+                            "additionalProperties": true
                         }
                     }
                 }
@@ -853,13 +929,13 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetUploadResponse"
+                            "$ref": "#/definitions/dto.SourceAssetUploadResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -891,19 +967,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_modules_tenant_handler.TenantDetailsResponse"
+                            "$ref": "#/definitions/handler.TenantDetailsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -935,13 +1011,13 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/internal_modules_tenant_handler.TenantCreditsResponse"
+                            "$ref": "#/definitions/handler.TenantCreditsResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -980,19 +1056,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.VideoJobResponse"
+                            "$ref": "#/definitions/dto.VideoJobResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -1031,19 +1107,19 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobResponse"
+                            "$ref": "#/definitions/dto.FullVideoJobResponse"
                         }
                     },
                     "400": {
                         "description": "Bad Request",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     },
                     "404": {
                         "description": "Not Found",
                         "schema": {
-                            "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse"
+                            "$ref": "#/definitions/httpx.ErrorResponse"
                         }
                     }
                 }
@@ -1051,830 +1127,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthTenantDTO": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthUserDTO": {
-            "type": "object",
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "tenant_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginRequest": {
-            "type": "object",
-            "required": [
-                "email",
-                "password"
-            ],
-            "properties": {
-                "email": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LoginResponse": {
-            "type": "object",
-            "properties": {
-                "access_token": {
-                    "type": "string"
-                },
-                "expires_in": {
-                    "type": "integer"
-                },
-                "refresh_token": {
-                    "type": "string"
-                },
-                "token": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthUserDTO"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutRequest": {
-            "type": "object",
-            "required": [
-                "user_id"
-            ],
-            "properties": {
-                "user_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.LogoutResponse": {
-            "type": "object",
-            "properties": {
-                "success": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RefreshTokenRequest": {
-            "type": "object",
-            "required": [
-                "refresh_token"
-            ],
-            "properties": {
-                "refresh_token": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterRequest": {
-            "type": "object",
-            "required": [
-                "company_name",
-                "email",
-                "name",
-                "password"
-            ],
-            "properties": {
-                "company_name": {
-                    "type": "string"
-                },
-                "email": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "password": {
-                    "type": "string",
-                    "minLength": 8
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.RegisterResponse": {
-            "type": "object",
-            "properties": {
-                "tenant": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthTenantDTO"
-                },
-                "token": {
-                    "type": "string"
-                },
-                "user": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_auth_dto.AuthUserDTO"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectRequest": {
-            "type": "object",
-            "required": [
-                "creative_subject",
-                "name",
-                "source_assets"
-            ],
-            "properties": {
-                "creative_subject": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeSubjectInput"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "source_assets": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetInput"
-                    }
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreateCreativeProjectResponse": {
-            "type": "object",
-            "properties": {
-                "creative_project": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
-                },
-                "creative_subject": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject"
-                },
-                "fallback_reason": {
-                    "type": "string"
-                },
-                "source_assets": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset"
-                    }
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeProjectBundleResponse": {
-            "type": "object",
-            "properties": {
-                "creative_project": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
-                },
-                "creative_subject": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject"
-                },
-                "generated_videos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
-                    }
-                },
-                "generation_requests": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest"
-                    }
-                },
-                "source_assets": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset"
-                    }
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.CreativeSubjectInput": {
-            "type": "object",
-            "required": [
-                "allowed_claims",
-                "forbidden_claims",
-                "name",
-                "source",
-                "subject_type",
-                "unknown_fields"
-            ],
-            "properties": {
-                "allowed_claims": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "currency": {
-                    "type": "string"
-                },
-                "description": {
-                    "type": "string"
-                },
-                "forbidden_claims": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "landing_url": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "source": {
-                    "type": "string"
-                },
-                "subject_type": {
-                    "type": "string"
-                },
-                "unknown_fields": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ERPDataDTO": {
-            "type": "object",
-            "properties": {
-                "last_sync_at": {
-                    "type": "string"
-                },
-                "stock_available": {
-                    "type": "integer"
-                },
-                "stock_reserved": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsResponse": {
-            "type": "object",
-            "properties": {
-                "creative_subject": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsSubjectDTO"
-                },
-                "erp_data": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ERPDataDTO"
-                },
-                "project_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.ProjectMetricsSubjectDTO": {
-            "type": "object",
-            "properties": {
-                "ai_reasons": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "ai_score": {
-                    "type": "integer"
-                },
-                "currency": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "margin_percent": {
-                    "type": "integer"
-                },
-                "name": {
-                    "type": "string"
-                },
-                "price": {
-                    "type": "number"
-                },
-                "stock_count": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetInput": {
-            "type": "object",
-            "required": [
-                "asset_type",
-                "source",
-                "url"
-            ],
-            "properties": {
-                "asset_type": {
-                    "type": "string"
-                },
-                "metadata": {
-                    "type": "object",
-                    "additionalProperties": {}
-                },
-                "source": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_creative_dto.SourceAssetUploadResponse": {
-            "type": "object",
-            "properties": {
-                "source_asset": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset"
-                },
-                "upload_url": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.ActivityGeneratedVideoDTO": {
-            "type": "object",
-            "properties": {
-                "ctr": {
-                    "type": "number"
-                },
-                "impressions": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.RecentActivityDTO": {
-            "type": "object",
-            "properties": {
-                "generated_video": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.ActivityGeneratedVideoDTO"
-                },
-                "icon": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "project_id": {
-                    "type": "string"
-                },
-                "project_name": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "updated_at": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.CreateGenerationRequestRequest": {
-            "type": "object",
-            "required": [
-                "aspect_ratio",
-                "duration_seconds",
-                "language",
-                "objective",
-                "platform",
-                "project_id",
-                "source_asset_ids"
-            ],
-            "properties": {
-                "aspect_ratio": {
-                    "type": "string"
-                },
-                "call_to_action": {
-                    "type": "string"
-                },
-                "duration_seconds": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "language": {
-                    "type": "string",
-                    "maxLength": 16,
-                    "minLength": 2
-                },
-                "objective": {
-                    "type": "string"
-                },
-                "platform": {
-                    "type": "string"
-                },
-                "project_id": {
-                    "type": "string"
-                },
-                "provider": {
-                    "type": "string"
-                },
-                "source_asset_ids": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
-                "style": {
-                    "type": "string"
-                },
-                "target_audience": {
-                    "type": "string"
-                },
-                "tone": {
-                    "type": "string"
-                },
-                "user_notes": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostRequest": {
-            "type": "object",
-            "required": [
-                "aspect_ratio",
-                "duration_seconds",
-                "platform"
-            ],
-            "properties": {
-                "aspect_ratio": {
-                    "type": "string"
-                },
-                "duration_seconds": {
-                    "type": "integer",
-                    "minimum": 1
-                },
-                "platform": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimateCostResponse": {
-            "type": "object",
-            "properties": {
-                "estimated_cost": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimatedCostDTO"
-                },
-                "estimated_credits": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.EstimatedCostDTO": {
-            "type": "object",
-            "properties": {
-                "amount": {
-                    "type": "integer"
-                },
-                "currency": {
-                    "type": "string"
-                },
-                "max_amount": {
-                    "type": "integer"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_generation_dto.GenerationRequestResponse": {
-            "type": "object",
-            "properties": {
-                "fallback_reason": {
-                    "type": "string"
-                },
-                "generated_videos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
-                    }
-                },
-                "generation_request": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest"
-                },
-                "prompt_payload": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.PromptPayload"
-                },
-                "provider_result": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult"
-                },
-                "video_job": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionRequest": {
-            "type": "object",
-            "required": [
-                "generated_video_id",
-                "project_id",
-                "reason"
-            ],
-            "properties": {
-                "ad_metrics_snapshot_id": {
-                    "type": "string"
-                },
-                "generated_video_id": {
-                    "type": "string"
-                },
-                "project_id": {
-                    "type": "string"
-                },
-                "reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_iteration_dto.CreateIterationSuggestionResponse": {
-            "type": "object",
-            "properties": {
-                "creative_iteration_suggestion": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeIterationSuggestion"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationRequest": {
-            "type": "object",
-            "required": [
-                "generated_video_id",
-                "platform",
-                "project_id"
-            ],
-            "properties": {
-                "ad_platform_connection_id": {
-                    "type": "string"
-                },
-                "destination_url": {
-                    "type": "string"
-                },
-                "generated_video_id": {
-                    "type": "string"
-                },
-                "platform": {
-                    "type": "string"
-                },
-                "project_id": {
-                    "type": "string"
-                },
-                "user_confirmed_publish": {
-                    "type": "boolean"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.CreateAdPublicationResponse": {
-            "type": "object",
-            "properties": {
-                "ad_publication": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdPublication"
-                },
-                "fallback_reason": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.MetricInputDTO": {
-            "type": "object",
-            "properties": {
-                "clicks": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "conversion_value": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "conversions": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "cost_per_video_view": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "cpc": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "ctr": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "currency": {
-                    "type": "string"
-                },
-                "impressions": {
-                    "type": "integer",
-                    "minimum": 0
-                },
-                "roas": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "spend": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "video_view_rate": {
-                    "type": "number",
-                    "minimum": 0
-                },
-                "video_views": {
-                    "type": "integer",
-                    "minimum": 0
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsRequest": {
-            "type": "object",
-            "required": [
-                "date_end",
-                "date_start",
-                "source"
-            ],
-            "properties": {
-                "date_end": {
-                    "type": "string"
-                },
-                "date_start": {
-                    "type": "string"
-                },
-                "metrics": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.MetricInputDTO"
-                },
-                "source": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_publication_dto.SyncMetricsResponse": {
-            "type": "object",
-            "properties": {
-                "metrics_snapshot": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdMetricsSnapshot"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.CreativeSubjectPreviewDTO": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "img": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobDTO": {
-            "type": "object",
-            "properties": {
-                "created_at": {
-                    "type": "string"
-                },
-                "fallback_reason": {
-                    "type": "string"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_mock": {
-                    "type": "boolean"
-                },
-                "provider": {
-                    "type": "string"
-                },
-                "status": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobResponse": {
-            "type": "object",
-            "properties": {
-                "creative_subject": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.CreativeSubjectPreviewDTO"
-                },
-                "generated_videos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GeneratedVideoPreviewDTO"
-                    }
-                },
-                "generation_request": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GenerationRequestPreviewDTO"
-                },
-                "project": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.ProjectSummaryDTO"
-                },
-                "video_job": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.FullVideoJobDTO"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GeneratedVideoPreviewDTO": {
-            "type": "object",
-            "properties": {
-                "aspect_ratio": {
-                    "type": "string"
-                },
-                "duration_seconds": {
-                    "type": "integer"
-                },
-                "id": {
-                    "type": "string"
-                },
-                "is_selected": {
-                    "type": "boolean"
-                },
-                "status": {
-                    "type": "string"
-                },
-                "thumbnail_url": {
-                    "type": "string"
-                },
-                "url": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.GenerationRequestPreviewDTO": {
-            "type": "object",
-            "properties": {
-                "call_to_action": {
-                    "type": "string"
-                },
-                "platform": {
-                    "type": "string"
-                },
-                "style": {
-                    "type": "string"
-                },
-                "tone": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.ProjectSummaryDTO": {
-            "type": "object",
-            "properties": {
-                "id": {
-                    "type": "string"
-                },
-                "name": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoRequest": {
-            "type": "object",
-            "required": [
-                "project_id"
-            ],
-            "properties": {
-                "project_id": {
-                    "type": "string"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.SelectGeneratedVideoResponse": {
-            "type": "object",
-            "properties": {
-                "creative_project": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
-                },
-                "generated_video": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_modules_video_dto.VideoJobResponse": {
-            "type": "object",
-            "properties": {
-                "fallback_reason": {
-                    "type": "string"
-                },
-                "generated_videos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
-                    }
-                },
-                "provider_result": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult"
-                },
-                "video_job": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob"
-                }
-            }
-        },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdMetricsSnapshot": {
+        "domain.AdMetricsSnapshot": {
             "type": "object",
             "properties": {
                 "ad_publication_id": {
@@ -1943,7 +1196,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdPublication": {
+        "domain.AdPublication": {
             "type": "object",
             "properties": {
                 "ad_platform_connection_id": {
@@ -1999,7 +1252,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeIterationSuggestion": {
+        "domain.CreativeIterationSuggestion": {
             "type": "object",
             "properties": {
                 "ad_metrics_snapshot_id": {
@@ -2037,7 +1290,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject": {
+        "domain.CreativeProject": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2066,7 +1319,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject": {
+        "domain.CreativeSubject": {
             "type": "object",
             "properties": {
                 "allowed_claims": {
@@ -2125,7 +1378,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo": {
+        "domain.GeneratedVideo": {
             "type": "object",
             "properties": {
                 "aspect_ratio": {
@@ -2175,7 +1428,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest": {
+        "domain.GenerationRequest": {
             "type": "object",
             "properties": {
                 "aspect_ratio": {
@@ -2243,7 +1496,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.PromptPayload": {
+        "domain.PromptPayload": {
             "type": "object",
             "properties": {
                 "aspect_ratio": {
@@ -2300,7 +1553,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult": {
+        "domain.ProviderResult": {
             "type": "object",
             "properties": {
                 "error_code": {
@@ -2345,7 +1598,30 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset": {
+        "domain.ReadinessStatus": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "is_mock": {
+                    "type": "boolean"
+                },
+                "missing": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "ready": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "domain.SourceAsset": {
             "type": "object",
             "properties": {
                 "asset_type": {
@@ -2393,7 +1669,7 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob": {
+        "domain.VideoJob": {
             "type": "object",
             "properties": {
                 "attempt_count": {
@@ -2449,21 +1725,880 @@ const docTemplate = `{
                 }
             }
         },
-        "github_com_M1ralai_Kastonom_backend_internal_shared_httpx.ErrorResponse": {
+        "dto.ActivityGeneratedVideoDTO": {
             "type": "object",
             "properties": {
-                "error": {
+                "ctr": {
+                    "type": "number"
+                },
+                "impressions": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.AuthTenantDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
                     "type": "string"
                 },
-                "fallback_available": {
-                    "type": "boolean"
-                },
-                "message": {
+                "name": {
                     "type": "string"
                 }
             }
         },
-        "internal_modules_dashboard_handler.KpiSummaryResponse": {
+        "dto.AuthUserDTO": {
+            "type": "object",
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "tenant_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateAdPublicationRequest": {
+            "type": "object",
+            "required": [
+                "generated_video_id",
+                "platform",
+                "project_id"
+            ],
+            "properties": {
+                "ad_platform_connection_id": {
+                    "type": "string"
+                },
+                "destination_url": {
+                    "type": "string"
+                },
+                "generated_video_id": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "user_confirmed_publish": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.CreateAdPublicationResponse": {
+            "type": "object",
+            "properties": {
+                "ad_publication": {
+                    "$ref": "#/definitions/domain.AdPublication"
+                },
+                "fallback_reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateCreativeProjectRequest": {
+            "type": "object",
+            "required": [
+                "creative_subject",
+                "name",
+                "source_assets"
+            ],
+            "properties": {
+                "creative_subject": {
+                    "$ref": "#/definitions/dto.CreativeSubjectInput"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "source_assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.SourceAssetInput"
+                    }
+                }
+            }
+        },
+        "dto.CreateCreativeProjectResponse": {
+            "type": "object",
+            "properties": {
+                "creative_project": {
+                    "$ref": "#/definitions/domain.CreativeProject"
+                },
+                "creative_subject": {
+                    "$ref": "#/definitions/domain.CreativeSubject"
+                },
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "source_assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.SourceAsset"
+                    }
+                }
+            }
+        },
+        "dto.CreateGenerationRequestRequest": {
+            "type": "object",
+            "required": [
+                "aspect_ratio",
+                "duration_seconds",
+                "language",
+                "objective",
+                "platform",
+                "project_id",
+                "source_asset_ids"
+            ],
+            "properties": {
+                "aspect_ratio": {
+                    "type": "string"
+                },
+                "call_to_action": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "language": {
+                    "type": "string",
+                    "maxLength": 16,
+                    "minLength": 2
+                },
+                "objective": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "source_asset_ids": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "style": {
+                    "type": "string"
+                },
+                "target_audience": {
+                    "type": "string"
+                },
+                "tone": {
+                    "type": "string"
+                },
+                "user_notes": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateIterationSuggestionRequest": {
+            "type": "object",
+            "required": [
+                "generated_video_id",
+                "project_id",
+                "reason"
+            ],
+            "properties": {
+                "ad_metrics_snapshot_id": {
+                    "type": "string"
+                },
+                "generated_video_id": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "reason": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.CreateIterationSuggestionResponse": {
+            "type": "object",
+            "properties": {
+                "creative_iteration_suggestion": {
+                    "$ref": "#/definitions/domain.CreativeIterationSuggestion"
+                }
+            }
+        },
+        "dto.CreativeProjectBundleResponse": {
+            "type": "object",
+            "properties": {
+                "creative_project": {
+                    "$ref": "#/definitions/domain.CreativeProject"
+                },
+                "creative_subject": {
+                    "$ref": "#/definitions/domain.CreativeSubject"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.GeneratedVideo"
+                    }
+                },
+                "generation_requests": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.GenerationRequest"
+                    }
+                },
+                "source_assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.SourceAsset"
+                    }
+                }
+            }
+        },
+        "dto.CreativeSubjectInput": {
+            "type": "object",
+            "required": [
+                "allowed_claims",
+                "forbidden_claims",
+                "name",
+                "source",
+                "subject_type",
+                "unknown_fields"
+            ],
+            "properties": {
+                "allowed_claims": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "forbidden_claims": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "landing_url": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "source": {
+                    "type": "string"
+                },
+                "subject_type": {
+                    "type": "string"
+                },
+                "unknown_fields": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                }
+            }
+        },
+        "dto.CreativeSubjectPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "img": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ERPDataDTO": {
+            "type": "object",
+            "properties": {
+                "last_sync_at": {
+                    "type": "string"
+                },
+                "stock_available": {
+                    "type": "integer"
+                },
+                "stock_reserved": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EstimateCostRequest": {
+            "type": "object",
+            "required": [
+                "aspect_ratio",
+                "duration_seconds",
+                "platform"
+            ],
+            "properties": {
+                "aspect_ratio": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "integer",
+                    "minimum": 1
+                },
+                "platform": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.EstimateCostResponse": {
+            "type": "object",
+            "properties": {
+                "estimated_cost": {
+                    "$ref": "#/definitions/dto.EstimatedCostDTO"
+                },
+                "estimated_credits": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.EstimatedCostDTO": {
+            "type": "object",
+            "properties": {
+                "amount": {
+                    "type": "integer"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "max_amount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.FullVideoJobDTO": {
+            "type": "object",
+            "properties": {
+                "created_at": {
+                    "type": "string"
+                },
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_mock": {
+                    "type": "boolean"
+                },
+                "provider": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.FullVideoJobResponse": {
+            "type": "object",
+            "properties": {
+                "creative_subject": {
+                    "$ref": "#/definitions/dto.CreativeSubjectPreviewDTO"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/dto.GeneratedVideoPreviewDTO"
+                    }
+                },
+                "generation_request": {
+                    "$ref": "#/definitions/dto.GenerationRequestPreviewDTO"
+                },
+                "project": {
+                    "$ref": "#/definitions/dto.ProjectSummaryDTO"
+                },
+                "video_job": {
+                    "$ref": "#/definitions/dto.FullVideoJobDTO"
+                }
+            }
+        },
+        "dto.GeneratedVideoPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "aspect_ratio": {
+                    "type": "string"
+                },
+                "duration_seconds": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "is_selected": {
+                    "type": "boolean"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "thumbnail_url": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GenerationRequestPreviewDTO": {
+            "type": "object",
+            "properties": {
+                "call_to_action": {
+                    "type": "string"
+                },
+                "platform": {
+                    "type": "string"
+                },
+                "style": {
+                    "type": "string"
+                },
+                "tone": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.GenerationRequestResponse": {
+            "type": "object",
+            "properties": {
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.GeneratedVideo"
+                    }
+                },
+                "generation_request": {
+                    "$ref": "#/definitions/domain.GenerationRequest"
+                },
+                "prompt_payload": {
+                    "$ref": "#/definitions/domain.PromptPayload"
+                },
+                "provider_result": {
+                    "$ref": "#/definitions/domain.ProviderResult"
+                },
+                "video_job": {
+                    "$ref": "#/definitions/domain.VideoJob"
+                }
+            }
+        },
+        "dto.LoginRequest": {
+            "type": "object",
+            "required": [
+                "email",
+                "password"
+            ],
+            "properties": {
+                "email": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.LoginResponse": {
+            "type": "object",
+            "properties": {
+                "access_token": {
+                    "type": "string"
+                },
+                "expires_in": {
+                    "type": "integer"
+                },
+                "refresh_token": {
+                    "type": "string"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/dto.AuthUserDTO"
+                }
+            }
+        },
+        "dto.LogoutRequest": {
+            "type": "object",
+            "required": [
+                "user_id"
+            ],
+            "properties": {
+                "user_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.LogoutResponse": {
+            "type": "object",
+            "properties": {
+                "success": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "dto.MetricInputDTO": {
+            "type": "object",
+            "properties": {
+                "clicks": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "conversion_value": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "conversions": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "cost_per_video_view": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "cpc": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "ctr": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "impressions": {
+                    "type": "integer",
+                    "minimum": 0
+                },
+                "roas": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "spend": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "video_view_rate": {
+                    "type": "number",
+                    "minimum": 0
+                },
+                "video_views": {
+                    "type": "integer",
+                    "minimum": 0
+                }
+            }
+        },
+        "dto.ProjectMetricsResponse": {
+            "type": "object",
+            "properties": {
+                "creative_subject": {
+                    "$ref": "#/definitions/dto.ProjectMetricsSubjectDTO"
+                },
+                "erp_data": {
+                    "$ref": "#/definitions/dto.ERPDataDTO"
+                },
+                "project_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.ProjectMetricsSubjectDTO": {
+            "type": "object",
+            "properties": {
+                "ai_reasons": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "ai_score": {
+                    "type": "integer"
+                },
+                "currency": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "margin_percent": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "price": {
+                    "type": "number"
+                },
+                "stock_count": {
+                    "type": "integer"
+                }
+            }
+        },
+        "dto.ProjectSummaryDTO": {
+            "type": "object",
+            "properties": {
+                "id": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RecentActivityDTO": {
+            "type": "object",
+            "properties": {
+                "generated_video": {
+                    "$ref": "#/definitions/dto.ActivityGeneratedVideoDTO"
+                },
+                "icon": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "string"
+                },
+                "project_id": {
+                    "type": "string"
+                },
+                "project_name": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "updated_at": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RefreshTokenRequest": {
+            "type": "object",
+            "required": [
+                "refresh_token"
+            ],
+            "properties": {
+                "refresh_token": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.RegisterRequest": {
+            "type": "object",
+            "required": [
+                "company_name",
+                "email",
+                "name",
+                "password"
+            ],
+            "properties": {
+                "company_name": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "password": {
+                    "type": "string",
+                    "minLength": 8
+                }
+            }
+        },
+        "dto.RegisterResponse": {
+            "type": "object",
+            "properties": {
+                "tenant": {
+                    "$ref": "#/definitions/dto.AuthTenantDTO"
+                },
+                "token": {
+                    "type": "string"
+                },
+                "user": {
+                    "$ref": "#/definitions/dto.AuthUserDTO"
+                }
+            }
+        },
+        "dto.SelectGeneratedVideoRequest": {
+            "type": "object",
+            "required": [
+                "project_id"
+            ],
+            "properties": {
+                "project_id": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SelectGeneratedVideoResponse": {
+            "type": "object",
+            "properties": {
+                "creative_project": {
+                    "$ref": "#/definitions/domain.CreativeProject"
+                },
+                "generated_video": {
+                    "$ref": "#/definitions/domain.GeneratedVideo"
+                }
+            }
+        },
+        "dto.SourceAssetInput": {
+            "type": "object",
+            "required": [
+                "asset_type",
+                "source",
+                "url"
+            ],
+            "properties": {
+                "asset_type": {
+                    "type": "string"
+                },
+                "metadata": {
+                    "type": "object",
+                    "additionalProperties": {}
+                },
+                "source": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SourceAssetUploadResponse": {
+            "type": "object",
+            "properties": {
+                "source_asset": {
+                    "$ref": "#/definitions/domain.SourceAsset"
+                },
+                "upload_url": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SyncMetricsRequest": {
+            "type": "object",
+            "required": [
+                "date_end",
+                "date_start",
+                "source"
+            ],
+            "properties": {
+                "date_end": {
+                    "type": "string"
+                },
+                "date_start": {
+                    "type": "string"
+                },
+                "metrics": {
+                    "$ref": "#/definitions/dto.MetricInputDTO"
+                },
+                "source": {
+                    "type": "string"
+                }
+            }
+        },
+        "dto.SyncMetricsResponse": {
+            "type": "object",
+            "properties": {
+                "metrics_snapshot": {
+                    "$ref": "#/definitions/domain.AdMetricsSnapshot"
+                }
+            }
+        },
+        "dto.VideoJobResponse": {
+            "type": "object",
+            "properties": {
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.GeneratedVideo"
+                    }
+                },
+                "provider_result": {
+                    "$ref": "#/definitions/domain.ProviderResult"
+                },
+                "video_job": {
+                    "$ref": "#/definitions/domain.VideoJob"
+                }
+            }
+        },
+        "handler.DemoFallbackResponse": {
+            "type": "object",
+            "properties": {
+                "ad_publication": {
+                    "$ref": "#/definitions/domain.AdPublication"
+                },
+                "creative_iteration_suggestion": {
+                    "$ref": "#/definitions/domain.CreativeIterationSuggestion"
+                },
+                "creative_project": {
+                    "$ref": "#/definitions/domain.CreativeProject"
+                },
+                "creative_subject": {
+                    "$ref": "#/definitions/domain.CreativeSubject"
+                },
+                "fallback_reason": {
+                    "type": "string"
+                },
+                "generated_videos": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.GeneratedVideo"
+                    }
+                },
+                "generation_request": {
+                    "$ref": "#/definitions/domain.GenerationRequest"
+                },
+                "metrics_snapshot": {
+                    "$ref": "#/definitions/domain.AdMetricsSnapshot"
+                },
+                "prompt_payload": {
+                    "$ref": "#/definitions/domain.PromptPayload"
+                },
+                "provider_result": {
+                    "$ref": "#/definitions/domain.ProviderResult"
+                },
+                "selected_generated_video": {
+                    "$ref": "#/definitions/domain.GeneratedVideo"
+                },
+                "source_assets": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/domain.SourceAsset"
+                    }
+                },
+                "video_job": {
+                    "$ref": "#/definitions/domain.VideoJob"
+                }
+            }
+        },
+        "handler.KpiSummaryResponse": {
             "type": "object",
             "properties": {
                 "average_ctr": {
@@ -2489,68 +2624,18 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_modules_dashboard_handler.RecentActivitiesResponse": {
+        "handler.RecentActivitiesResponse": {
             "type": "object",
             "properties": {
                 "activities": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_modules_dashboard_dto.RecentActivityDTO"
+                        "$ref": "#/definitions/dto.RecentActivityDTO"
                     }
                 }
             }
         },
-        "internal_modules_demo_handler.DemoFallbackResponse": {
-            "type": "object",
-            "properties": {
-                "ad_publication": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdPublication"
-                },
-                "creative_iteration_suggestion": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeIterationSuggestion"
-                },
-                "creative_project": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeProject"
-                },
-                "creative_subject": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.CreativeSubject"
-                },
-                "fallback_reason": {
-                    "type": "string"
-                },
-                "generated_videos": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
-                    }
-                },
-                "generation_request": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GenerationRequest"
-                },
-                "metrics_snapshot": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.AdMetricsSnapshot"
-                },
-                "prompt_payload": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.PromptPayload"
-                },
-                "provider_result": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.ProviderResult"
-                },
-                "selected_generated_video": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.GeneratedVideo"
-                },
-                "source_assets": {
-                    "type": "array",
-                    "items": {
-                        "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.SourceAsset"
-                    }
-                },
-                "video_job": {
-                    "$ref": "#/definitions/github_com_M1ralai_Kastonom_backend_internal_shared_domain.VideoJob"
-                }
-            }
-        },
-        "internal_modules_tenant_handler.TenantCreditsResponse": {
+        "handler.TenantCreditsResponse": {
             "type": "object",
             "properties": {
                 "credit_currency": {
@@ -2573,7 +2658,7 @@ const docTemplate = `{
                 }
             }
         },
-        "internal_modules_tenant_handler.TenantDetailsResponse": {
+        "handler.TenantDetailsResponse": {
             "type": "object",
             "properties": {
                 "created_at": {
@@ -2592,30 +2677,55 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        }
-    },
-    "securityDefinitions": {
-        "BearerAuth": {
-            "type": "apiKey",
-            "name": "Authorization",
-            "in": "header"
         },
-        "TenantID": {
-            "type": "apiKey",
-            "name": "x-tenant-id",
-            "in": "header"
+        "health.Report": {
+            "type": "object",
+            "properties": {
+                "ad_platform_readiness": {
+                    "type": "object",
+                    "additionalProperties": {
+                        "$ref": "#/definitions/domain.ReadinessStatus"
+                    }
+                },
+                "mode": {
+                    "type": "string"
+                },
+                "status": {
+                    "type": "string"
+                },
+                "version": {
+                    "type": "string"
+                },
+                "video_provider_readiness": {
+                    "$ref": "#/definitions/domain.ReadinessStatus"
+                }
+            }
+        },
+        "httpx.ErrorResponse": {
+            "type": "object",
+            "properties": {
+                "error": {
+                    "type": "string"
+                },
+                "fallback_available": {
+                    "type": "boolean"
+                },
+                "message": {
+                    "type": "string"
+                }
+            }
         }
     }
 }`
 
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
-	Version:          "1.0",
+	Version:          "",
 	Host:             "",
-	BasePath:         "/",
-	Schemes:          []string{"http", "https"},
-	Title:            "Kastonom Backend API",
-	Description:      "Kastonom Go backend API documentation.",
+	BasePath:         "",
+	Schemes:          []string{},
+	Title:            "",
+	Description:      "",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",

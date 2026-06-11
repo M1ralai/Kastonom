@@ -1,6 +1,8 @@
 package httpx
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"strings"
 
 	"github.com/M1ralai/Kastonom/backend/internal/shared/domain"
@@ -49,4 +51,21 @@ func NotFound(c fiber.Ctx, message string) error {
 
 func Unauthorized(c fiber.Ctx, message string) error {
 	return c.Status(fiber.StatusUnauthorized).JSON(ErrorResponse{Error: "UNAUTHORIZED", Message: message})
+}
+
+// PolloAuthHeader renders the Authorization header value Pollo expects.
+// Per the Pollo AI API docs, the bearer token is sent as "Authorization:
+// Bearer <POLLO_API_KEY>".
+func PolloAuthHeader(apiKey string) string {
+	return "Bearer " + strings.TrimSpace(apiKey)
+}
+
+// ProviderRequestID produces a stable, deterministic id for outbound
+// provider calls. It is the hex-encoded SHA-256 of the concatenation of
+// tenant_id, project_id and request_id (any of which may be empty).
+// Using a hash means the same logical retry produces the same idempotency
+// key on the provider side, satisfying the Idempotency-Key contract.
+func ProviderRequestID(tenantID, projectID, requestID string) string {
+	sum := sha256.Sum256([]byte(strings.Join([]string{tenantID, projectID, requestID}, "|")))
+	return hex.EncodeToString(sum[:])
 }
